@@ -18,7 +18,7 @@ data figures on a laptop with no GPU/cluster** (Steps 6–7 below). To re-run th
 6-method × 25-subject benchmark on a cluster and regenerate those CSVs:
 
 ```bash
-pip install -e ".[all]"                          # + jax[cuda12] for the GPU backend
+pip install -e ".[jax-gpu,amica]"                # JAX (CUDA 12) backend + the amica algorithm
 cd benchmark/cc_benchmark
 cp env.template env.local                        # edit: your allocation, GPU, data path
 module load git-annex && bash download_ds004505.sh   # ~10 GB public OpenNeuro data
@@ -111,7 +111,7 @@ repository** because of size; the committed figures were rendered from the
 
 | Resource | Required for |
 |----------|-------------|
-| Python ≥ 3.10 with `amica-python[all]` | Everything |
+| Python ≥ 3.10, this repo (`amica-benchmark`) + the `amica` algorithm package | Everything |
 | graphviz (`dot` command) | Fig 2 only |
 | GPU with JAX/CUDA (paper used NVIDIA H100) | Paper-exact GPU results; CPU path is ~200× slower |
 | ds004505 OpenNeuro dataset (~10 GB, 25 subjects) | Figs 5–8, S1–S2 |
@@ -122,22 +122,40 @@ repository** because of size; the committed figures were rendered from the
 
 ## Step 0 — Install
 
-```bash
-git clone https://github.com/snesmaeili/amica.git
-cd amica
+Two repositories are involved, and they are not the same thing:
 
-# CPU-only (figures 2 and 4; rendering from existing CSVs):
-pip install -e ".[all]"
+- **`snesmaeili/amica-benchmark`** (this repo) — the benchmark harness: the
+  `amica_python/benchmark/` package, the figure scripts, and the cluster setup
+  scripts. Everything below is run from a checkout of this repo.
+- **`snesmaeili/amica`** — the AMICA *algorithm* under test, which installs as the
+  `amica` package. It is pulled in by this repo's `amica` extra (or, on the
+  cluster, by `benchmark/cc_benchmark/setup_*.sh`, which pin it by commit).
+
+```bash
+git clone https://github.com/snesmaeili/amica-benchmark.git
+cd amica-benchmark
+
+# Rendering the committed CSVs into figures (Steps 6–7) needs only the base deps:
+pip install -e .
+
+# To re-RUN fits on CPU (figures 2 and 4), add the JAX-CPU backend + the algorithm:
+pip install -e ".[jax-cpu,amica]"
 
 # GPU (paper-exact AMICA runs; requires CUDA 12):
-pip install -e ".[all]" "jax[cuda12]>=0.4"
+pip install -e ".[jax-gpu,amica]"
 ```
 
-Verify:
+The real extras are `jax-cpu`, `jax-gpu`, and `amica` (see `pyproject.toml`);
+there is no `[all]` extra. On a cluster, prefer the pinned `setup_*.sh` scripts
+over `pip install -e ".[amica]"` so the algorithm and competitors install by
+commit (see `benchmark/cc_benchmark/pins.toml`).
+
+Verify (from the repo root, so the in-tree `amica_python` package is importable):
 
 ```bash
-python -c "import amica_python; print(amica_python)"
-python -c "import jax; print(jax.devices())"   # should show gpu device
+python -c "import amica; print('amica algorithm:', amica.__file__)"
+python -c "from amica_python import benchmark; print('benchmark harness OK')"
+python -c "import jax; print(jax.devices())"   # should show a gpu device on the GPU install
 ```
 
 ---
@@ -289,17 +307,17 @@ for i in $(seq 1 25); do
       --output-dir benchmark/cc_benchmark/results/v3_paper_stage1_cluster
 done
 
-# Comparators: Picard, Infomax, FastICA
-# Single subject example: --subject 1 --method picard
+# Comparators: Picard, Infomax, FastICA. These live in a SEPARATE module —
+# `amica_python.benchmark.comparators` — not runner.py (which has no --method).
+# `--method all` runs all three; it always writes v3 (no --schema-version flag).
 for method in picard infomax fastica; do
   for i in $(seq 1 25); do
     AMICA_COMPUTE_DIPOLES=1 \
-      python -m amica_python.benchmark.runner \
+      python -m amica_python.benchmark.comparators \
         --dataset ds004505 \
         --subject $i \
         --method $method \
         --input-level merged \
-        --schema-version v3 \
         --output-dir benchmark/cc_benchmark/results/v3_paper_stage1_cluster
   done
 done
