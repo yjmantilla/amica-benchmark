@@ -7,9 +7,23 @@ publication-grade CSVs whose columns are listed here. Paper figures
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+
+# The v3 result-document schema version, defined ONCE here. Producers stamp it
+# into `_schema_version`; the aggregator compares on MAJOR version (see
+# schema_major) so a compatible minor bump (3.0 -> 3.1) is accepted with a warning
+# instead of being silently warn-and-dropped.
+SCHEMA_VERSION = "3.0"
+
+
+def schema_major(version: str | None) -> str | None:
+    """Major component of a schema version string ('3.0' -> '3', '3' -> '3')."""
+    if version is None:
+        return None
+    return str(version).split(".", 1)[0]
 
 
 BENCHMARK_RESULTS_COLUMNS = [
@@ -58,6 +72,15 @@ BENCHMARK_RESULTS_COLUMNS = [
     "iclabel_eye_percent",
     "iclabel_muscle_percent",
     "reconstruction_error",
+    # ── Provenance (carried from the result JSON / stamped at aggregation) ──
+    "schema_version",          # the row's _schema_version
+    "run_timestamp",           # _run.timestamp — when the fit ran (UTC)
+    "harness_commit",          # _run.provenance harness/pipeline commit, when recorded
+    "implementation_version",  # measured implementation's package version
+    "implementation_commit",   # measured implementation's VCS commit
+    "implementation_commit_source",  # 'amica_src'|'direct_url'|None — version/commit may differ under AMICA_SRC
+    "aggregated_at",           # when THIS CSV was aggregated (UTC)
+    "aggregator_commit",       # the aggregator/harness commit that wrote this CSV
     "result_path",
     "figure_status",
     "claims_allowed",   # 'paper_grade' | 'sensitivity_only' | 'pilot_only'
@@ -130,6 +153,8 @@ class RunPayload:
     ica_fif_path: Optional[Path]
     payload: dict
     data_block: dict
+    run_block: dict = field(default_factory=dict)   # the document's `_run` block
+    schema_version: Optional[str] = None            # the document's `_schema_version`
 
     @property
     def n_samples(self) -> Optional[int]:
