@@ -24,10 +24,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # benchmark/cc_benchmark/
 REPO_ROOT="$(cd "$HERE/../.." && pwd)"
 VENV="${PAMICA_VENV_DIR:-$REPO_ROOT/.venv_pamica}"
 
-# v0.3.1 (2026-07-19). Bump tag AND sha together, and re-run the parity check in
-# scripts/paper/figures/ — the numbers are not portable across versions.
+# v0.3.1 (2026-07-19). The commit is pinned in pins.toml (single source of
+# truth); this label is for humans. To adopt a newer pamica: bump the commit in
+# pins.toml, re-run the parity check in scripts/paper/figures/, and re-record —
+# the numbers are not portable across versions.
 PAMICA_TAG="v0.3.1"
-PAMICA_SHA="0e6b7f517271bc9a583ced35b3435cc689c7999c"
 
 # Caches off $HOME (Alliance quota), mirroring fir_env.sh.
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-/scratch/$USER/.cache/pip}"
@@ -56,12 +57,16 @@ echo "python $PYV OK"
 
 # torch: the Alliance wheelhouse wheel (--no-index) is CUDA-enabled and serves
 # BOTH the CPU and GPU comparisons; fall back to PyPI off-Alliance. pamica needs
-# >= 2.12.1; Alliance carries 2.12.1 and 2.13.0 for cp312.
+# >= 2.12.1; Alliance carries 2.12.1 and 2.13.0 for cp312. The exact resolved
+# torch build is captured in the as-built lock (check_env.py lock, below) so a
+# pamica-vs-pyamica delta can be separated from a torch-version delta.
 echo "Installing torch ..."
 pip install --no-index "torch>=2.12.1" 2>/dev/null || pip install "torch>=2.12.1"
 
-echo "Installing pamica $PAMICA_TAG ($PAMICA_SHA) ..."
-pip install "git+https://github.com/sccn/pAMICA.git@${PAMICA_SHA}"
+echo "Installing pamica $PAMICA_TAG (pinned in pins.toml) ..."
+while read -r spec; do
+    [ -n "$spec" ] && pip install "$spec"
+done < <(python "$HERE/check_env.py" specs --venv pamica)
 
 # psutil is a dependency of the runner protocol (_common.py reads the process
 # high-water RSS through it), not of pamica, so nothing above pulls it in.
@@ -71,20 +76,24 @@ pip install --no-index psutil 2>/dev/null || pip install psutil
 # Optional: NVML neutral cross-check for the GPU comparison (enable with AMICA_MEM_NVML=1).
 pip install nvidia-ml-py 2>/dev/null || echo "(nvidia-ml-py not installed; NVML cross-check stays off)"
 
-echo "=== verify ==="
+echo "=== verify API surface ==="
 python - <<'PY'
 from importlib.metadata import version
 import torch
 from pamica import AMICA
 
-v = version("pamica")
-print(f"pamica {v} | torch {torch.__version__} | cuda available: {torch.cuda.is_available()}")
-# Guard the pin: a silently different version invalidates the recorded numbers.
-assert v.startswith("0.3."), f"expected pamica 0.3.x, got {v}"
+print(f"pamica {version('pamica')} | torch {torch.__version__} | "
+      f"cuda available: {torch.cuda.is_available()}")
 # The runner depends on all four of these existing; catch an API drift here
 # rather than three hours into an array job.
 for attr in ("fit", "get_unmixing_matrix", "ll_history_", "final_ll_"):
     assert hasattr(AMICA, attr) or attr.endswith("_"), f"AMICA lacks {attr}"
 print("OK — pamica imports and the runner's API surface is present")
 PY
+
+# Assert the installed pamica SHA equals the pinned commit — via direct_url.json,
+# not a `startswith("0.3.")` version-string test that a future 0.3.2 would pass.
+echo "=== verify pins ==="
+python "$HERE/check_env.py" verify --venv pamica
+python "$HERE/check_env.py" lock --venv pamica
 echo "pamica venv ready: $VENV"

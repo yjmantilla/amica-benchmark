@@ -12,7 +12,7 @@
 
 cd "$SLURM_SUBMIT_DIR"
 
-source fir_env.sh
+source fir_env.sh || exit 1
 python run_one_subject.py --subject 1 --dataset mne --backend numpy --device cpu --n-iter 50
 
 # Gate: assert a valid v3 result JSON was written, so `submit_all.sh --dependency=afterok`

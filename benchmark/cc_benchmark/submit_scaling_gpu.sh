@@ -17,7 +17,7 @@ set -o pipefail
 REPO=/scratch/sesma/amica-python
 cd "$REPO/benchmark/cc_benchmark"
 module purge
-source "$REPO/benchmark/cc_benchmark/fir_env.sh"
+source "$REPO/benchmark/cc_benchmark/fir_env.sh" || exit 1
 export AMICA_RESULTS_DIR=/scratch/sesma/amica_scaling/gpu
 mkdir -p "$AMICA_RESULTS_DIR"
 

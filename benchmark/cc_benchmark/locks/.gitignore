@@ -1,0 +1,2 @@
+# As-built env locks are machine/site-specific build records (see README.md).
+*.lock.json
