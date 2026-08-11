@@ -125,6 +125,15 @@ def main() -> None:
         "device": device,
         "dtype": "float64",
         "n_iter": int(result.n_iter),
+        # amica-python takes random_state, so the seed is honored per sweep.
+        "seed_respected": True,
+        "requested_seed": cfg.get("seed", 0),
+        "effective_config": {
+            "max_iter": cfg["max_iter"], "num_mix_comps": cfg.get("n_mix", 3),
+            "lrate": cfg.get("lrate", 0.1), "do_newton": cfg.get("do_newton", True),
+            "do_sphere": False, "do_mean": False, "chunk_size": chunk_size,
+            "random_state": cfg.get("seed", 0),
+        },
     }
     write_result(args.output, out)
 

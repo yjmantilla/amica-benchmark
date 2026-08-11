@@ -96,6 +96,24 @@ def main() -> None:
         "device": device,
         "dtype": "float64",
         "n_iter": int(len(ll)),
+        # pyamica takes no seed argument and runs fix_init=True: cfg["seed"] does
+        # NOT change its initialization, so its per-seed spread is runtime noise,
+        # not initialization robustness. Record that so seed-sweep tables can
+        # footnote it instead of reading zero spread as stability.
+        "seed_respected": False,
+        "init": "fix_init",
+        "requested_seed": cfg.get("seed", 0),
+        # The effective hyperparameters this runner froze (pyamica's own defaults).
+        # Serialized so a library default change is visible and the matched-vs-
+        # native protocol is auditable. NB: these are frozen literals here, unlike
+        # run_pamica which threads them through cfg.get(...).
+        "effective_config": {
+            "n_mix": cfg.get("n_mix", 3), "max_iter": cfg["max_iter"],
+            "lrate": cfg.get("lrate", 0.1), "do_newton": cfg.get("do_newton", True),
+            "newt_start": 50, "newt_ramp": 10, "rho0": 1.5, "minrho": 1.0,
+            "maxrho": 2.0, "rholrate": 0.05, "invsigmin": 1e-8, "invsigmax": 100.0,
+            "do_sphere": False, "doscaling": True, "fix_init": True,
+        },
     }
     write_result(args.output, out)
 

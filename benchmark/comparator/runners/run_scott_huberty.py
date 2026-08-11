@@ -93,6 +93,16 @@ def main() -> None:
         "device": device,
         "dtype": str(np.asarray(W).dtype) if W is not None else "float64",
         "n_iter": n_iter,
+        # scott's AMICA takes random_state, so the seed is honored per sweep.
+        "seed_respected": True,
+        "requested_seed": cfg.get("seed", 0),
+        # Effective hyperparameters (frozen literals here, like pyamica).
+        "effective_config": {
+            "n_mixtures": cfg.get("n_mix", 3), "max_iter": cfg["max_iter"],
+            "lrate": cfg.get("lrate", 0.1), "do_newton": cfg.get("do_newton", True),
+            "newt_start": 50, "mean_center": False, "whiten": None,
+            "random_state": cfg.get("seed", 0),
+        },
     }
     write_result(args.output, out)
 
