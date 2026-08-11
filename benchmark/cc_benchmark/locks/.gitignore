@@ -1,0 +1,4 @@
+# Auto-generated as-built locks (per site, per build) are machine-specific — ignored.
+# The committed publication reference locks live under published/ (re-included below).
+*.lock.json
+!published/*.lock.json

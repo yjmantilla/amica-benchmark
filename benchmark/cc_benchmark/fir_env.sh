@@ -75,7 +75,13 @@ fi
 # leaves a stub that every later job then "reuses" -- which is how job 53097938
 # failed on `import jax` twelve minutes after 53097937 died mid-bootstrap and
 # left 13 packages behind. Probe the imports every job actually needs.
-AMICA_VENV_PROBE="import numpy, scipy, mne"
+# `amica` is in the probe: the [jax-cpu]/[jax-gpu] extras install JAX but NOT the
+# algorithm under test, so a venv that imports jax but not amica is incomplete.
+# (Only presence is probed here, not the commit: AMICA_SRC legitimately overrides
+# the baseline amica at run time for OUR runner, so a commit test here would
+# trigger spurious mid-job rebuilds. The exact baseline commit is asserted at
+# setup time by check_env.py verify, below.)
+AMICA_VENV_PROBE="import numpy, scipy, mne, amica"
 if [ "$AMICA_GPU_JOB" = true ]; then
     AMICA_VENV_PROBE="$AMICA_VENV_PROBE, jax"
 fi
@@ -106,6 +112,17 @@ if [ "$REINSTALL" = true ]; then
     source "$VENV_PATH/bin/activate"
     pip install --no-index --upgrade pip
 
+    # Scientific stack PINNED from pins.toml (jax/jaxlib/numpy/scipy/mne/mne-bids)
+    # so a fresh build is reproducible; installed FIRST so the extras + amica below
+    # resolve against these versions. verify --strict enforces them. (For a GPU job
+    # the [jax-gpu] extra + -f index add the CUDA jaxlib backend at the same pinned
+    # version — strict compares base versions, so the +cuda/+cc local segment is
+    # ignored.)
+    echo "Installing the pinned scientific stack ..."
+    while read -r s; do
+        [ -n "$s" ] && (pip install --no-index "$s" 2>/dev/null || pip install "$s")
+    done < <(python "$SCRIPT_DIR/check_env.py" stack-specs --venv fir)
+
     # Extras must match this repository's pyproject.toml, which defines
     # jax-cpu, jax-gpu and amica -- NOT the all/gpu extras that amica-python
     # defines. This file was copied across from that repo, so it asked pip for
@@ -129,16 +146,45 @@ if [ "$REINSTALL" = true ]; then
     # which has no wheel for this platform and builds through maturin/bindgen,
     # failing on a missing libclang -- which aborted the whole environment
     # build under `set -e` after everything else had installed correctly.
-    pip install mne-bids
+    # mne-bids is already installed (pinned) by the stack step above; this is a
+    # no-op safety net, kept for the openneuro-py note.
+    pip install --no-index "mne-bids==0.19.0" 2>/dev/null || true
+
+    # Install the reference `amica` package itself. The [jax-cpu]/[jax-gpu]
+    # extras above install JAX but NOT amica (this repo's `amica` extra is
+    # separate), which previously left a "complete" venv that could import jax
+    # but not the algorithm under test — every job then failed on its first
+    # `import amica`, or silently used an unrelated pre-existing install.
+    # Pinned in pins.toml; AMICA_SRC still overrides it at run time for OUR runner.
+    while read -r spec; do
+        [ -n "$spec" ] && pip install "$spec"
+    done < <(python "$SCRIPT_DIR/check_env.py" specs --venv fir)
 
     echo "Environment installed:"
-    python -c "import numpy, scipy, mne; print('numpy', numpy.__version__, '| scipy', scipy.__version__, '| mne', mne.__version__)"
+    python -c "import numpy, scipy, mne, amica; print('numpy', numpy.__version__, '| scipy', scipy.__version__, '| mne', mne.__version__, '| amica', getattr(amica, '__version__', '?'))"
     if [ "$AMICA_GPU_JOB" = true ]; then
         python -c "import jax; print('jax', jax.__version__, '| devices', jax.devices())"
     fi
+
+    # Record the as-built lock right after a fresh install.
+    python "$SCRIPT_DIR/check_env.py" lock --venv fir
 else
     echo "Activating existing virtual environment at $VENV_PATH"
     source "$VENV_PATH/bin/activate"
+fi
+
+# Assert the baseline amica build == pins.toml on EVERY job — fresh OR reused
+# venv — so any fir-sourcing paper run (v3 / comparators / heldout / scaling /
+# reval) fails fast instead of silently measuring an off-pin amica. This checks
+# the INSTALLED baseline; AMICA_SRC's per-runner override is asserted separately
+# by the submit scripts that use it. Opt out with AMICA_SKIP_PIN_CHECK=1 for
+# ad-hoc/dev use.
+if [ "${AMICA_SKIP_PIN_CHECK:-0}" != "1" ]; then
+    if ! python "$SCRIPT_DIR/check_env.py" verify --venv fir; then
+        echo "fir_env: FATAL — installed amica != pins.toml (set AMICA_SKIP_PIN_CHECK=1 to bypass)." >&2
+        [ "$_amica_had_u" = 1 ] && set -u
+        return 1 2>/dev/null || exit 1
+    fi
 fi
 
 # Restore the caller's `set -u` (see the top of this file).

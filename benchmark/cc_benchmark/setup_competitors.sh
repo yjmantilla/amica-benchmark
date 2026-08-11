@@ -4,11 +4,18 @@
 #
 #   pyamica  (DerAndereJohannes)  PyTorch     -> import pyamica
 #   amica    (scott-huberty)      PyTorch     -> import amica
-#   pyAMICA  (sccn/pAMICA @526aa32, the March-2025 pre-rename snapshot
-#             formerly at neuromechanist/pyAMICA)  pure NumPy  -> import pyAMICA
 #
-# Current pAMICA (v0.3.1, package `pamica`) is NOT here: it needs Python >= 3.12.
-# It gets its own venv -> see setup_pamica.sh.
+# The March-2025 sccn/pAMICA snapshot (pure NumPy, `import pyAMICA`) is NO LONGER
+# installed here: its distribution name "pyAMICA" canonicalizes to "pyamica"
+# (PEP 503), so pip treats it as the same project as DerAndereJohannes/pyamica
+# and installing it UNINSTALLS pyamica. It now gets its own venv -> see
+# setup_neuromechanist.sh (used only by --include-neuromechanist-snapshot).
+#
+# Current pAMICA (v0.3.1, package `pamica`) is NOT here either: it needs Python
+# >= 3.12. It gets its own venv -> see setup_pamica.sh.
+#
+# All commits are pinned in pins.toml (single source of truth); this script
+# installs from it and then asserts installed == intended via check_env.py.
 #
 # git+pip needs internet, so run this on the LOGIN node — it is a one-time ENV BUILD
 # (not compute), which is the supported use of pip on a login node. On Alliance the
@@ -35,30 +42,34 @@ fi
 source "$VENV/bin/activate"
 pip install --upgrade pip
 
-# torch: Alliance wheelhouse wheel (--no-index) is CUDA-enabled and works for BOTH the CPU
-# and GPU comparisons; fall back to PyPI off-Alliance.
-echo "Installing torch ..."
-pip install --no-index torch 2>/dev/null || pip install torch
+# Transitive scientific stack, PINNED from pins.toml (torch==2.12.0 etc.) so a
+# fresh build is reproducible instead of floating to the wheelhouse's latest.
+# The Alliance --no-index wheel is CUDA-enabled and serves BOTH the CPU and GPU
+# comparisons; fall back to PyPI off-Alliance. Installed FIRST so the competitor
+# wheels resolve against these exact versions.
+echo "Installing the pinned scientific stack ..."
+while read -r s; do
+    [ -n "$s" ] && (pip install --no-index "$s" 2>/dev/null || pip install "$s")
+done < <(python "$HERE/check_env.py" stack-specs --venv competitors)
 
-# The competitor AMICA implementations, pinned to commits.
-#
-# The pins are not cosmetic. github.com/neuromechanist/pyAMICA was renamed and
-# transferred to github.com/sccn/pAMICA (same GitHub repository id, 301 redirect),
-# so the unpinned URL below now resolves to that project's current state: package
-# `pamica`, which provides no `import pyAMICA` and needs Python >= 3.12. Left
-# floating, this line silently stopped installing what the paper measured and
-# would fail the verify step at the bottom of this script.
-#
-# 526aa32 is the March-2025 pure-NumPy state actually benchmarked. Current pAMICA
-# is a separate environment with its own interpreter; see setup_pamica.sh.
-echo "Installing the competitor implementations (pinned) ..."
-pip install "git+https://github.com/DerAndereJohannes/pyamica.git"
-pip install "git+https://github.com/scott-huberty/amica-python.git"
-pip install "git+https://github.com/sccn/pAMICA.git@526aa32"
+# The competitor AMICA implementations, installed from pins.toml. These are the
+# PUBLISHED PyPI releases (pyamica==0.3.0, amica-python==0.1.1), recovered from
+# the surviving publication venv; a version pin is the stricter identity for a
+# released wheel, and check_env.py asserts the installed version below.
+echo "Installing the pinned competitor implementations (see pins.toml) ..."
+while read -r spec; do
+    [ -n "$spec" ] && pip install "$spec"
+done < <(python "$HERE/check_env.py" specs --venv competitors)
 
 # Optional: NVML neutral cross-check for the GPU comparison (enable with AMICA_MEM_NVML=1).
 pip install nvidia-ml-py 2>/dev/null || echo "(nvidia-ml-py not installed; NVML cross-check stays off)"
 
 echo "=== verify imports ==="
-python -c "import torch, pyamica, amica, pyAMICA; print('OK — torch', torch.__version__, '| pyamica + amica(scott) + pyAMICA(neuromechanist) all import')"
+python -c "import torch, pyamica, amica; print('OK — torch', torch.__version__, '| pyamica + amica(scott) import')"
+
+# Assert installed == intended (fails loudly on any drift) and record the
+# as-built lock (resolved torch/numpy/... alongside the pinned commits).
+echo "=== verify pins ==="
+python "$HERE/check_env.py" verify --venv competitors
+python "$HERE/check_env.py" lock --venv competitors
 echo "competitors venv ready: $VENV"

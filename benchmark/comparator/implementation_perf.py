@@ -80,7 +80,8 @@ def _orchestrator_run_block() -> dict:
 
 # Venv pythons. Override either via env vars for portability between machines:
 #   AMICA_PYTHON_VENV   — path to amica-python's venv python
-#   COMPETITORS_VENV    — path to competitors venv python (pyamica + scott + neuromechanist)
+#   COMPETITORS_VENV    — path to competitors venv python (pyamica + scott)
+#   NEUROMECHANIST_VENV — path to the isolated pyAMICA-snapshot venv (see below)
 # Defaults reach into amica-python's own tree so the script is self-contained
 # on both Linux (cluster) and Windows (local dev).
 _is_win = sys.platform == "win32"
@@ -99,9 +100,17 @@ _pamica_default = (
     ROOT / ".venv_pamica" / "Scripts" / "python.exe" if _is_win
     else ROOT / ".venv_pamica" / "bin" / "python"
 )
+# The March-2025 pyAMICA snapshot lives in its OWN venv: its distribution name
+# canonicalizes to "pyamica" (PEP 503), so installing it into .venv_competitors
+# uninstalls DerAndereJohannes/pyamica. See setup_neuromechanist.sh.
+_neuromechanist_default = (
+    ROOT / ".venv_neuromechanist" / "Scripts" / "python.exe" if _is_win
+    else ROOT / ".venv_neuromechanist" / "bin" / "python"
+)
 VENV_AMICA = Path(os.environ.get("AMICA_PYTHON_VENV", str(_amica_default)))
 VENV_COMPETITORS = Path(os.environ.get("COMPETITORS_VENV", str(_competitors_default)))
 VENV_PAMICA = Path(os.environ.get("PAMICA_VENV", str(_pamica_default)))
+VENV_NEUROMECHANIST = Path(os.environ.get("NEUROMECHANIST_VENV", str(_neuromechanist_default)))
 
 # Make `import amica_python.benchmark.runner` work even when this script is run
 # without a `pip install -e .` (e.g., direct `python scripts/comparator/X.py`).
@@ -460,7 +469,7 @@ def main() -> None:
     # points in that project's history; it is not a second implementation.
     if args.include_neuromechanist_snapshot:
         runs.append(
-            ("neuromechanist_numpy", VENV_COMPETITORS,  RUNNERS_DIR / "run_neuromechanist.py", None)
+            ("neuromechanist_numpy", VENV_NEUROMECHANIST,  RUNNERS_DIR / "run_neuromechanist.py", None)
         )
     # Fortran AMICA 1.7 on the same projected input (CPU/RSS only; binary on the cluster).
     if args.include_fortran:

@@ -1,0 +1,13 @@
+{
+  "venv": "neuromechanist",
+  "reference": true,
+  "source": "Our reproducible reference; a fresh setup_neuromechanist.sh build reproduces this from pins.toml. Base versions (the +computecanada local segment is site-resolved).",
+  "python": "3.11",
+  "packages": {
+    "pyAMICA": {"version": "0.1.dev0", "commit": "526aa3231623490ea21ef9c45acbb50730929622"}
+  },
+  "stack": {
+    "numpy": "2.4.2",
+    "scipy": "1.17.0"
+  }
+}

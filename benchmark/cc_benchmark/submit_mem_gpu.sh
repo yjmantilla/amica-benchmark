@@ -24,8 +24,20 @@
 set -o pipefail
 
 cd "$SLURM_SUBMIT_DIR"          # benchmark/cc_benchmark/
-source fir_env.sh              # modules (incl. cuda/cudnn) + .venv_fir + env.local
+source fir_env.sh || exit 1              # modules (incl. cuda/cudnn) + .venv_fir + env.local
 REPO_ROOT="$(cd "$SLURM_SUBMIT_DIR/../.." && pwd)"
+
+# installed == intended: assert the pinned competitor + pamica commits before the
+# orchestrator's first fit (these venvs are what implementation_perf.py launches).
+# Skip a venv that is absent; fail fast only when it exists but drifts from pins.toml.
+for _pair in "competitors:${COMPETITORS_VENV:-$REPO_ROOT/.venv_competitors/bin/python}" \
+             "pamica:${PAMICA_VENV:-$REPO_ROOT/.venv_pamica/bin/python}"; do
+    _venv="${_pair%%:*}"; _py="${_pair#*:}"
+    if [ -x "$_py" ]; then
+        "$_py" "$SLURM_SUBMIT_DIR/check_env.py" verify --venv "$_venv" \
+            || { echo "FATAL: $_venv venv drifted from pins.toml" >&2; exit 1; }
+    fi
+done
 
 echo "=== env ==="; echo "amica python: $(which python)"; python --version
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>&1 | head -1
