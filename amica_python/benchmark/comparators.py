@@ -142,6 +142,7 @@ def build_metrics(
     tol: float | None = None,
     w_change: float | None = None,
     fit_params: dict | None = None,
+    random_state: int | None = None,
 ):
     """Compose the v3 method dict from an mne ICA fit, reusing compute_v3_artifacts.
 
@@ -166,6 +167,10 @@ def build_metrics(
         "hostname": platform.node(),
         "slurm_job_id": os.environ.get("SLURM_JOB_ID", "local"),
     }
+    # Record the seed in the payload so the aggregator reports the real seed for
+    # MNE-comparator rows instead of None (these rows previously omitted it).
+    if random_state is not None:
+        metrics["random_state"] = int(random_state)
 
     if max_iter is not None:
         library_versions = {"mne": mne.__version__}
@@ -195,8 +200,21 @@ def build_metrics(
     return metrics
 
 
-def comparator_output_filename(subject: int, method: str, hp_freq: float):
-    return f"benchmark_sub-{subject:02d}_hp{float(hp_freq):.1f}hz_{method}_cpu.json"
+def comparator_output_filename(subject: int, method: str, hp_freq: float, *,
+                               seed=None, n_components=None, max_iter=None):
+    """Comparator result filename, carrying run identity (seed/components/iters)
+    so distinct variants don't silently overwrite one another. The trailing
+    `_{method}_cpu.json` is preserved for the aggregator's globs.
+    """
+    ident = []
+    if seed is not None:
+        ident.append(f"seed{seed}")
+    if n_components is not None:
+        ident.append(f"c{n_components}")
+    if max_iter is not None:
+        ident.append(f"it{max_iter}")
+    suffix = ("_".join(ident) + "_") if ident else ""
+    return f"benchmark_sub-{subject:02d}_hp{float(hp_freq):.1f}hz_{suffix}{method}_cpu.json"
 
 
 def fit_all_on_raw(
@@ -213,6 +231,7 @@ def fit_all_on_raw(
     hp_freq: float = 1.0,
     input_metadata=None,
     runner_module=None,
+    force: bool = False,
 ):
     """Fit each comparator method on the *same* preprocessed Raw, write JSON + ica.fif.
 
@@ -268,6 +287,14 @@ def fit_all_on_raw(
         method = method.lower()
         if method not in DEFAULT_FIT_PARAMS:
             raise ValueError(f"Unknown comparator method: {method!r}")
+        json_path = out_dir / comparator_output_filename(
+            int(subject), method, float(hp_freq),
+            seed=random_state, n_components=n_components, max_iter=int(max_iter))
+        # Resumable: skip an already-written method BEFORE spending the fit, so a
+        # requeued run fills in only the missing methods. --force / force re-runs.
+        if json_path.exists() and not force:
+            print(f"SKIP: {json_path} already exists (pass force=True to re-run).")
+            continue
         t0 = time.perf_counter()
         kwargs = {"max_iter": int(max_iter)}
         if method in ("picard", "fastica"):
@@ -285,6 +312,7 @@ def fit_all_on_raw(
             tol=used_fp.get("tol"),
             w_change=used_fp.get("w_change"),
             fit_params=used_fp,
+            random_state=random_state,
         )
         metrics["dataset"] = input_metadata.get("dataset", "ds004505")
         metrics["subject"] = f"sub-{int(subject):02d}"
@@ -298,7 +326,7 @@ def fit_all_on_raw(
         payload = doc.pop("amica")
         doc[method] = payload
 
-        json_path = out_dir / comparator_output_filename(int(subject), method, float(hp_freq))
+        # json_path was computed and existence-checked at the top of the loop.
         json_path.write_text(json.dumps(doc, indent=4), encoding="utf-8")
         ica.save(json_path.with_name(json_path.stem + "_ica.fif"),
                  overwrite=True, verbose="WARNING")
@@ -396,6 +424,9 @@ def main() -> None:
     )
     parser.add_argument("--random-state", type=int, default=42)
     parser.add_argument("--n-components", type=int, default=64)
+    parser.add_argument("--force", action="store_true",
+                        help="Overwrite an existing comparator result file for the same "
+                             "run identity (default: refuse).")
     parser.add_argument(
         "--max-iter",
         type=int,
@@ -450,8 +481,15 @@ def main() -> None:
 
     for method in methods:
         out_path = out_dir / comparator_output_filename(
-            args.subject, method, DEFAULT_HP_FREQ
+            args.subject, method, DEFAULT_HP_FREQ,
+            seed=args.random_state, n_components=n_components, max_iter=args.max_iter,
         )
+        # Resumable: a `--method all` array task that already wrote this method
+        # (e.g. died after picard) SKIPS it and moves on, instead of aborting the
+        # whole task or (with --force) clobbering the good fit. --force re-runs.
+        if out_path.exists() and not args.force:
+            print(f"SKIP: {out_path} already exists (pass --force to re-run).", flush=True)
+            continue
         print(f"\n=== Fitting {method} (n_components={n_components}) ===", flush=True)
         ica, elapsed, used_fit_params = fit_mne_ica(
             raw, method, n_components, args.random_state, max_iter=args.max_iter
@@ -466,6 +504,7 @@ def main() -> None:
             tol=tol_used,
             w_change=w_change_used,
             fit_params=used_fit_params,
+            random_state=args.random_state,
         )
         metrics["dataset"] = args.dataset
         metrics["subject"] = f"sub-{args.subject:02d}"

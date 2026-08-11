@@ -68,6 +68,18 @@ def main() -> None:
         "device": "cpu",
         "dtype": "float64",
         "n_iter": int(len(ll)),
+        # neuromechanist's pyAMICA takes seed=, so the seed is honored per sweep.
+        "seed_respected": True,
+        "requested_seed": cfg.get("seed", 0),
+        "effective_config": {
+            "num_models": 1, "num_mix": cfg.get("n_mix", 3), "num_comps": n_comp,
+            "max_iter": cfg["max_iter"], "lrate": cfg.get("lrate", 0.1),
+            "do_newton": cfg.get("do_newton", True), "newt_start": 50,
+            "do_sphere": False, "do_mean": False,
+            # perf-relevant switches this runner also freezes (were omitted):
+            "do_opt_block": False, "do_history": False, "do_reject": False,
+            "share_comps": False, "seed": cfg.get("seed", 0),
+        },
     }
     write_result(args.output, out)
 

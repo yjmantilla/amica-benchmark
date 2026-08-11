@@ -174,6 +174,22 @@ def main() -> None:
         "stop_reason": stop_reason,
         "converged_before_cap": converged_before_cap,
         "pamica_version": _pamica_version(),
+        # pamica DOES take the seed and re-seeds per sweep.
+        "seed_respected": True,
+        "requested_seed": cfg.get("seed", 0),
+        # Effective hyperparameters. NB: unlike pyamica/scott's frozen literals,
+        # pamica's constants are cfg.get(...)-overridable — a --config that sets
+        # e.g. invsigmin changes pamica only. Serialized so that asymmetry is
+        # visible in the row rather than implicit in the source.
+        "effective_config": {
+            "n_mix": cfg.get("n_mix", 3), "max_iter": cfg["max_iter"],
+            "lrate": cfg.get("lrate", 0.1), "do_newton": cfg.get("do_newton", True),
+            "newt_start": cfg.get("newt_start", 20), "newt_ramp": cfg.get("newt_ramp", 10),
+            "rho0": cfg.get("rho0", 1.5), "minrho": cfg.get("minrho", 1.0),
+            "maxrho": cfg.get("maxrho", 2.0), "rholrate": cfg.get("rholrate", 0.05),
+            "invsigmin": cfg.get("invsigmin", 1e-4), "invsigmax": cfg.get("invsigmax", 1000.0),
+            "doscaling": cfg.get("doscaling", True), "seed": cfg.get("seed", 0),
+        },
     }
     write_result(args.output, out)
 
