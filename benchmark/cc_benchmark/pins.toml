@@ -1,0 +1,107 @@
+# Single source of truth for the SOURCE pins of every AMICA implementation the
+# benchmark compares. Read by check_env.py (install specs + installed==intended
+# verification) and by the setup_*.sh scripts.
+#
+# Each package is pinned by EITHER:
+#   * `version`  — a PyPI release (the stricter identity for a published wheel);
+#                  check_env verifies importlib.metadata.version(). `commit` may
+#                  accompany it as the informational upstream rev behind the release.
+#   * `commit`   — a full 40-char git SHA (install `git+url@commit`); check_env
+#                  verifies it via the dist's PEP 610 direct_url.json.
+# The transitive numerical stack (torch / jax / jaxlib / numpy / scipy / mne) is
+# NOT pinned here — those are Alliance `+computecanada` wheels resolved per site;
+# each setup_*.sh captures the resolved stack AS-BUILT into
+# benchmark/cc_benchmark/locks/<venv>.lock.json and check_env.py reports drift.
+#
+# The competitor + Fortran pins below are RECOVERED (2026-08-11) from the surviving
+# publication venv on Compute Canada fir; see benchmark/cc_benchmark/provenance/
+# for the full record (versions were not captured per-run, so these are
+# reconstructed from the intact venv and cross-checked against the paper).
+#
+# To adopt a newer upstream: change the pin here, rebuild via setup_*.sh (which
+# re-writes the lock), re-run the parity check, and re-record — numbers are not
+# portable across versions.
+
+schema_version = "1"
+
+# .venv_competitors (Python 3.11) — the two actively-compared reimplementations,
+# pinned to the PUBLISHED PyPI releases (a version pin is stricter than a SHA for
+# a released wheel; the commit behind each release is recorded for reference).
+# NOTE: the March-2025 neuromechanist/pyAMICA snapshot is deliberately NOT here:
+# its distribution name ("pyAMICA") canonicalizes to "pyamica" (PEP 503), so
+# installing it into this venv uninstalls DerAndereJohannes/pyamica. It lives in
+# its own venv below (see setup_neuromechanist.sh).
+[[venv]]
+name = "competitors"
+python = "3.11"
+# Transitive scientific stack, pinned so a fresh build is reproducible (the
+# Alliance wheelhouse still carries these). setup_*.sh install these first (base
+# versions; the +computecanada local segment is resolved by the wheelhouse), and
+# check_env verify --strict enforces them against the committed reference lock.
+stack = { torch = "2.12.0", numpy = "2.4.2", scipy = "1.17.0" }
+packages = [
+  { name = "pyamica",      module = "pyamica", version = "0.3.0", url = "https://github.com/DerAndereJohannes/pyamica.git",   commit = "a8a4d7e0ad14a88cf2cabeff5094cd0c8a262536" },
+  { name = "amica-python", module = "amica",   version = "0.1.1", url = "https://github.com/scott-huberty/amica-python.git", commit = "cad98a6cc98782ffb6f1bff22c99b31431ee5832" },
+]
+
+# .venv_neuromechanist (Python 3.11) — the neuromechanist/pyAMICA March-2025
+# pure-NumPy snapshot, only used by the optional --include-neuromechanist-snapshot
+# comparison. Isolated in its own venv so it cannot clobber DerAndereJohannes's
+# pyamica. In its own venv there is no collision, so it installs NON-editable by
+# SHA and needs NO rename patch. (The original single-venv publication run applied
+# a local rename patch instead — archived at provenance/neuromechanist_pyamica_rename.diff
+# for the record; it changes only the distribution name, not the algorithm.)
+# The neuromechanist/pyAMICA URL 301-redirects to sccn/pAMICA (same repo/commit).
+[[venv]]
+name = "neuromechanist"
+python = "3.11"
+stack = { numpy = "2.4.2", scipy = "1.17.0" }
+packages = [
+  { name = "pyAMICA", module = "pyAMICA", url = "https://github.com/sccn/pAMICA.git", commit = "526aa3231623490ea21ef9c45acbb50730929622" },
+]
+
+# Fortran AMICA 1.7 reference binary — not a pip package; recorded here for
+# verification. Built FROM THE VENDORED SOURCE by fortran/build.sh (self-contained;
+# no dependency on a staged binary), on fir with gcc/12.3 + openmpi/4.1.5 +
+# flexiblas. sha256 below is OUR build; run_fortran.py records the resolved binary
+# path + sha256 in every result and asserts this value. NB: binaries are not
+# bit-reproducible across toolchains, so this sha is site/toolchain-specific — pin
+# your own build's sha here. (Sina's historical validated build was c02f22c3…; the
+# parity of a fresh build should be reconfirmed with fortran submit_parity.sbatch.)
+[fortran]
+name = "amica17"
+sha256 = "665b577176553c4bb21c4681e135a3af89c65b1851b69f346dc401a8322c6efd"
+built_from = "fortran/build.sh (gcc/12.3 + openmpi/4.1.5 + flexiblas on fir)"
+
+# .venv_pamica (Python 3.12) — current sccn/pAMICA release. NB: this venv is
+# py3.12 and carries torch 2.13.0, while the competitors venv is py3.11 / torch
+# 2.12.0 (pamica requires py>=3.12, which forces the split). Cross-implementation
+# torch/timing/memory deltas between pamica and pyamica/scott are therefore partly
+# interpreter/torch-build deltas — footnote it in any cross-impl table.
+[[venv]]
+name = "pamica"
+python = "3.12"
+tag = "v0.3.1"
+stack = { torch = "2.13.0", numpy = "2.4.2", scipy = "1.17.0" }
+packages = [
+  { name = "pamica", module = "pamica", url = "https://github.com/sccn/pAMICA.git", commit = "0e6b7f517271bc9a583ced35b3435cc689c7999c" },
+]
+
+# .venv_fir (Python 3.11) — the reference `amica` (the package under test).
+# This is a BASELINE install so a fresh env has the package and the probe can
+# assert `import amica`. At run time AMICA_SRC (a source checkout on PYTHONPATH,
+# the E-step-blocked branch) overrides it for OUR runner only, and PR-1's
+# provenance block records the commit actually measured.
+[[venv]]
+name = "fir"
+python = "3.11"
+# numpy/scipy/mne are NOT pip-installed into .venv_fir; they resolve from the
+# Alliance `scipy-stack/2026a` module tree (the venv is built --no-download).
+# fir_env.sh pins `module load scipy-stack/2026a` so those versions stay fixed;
+# 2026a's tree ships numpy 2.4.2 / scipy 1.17.0 (recorded below). jax/jaxlib and
+# mne-bids ARE pip-pinned into the venv.
+modules = { scipy-stack = "2026a" }
+stack = { jax = "0.10.2", jaxlib = "0.10.2", numpy = "2.4.2", scipy = "1.17.0", mne = "1.12.1", mne-bids = "0.19.0" }
+packages = [
+  { name = "amica", module = "amica", url = "https://github.com/snesmaeili/amica.git", commit = "92003b459a376622ddb7c4a69351de6b40ac8759", branch = "perf/cpu-profiling" },
+]

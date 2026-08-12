@@ -1,0 +1,14 @@
+{
+  "venv": "pamica",
+  "reference": true,
+  "source": "Our reproducible reference; a fresh setup_pamica.sh build reproduces this from pins.toml. Base versions (the +computecanada local segment is site-resolved). py3.12 (pamica requires it), so torch differs from the py3.11 competitors venv — see pins.toml.",
+  "python": "3.12",
+  "packages": {
+    "pamica": {"version": "0.3.1", "commit": "0e6b7f517271bc9a583ced35b3435cc689c7999c"}
+  },
+  "stack": {
+    "torch": "2.13.0",
+    "numpy": "2.4.2",
+    "scipy": "1.17.0"
+  }
+}

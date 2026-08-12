@@ -1,0 +1,15 @@
+{
+  "venv": "competitors",
+  "reference": true,
+  "source": "Our reproducible reference (not a historical capture). The competitor CODE is pinned to the published PyPI releases; the transitive stack is pinned in pins.toml to versions the Alliance wheelhouse still carries, so a fresh setup_competitors.sh build reproduces this exactly. check_env verify --strict enforces it. Base versions (the +computecanada local segment is site-resolved and ignored in the comparison).",
+  "python": "3.11",
+  "packages": {
+    "pyamica": {"version": "0.3.0", "commit": "a8a4d7e0ad14a88cf2cabeff5094cd0c8a262536"},
+    "amica-python": {"version": "0.1.1", "commit": "cad98a6cc98782ffb6f1bff22c99b31431ee5832"}
+  },
+  "stack": {
+    "torch": "2.12.0",
+    "numpy": "2.4.2",
+    "scipy": "1.17.0"
+  }
+}

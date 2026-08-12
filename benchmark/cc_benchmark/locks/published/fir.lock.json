@@ -1,0 +1,17 @@
+{
+  "venv": "fir",
+  "reference": true,
+  "source": "Our reproducible reference; a fresh fir_env.sh build reproduces this from pins.toml. Base versions (the +computecanada local segment is site-resolved). amica here is the baseline install; AMICA_SRC overrides it at run time (asserted == pin by the submit scripts).",
+  "python": "3.11",
+  "packages": {
+    "amica": {"version": "0.1.0", "commit": "92003b459a376622ddb7c4a69351de6b40ac8759"}
+  },
+  "stack": {
+    "jax": "0.10.2",
+    "jaxlib": "0.10.2",
+    "numpy": "2.4.2",
+    "scipy": "1.17.0",
+    "mne": "1.12.1",
+    "mne-bids": "0.19.0"
+  }
+}
