@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Build the patched amica17 Fortran reference binary.
 #
-# The patched source fixes two upstream amica17 bugs:
+# The patched source fixes three upstream amica17 bugs:
 #   1. amica17.f90:1465 (non-MKL path) uses (rho-0.0) instead of (rho-1.0).
 #      We always compile with -DMKL and provide MKL stubs for vdLn/vdExp.
 #   2. The OMP reduction guard at amica17.f90:1639-1658 unconditionally
 #      accesses thread-local arrays that are only allocated when do_newton
 #      or dorho. The patched version wraps each block in the right `if`.
+#   3. The fix_init init branch (~L812) left comp_list uninitialized, so the
+#      following get_unmixing_matrices segfaulted under fix_init=1 (the mode
+#      our runner always uses). Now sets comp_list(i,h)=(h-1)*nw+i there.
 #
 # Tested toolchains:
 #   - Compute Canada Narval (gcc/12.3 + openmpi/4.1.5 + flexiblas/3.3.1)

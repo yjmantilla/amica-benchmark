@@ -2,7 +2,7 @@
 
 This directory ships the **patched AMICA 1.7** Fortran source we use as the
 numerical reference for amica-python. It is **AMICA 1.7 only** — do not mix
-in 1.5 sources. Two upstream bugs are fixed:
+in 1.5 sources. Three upstream bugs are fixed:
 
 1. `amica17.f90:1465` (non-MKL path) used `(rho-0.0)` instead of `(rho-1.0)`.
    We always compile with `-DMKL` and provide MKL stubs (`mkl_stubs.f90`)
@@ -10,9 +10,49 @@ in 1.5 sources. Two upstream bugs are fixed:
 2. The OMP reduction guard at `amica17.f90:1639-1658` accessed Newton/rho
    thread-local arrays unconditionally even when those features are off.
    Each block is now wrapped in the appropriate `if` guard.
+3. The `fix_init` init branch (`amica17_patched.f90` ~L812) set `A` to identity
+   but left `comp_list` unset — only the random-init and `load_A` branches
+   initialized it. The immediately following `get_unmixing_matrices` then read
+   `comp_list` uninitialized under `fix_init=1`, **segfaulting**. We now set
+   `comp_list(i,h) = (h-1)*nw + i` in the fix_init loop. Our runner always uses
+   `fix_init` (shared sphere+mean+init for parity), so without this the binary
+   crashes on every run. This matches the reference build's documented fix set.
 
 Upstream source: <https://github.com/sccn/amica>. Upstream license:
 BSD 2-Clause (see `LICENSE.upstream`).
+
+### Upstream provenance
+
+`sccn/amica` publishes no `v1.7` tag, so "AMICA 1.7" is otherwise unverifiable.
+For the record, resolved 2026-08-10:
+
+- upstream repo HEAD: `2b364cd4a995c057a06409de55f0b8ada8a0f1d8`
+- last commit to touch `amica17.f90` (the reference source we patch):
+  `4976ab53ed7e65781513202b1fb6d0c9a1ee040b` (2024-01-07)
+
+The three patches above were applied on top of that `amica17.f90` state. `4976ab53`
+is the upstream reference the vendored source corresponds to.
+
+### The reference binary — build it yourself
+
+The benchmark reproduces the Fortran reference **from this vendored source**
+(`build.sh` above), so it depends on no staged binary. Built on Compute Canada
+**fir** (gcc/12.3 + openmpi/4.1.5 + flexiblas):
+
+- our build's **sha256** `665b577176553c4bb21c4681e135a3af89c65b1851b69f346dc401a8322c6efd`
+  — pinned in `benchmark/cc_benchmark/pins.toml` (`[fortran]`); `run_fortran.py`
+  asserts it per fit, and the submit scripts default `AMICA17_BIN` to the
+  repo-built `fortran/amica17`.
+- Dynamically linked against fir's CVMFS gentoo/2023 libraries — **runs on fir
+  compute nodes only**, not a laptop.
+- **Binaries are not bit-reproducible across toolchains**, so this sha is
+  site/toolchain-specific: rebuild with `build.sh` and pin *your* build's sha.
+  After a fresh build, reconfirm parity with `submit_parity.sbatch` (final-LL abs
+  diff ~7e-8, matched \|r\| 0.9999999999 against amica-python).
+
+For reference, the earlier historical build was sha256 `c02f22c3…` (staged with
+`BUILD_PROVENANCE.md` at `/project/rrg-kjerbi/sesma-shared/amica-repro/`), but the
+from-source build above is the self-contained path.
 
 ---
 

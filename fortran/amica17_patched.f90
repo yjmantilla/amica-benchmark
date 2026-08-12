@@ -813,6 +813,10 @@ if (seg_rank == 0) then
             A(:,(h-1)*nw+1:h*nw) = dble(0.0)
             do i = 1,nw
                A(i,(h-1)*nw+i) = dble(1.0)
+               comp_list(i,h) = (h-1) * nw + i   ! fix#3: upstream leaves comp_list
+                                                 ! unset under fix_init, so the
+                                                 ! get_unmixing_matrices call below
+                                                 ! reads it uninitialized -> segfault.
             end do
          else
             call random_number(Wtmp)
