@@ -18,12 +18,10 @@
 #SBATCH --partition=compute
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
 #SBATCH --time=01:00:00
 #SBATCH --output=/scratch/yorguin/iter_ladder_cells/gpu-%A_%a.out
 #SBATCH --error=/scratch/yorguin/iter_ladder_cells/gpu-%A_%a.out
+# NOTE: Trillium is whole-node scheduling -- do NOT add --mem/--cpus-per-task/--ntasks (rejected).
 set -o pipefail
 cd "$SLURM_SUBMIT_DIR"                 # benchmark/cc_benchmark/
 source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
