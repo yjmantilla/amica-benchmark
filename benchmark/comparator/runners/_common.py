@@ -92,6 +92,42 @@ def delta_rss_gb(baseline: float) -> float:
     return peak_rss_gb() - baseline
 
 
+def cgroup_peak_gb() -> "float | None":
+    """Best-effort PEAK memory of this job's cgroup (GiB), across the whole process tree.
+
+    ru_maxrss is per-process and folds in the interpreter/import floor; the Slurm job cgroup's
+    memory peak is a cleaner "memory this cell needed" figure (still includes any preprocessing in
+    the cell, but that's the real footprint). cgroup v2: memory.peak; v1: memory.max_usage_in_bytes.
+    Returns None if the cgroup files aren't readable (e.g. off-cluster).
+    """
+    try:
+        rel = ""
+        try:
+            with open("/proc/self/cgroup") as f:
+                # v2 line looks like "0::/slurm/uid_.../job_.../step_.../task_0"
+                for line in f:
+                    parts = line.strip().split(":")
+                    if parts[0] == "0":
+                        rel = parts[-1]
+                        break
+        except Exception:
+            pass
+        candidates = []
+        if rel:
+            candidates.append(f"/sys/fs/cgroup{rel}/memory.peak")
+        candidates += ["/sys/fs/cgroup/memory.peak",                       # v2 (own cgroup)
+                       "/sys/fs/cgroup/memory/memory.max_usage_in_bytes"]  # v1 fallback
+        for path in candidates:
+            try:
+                with open(path) as fh:
+                    return int(fh.read().strip()) / 1024 ** 3
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return None
+
+
 def start_nvml_sampler(enabled: bool, gpu_index: int = 0, interval_s: float = 0.05):
     """Start a background sampler of whole-GPU 'used' VRAM via NVML; return a handle.
 

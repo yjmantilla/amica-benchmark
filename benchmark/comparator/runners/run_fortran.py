@@ -121,10 +121,11 @@ def main() -> None:
         "n_samples": int(n_samples),
         "max_iter": cfg["max_iter"],
         "fit_time_s": float(elapsed),
-        "peak_rss_gb": float(peak_gb),
+        "cgroup_peak_gb, peak_rss_gb": float(peak_gb),
         # Fortran allocates up front with ~zero import baseline -> delta ~= absolute peak.
         "baseline_rss_gb": 0.0,
         "delta_rss_gb": float(peak_gb),
+        "cgroup_peak_gb": cgroup_peak_gb(),
         "peak_vram_gb": None,
         "nvml_peak_vram_gb": None,
         "ll_final": float(ll[-1]) if ll else float("nan"),

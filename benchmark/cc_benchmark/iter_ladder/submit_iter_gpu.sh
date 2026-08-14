@@ -28,6 +28,7 @@ source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
 module load StdEnv/2023 python/3.11 scipy-stack/2026a cuda/12.6 cudnn >/dev/null 2>&1
 [ -n "$CUDA_HOME" ] && export XLA_FLAGS="--xla_gpu_cuda_data_dir=$CUDA_HOME"
 export JAX_PLATFORMS=cuda XLA_PYTHON_CLIENT_PREALLOCATE=false
+export AMICA_NVML_CROSSCHECK=1   # framework-neutral whole-GPU VRAM cross-check
 export AMICA_SKIP_PIN_CHECK=1
 export BIDS_ROOT_DS4505=/scratch/yorguin/ds004505      # Trillium dataset path
 # Trillium compute nodes have a read-only HOME -> redirect caches to /scratch (inherited by the

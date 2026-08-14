@@ -13,7 +13,7 @@ import time
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _common import baseline_rss_gb, load_data, parse_runner_args, peak_rss_gb, write_result
+from _common import baseline_rss_gb, cgroup_peak_gb, load_data, parse_runner_args, peak_rss_gb, write_result
 
 
 def main() -> None:
@@ -61,6 +61,7 @@ def main() -> None:
         "peak_rss_gb": peak,
         "baseline_rss_gb": baseline,
         "delta_rss_gb": peak - baseline,
+        "cgroup_peak_gb": cgroup_peak_gb(),
         "peak_vram_gb": None,
         "ll_final": float(ll[-1]) if ll else float("nan"),
         "ll_history": ll,

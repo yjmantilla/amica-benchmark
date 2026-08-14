@@ -17,6 +17,7 @@ from _common import (
     baseline_rss_gb,
     load_data,
     parse_runner_args,
+    cgroup_peak_gb,
     peak_rss_gb,
     start_nvml_sampler,
     stop_nvml_sampler,
@@ -67,9 +68,11 @@ def main() -> None:
     # Torch device peak: bytes in live tensors (max_memory_allocated = true demand, NOT the
     # cached/reserved pool). The caching allocator stays ON so this counter is tracked.
     peak_vram_gb = None
+    peak_vram_reserved_gb = None
     if device == "cuda" and torch.cuda.is_available():
         torch.cuda.synchronize()
         peak_vram_gb = torch.cuda.max_memory_allocated() / 1024 ** 3
+        peak_vram_reserved_gb = torch.cuda.max_memory_reserved() / 1024 ** 3
     nvml_peak_vram_gb = stop_nvml_sampler(_nvml)
 
     # Scott's sklearn-style attributes: components_ (unmixing), ll_ (per-iter), n_iter_
@@ -89,7 +92,9 @@ def main() -> None:
         "peak_rss_gb": peak,
         "baseline_rss_gb": baseline,
         "delta_rss_gb": peak - baseline,
+        "cgroup_peak_gb": cgroup_peak_gb(),
         "peak_vram_gb": peak_vram_gb,
+        "peak_vram_reserved_gb": peak_vram_reserved_gb,
         "nvml_peak_vram_gb": nvml_peak_vram_gb,
         "ll_final": float(ll[-1]) if ll else float("nan"),
         "ll_history": ll,

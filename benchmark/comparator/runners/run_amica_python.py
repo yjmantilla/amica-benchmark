@@ -17,6 +17,7 @@ from _common import (
     baseline_rss_gb,
     load_data,
     parse_runner_args,
+    cgroup_peak_gb,
     peak_rss_gb,
     start_nvml_sampler,
     stop_nvml_sampler,
@@ -87,9 +88,22 @@ def main() -> None:
     result = model.fit(X)
     elapsed = time.perf_counter() - t0
 
-    # GPU device peak: XLA's high-water of bytes handed to live buffers
-    # (peak_bytes_in_use), measured with prealloc disabled by the orchestrator.
+    # Block on the fit's async device work before reading the memory high-water mark.
+    if not no_jax and device == "gpu":
+        try:
+            import jax
+            jax.block_until_ready((result.unmixing_matrix_white_, result.log_likelihood))
+        except Exception:
+            pass
+
+    # GPU device peak: XLA's high-water of live-buffer bytes (peak_bytes_in_use), prealloc disabled.
+    # Do NOT fall back to bytes_in_use (an INSTANTANEOUS live count) -- storing that under a "peak"
+    # field was a bug that produced inconsistent VRAM numbers. If peak_bytes_in_use is absent, leave
+    # peak_vram_gb=None (metric unavailable). NVML (nvml_peak_vram_gb) is the framework-NEUTRAL
+    # cross-check; peak_bytes_in_use is a JAX-allocator-local diagnostic, not directly comparable to
+    # torch max_memory_allocated. Raw stats saved for provenance.
     peak_vram_gb = None
+    vram_stats = None
     if not no_jax and device == "gpu":
         try:
             import jax
@@ -97,9 +111,11 @@ def main() -> None:
                     if getattr(d, "platform", "") in ("gpu", "cuda", "rocm")]
             if gpus:
                 stats = gpus[0].memory_stats() or {}
-                vram_bytes = stats.get("peak_bytes_in_use", stats.get("bytes_in_use"))
-                if vram_bytes is not None:
-                    peak_vram_gb = float(vram_bytes) / 1024 ** 3
+                vram_stats = {k: (float(v) if isinstance(v, (int, float)) else v)
+                              for k, v in stats.items()}
+                pk = stats.get("peak_bytes_in_use")   # require the true peak; NO fallback
+                if pk is not None:
+                    peak_vram_gb = float(pk) / 1024 ** 3
         except Exception:
             peak_vram_gb = None
     nvml_peak_vram_gb = stop_nvml_sampler(_nvml)
@@ -134,8 +150,11 @@ def main() -> None:
         "peak_rss_gb": peak,
         "baseline_rss_gb": baseline,
         "delta_rss_gb": peak - baseline,
+        "cgroup_peak_gb": cgroup_peak_gb(),
         "peak_vram_gb": peak_vram_gb,
-        "nvml_peak_vram_gb": nvml_peak_vram_gb,
+        "peak_vram_reserved_gb": None,          # JAX has no allocator-reserved concept (torch does)
+        "nvml_peak_vram_gb": nvml_peak_vram_gb,  # framework-neutral cross-check (whole-GPU used)
+        "vram_stats": vram_stats,                # raw jax memory_stats() for provenance
         "ll_final": float(ll_history[-1]) if ll_history else float("nan"),
         "ll_history": ll_history,
         "iteration_times": iteration_times,

@@ -24,6 +24,7 @@ set -o pipefail
 cd "$SLURM_SUBMIT_DIR"                 # benchmark/cc_benchmark/
 source fir_env.sh || exit 1
 export AMICA_SKIP_PIN_CHECK=1
+export AMICA_NVML_CROSSCHECK=1   # no-op on CPU (runners gate on device==gpu)
 : "${MANIFEST:?set MANIFEST=iter_ladder/manifest_cpu.txt}"
 mkdir -p /scratch/yorguin/iter_ladder_cells
 
