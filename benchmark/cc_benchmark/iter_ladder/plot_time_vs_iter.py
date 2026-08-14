@@ -25,21 +25,21 @@ COLOR = {"amica_python_jax": "#3b5bdb", "scott_huberty_torch": "#e11d48",
 ORDER = ["amica_python_jax", "scott_huberty_torch", "pyamica_torch", "pamica_torch", "fortran_amica17"]
 
 
-def _cc(r):
+def _nb(r):
     try:
-        return float(r.get("cotenant_cores_mean") or 0.0)
+        return float(r.get("node_busy_mean") or 0.0)
     except ValueError:
         return 0.0
 
 
-def load(csv_path, filter_quiet=False, quiet_max=8.0):
+def load(csv_path, filter_quiet=False, quiet_busy_max=25.0):
     # data[device][impl][max_iter] = [fit_time_s, ...] over subjects/reps
     data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     with open(csv_path) as f:
         for r in csv.DictReader(f):
             if r["status"] != "ok" or not r["fit_time_s"]:
                 continue
-            if filter_quiet and _cc(r) > quiet_max:
+            if filter_quiet and _nb(r) > quiet_busy_max:
                 continue
             data[r["device"]][r["impl"]][int(r["max_iter"])].append(float(r["fit_time_s"]))
     return data
@@ -54,11 +54,11 @@ def main():
                     help="central line: use-all median/mean, or min (least-contended)")
     ap.add_argument("--filter-quiet", action="store_true",
                     help="keep only reps the sampler saw run on a lightly-loaded node")
-    ap.add_argument("--quiet-cotenant-max", type=float, default=8.0)
+    ap.add_argument("--quiet-busy-max", type=float, default=25.0)
     args = ap.parse_args()
 
     stat_fn = {"median": np.median, "mean": np.mean, "min": np.min}[args.stat]
-    data = load(args.csv, args.filter_quiet, args.quiet_cotenant_max)
+    data = load(args.csv, args.filter_quiet, args.quiet_busy_max)
     devices = [d for d in ("gpu", "cpu") if d in data]
     if not devices:
         raise SystemExit(f"no usable rows in {args.csv}")
@@ -95,7 +95,7 @@ def main():
         ax.grid(True, alpha=0.25, lw=0.6)
         ax.legend(frameon=False, fontsize=8.5, loc="upper left")
 
-    mode = f"{args.stat}" + (f", quiet-only (≤{args.quiet_cotenant_max:g} co-tenant cores)"
+    mode = f"{args.stat}" + (f", quiet-only (node busy ≤{args.quiet_busy_max:g}%)"
                              if args.filter_quiet else ", all reps")
     fig.suptitle(f"Time to reach N iterations — ds004505, per implementation [{mode}] "
                  "(dashed = a + b·iters through top two caps: a=compile/setup, b=steady per-iter)",

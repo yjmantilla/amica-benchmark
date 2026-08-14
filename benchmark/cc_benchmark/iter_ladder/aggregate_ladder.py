@@ -96,8 +96,19 @@ def scan(root: Path, device: str, rows: list, itrows: list):
 
 
 def _cc(r):
-    """co-tenant cores for a row; missing/blank (e.g. GPU, no sampler) counts as quiet=0."""
+    """co-tenant cores (squeue %C) -- an UPPER bound: multi-node jobs report total cores across all
+    their nodes, so this overcounts. Kept for context; the quiet filter uses node_busy% instead."""
     v = r.get("cotenant_cores_mean")
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _nb(r):
+    """node-wide CPU busy% for a row -- the reliable contention signal (bounded 0-100). Missing
+    (e.g. GPU, no sampler) counts as quiet=0."""
+    v = r.get("node_busy_mean")
     try:
         return float(v)
     except (TypeError, ValueError):
@@ -111,10 +122,10 @@ def _pct(vals, q):
     return round(s[min(len(s) - 1, int(q * (len(s) - 1) + 0.5))], 2)
 
 
-def summarize(rows, quiet_max):
+def summarize(rows, quiet_busy_max):
     """Per (device, impl, max_iter): both aggregation modes side by side, so the plot/report can
     pick one without re-running. 'all' = every rep (median/mean/IQR); 'quiet' = only reps the
-    sampler saw run on a lightly-loaded node (cotenant_cores <= quiet_max), then min/median."""
+    sampler saw run on a lightly-loaded node (node_busy% <= quiet_busy_max), then min/median."""
     groups = {}
     for r in rows:
         if r["status"] != "ok" or r["fit_time_s"] == "":
@@ -123,7 +134,7 @@ def summarize(rows, quiet_max):
     out = []
     for (dev, impl, it), rs in sorted(groups.items()):
         t = [float(r["fit_time_s"]) for r in rs]
-        quiet = [float(r["fit_time_s"]) for r in rs if _cc(r) <= quiet_max]
+        quiet = [float(r["fit_time_s"]) for r in rs if _nb(r) <= quiet_busy_max]
         out.append({
             "device": dev, "impl": impl, "max_iter": it,
             "n": len(t), "t_min": round(min(t), 2), "t_median": round(median(t), 2),
@@ -131,6 +142,7 @@ def summarize(rows, quiet_max):
             "n_quiet": len(quiet),
             "t_quiet_min": round(min(quiet), 2) if quiet else "",
             "t_quiet_median": round(median(quiet), 2) if quiet else "",
+            "node_busy_mean": round(mean([_nb(r) for r in rs]), 1),
             "cotenant_cores_mean": round(mean([_cc(r) for r in rs]), 1),
         })
     return out
@@ -143,8 +155,8 @@ def main():
     ap.add_argument("--out", type=Path, default=Path(__file__).resolve().parent / "iter_ladder_data.csv")
     ap.add_argument("--summary-out", type=Path,
                     default=Path(__file__).resolve().parent / "iter_ladder_summary.csv")
-    ap.add_argument("--quiet-cotenant-max", type=float, default=8.0,
-                    help="a rep is 'quiet' if its mean co-tenant cores <= this (default 8 ~ near-idle)")
+    ap.add_argument("--quiet-busy-max", type=float, default=25.0,
+                    help="a rep is 'quiet' if its mean node CPU busy%% <= this (default 25)")
     args = ap.parse_args()
 
     rows, itrows = [], []
@@ -159,14 +171,14 @@ def main():
         w.writeheader(); w.writerows(rows)
     print(f"wrote {args.out} ({len(rows)} rows)")
 
-    summ = summarize(rows, args.quiet_cotenant_max)
+    summ = summarize(rows, args.quiet_busy_max)
     with args.summary_out.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=["device", "impl", "max_iter", "n", "t_min", "t_median",
                                           "t_mean", "t_p25", "t_p75", "n_quiet", "t_quiet_min",
-                                          "t_quiet_median", "cotenant_cores_mean"])
+                                          "t_quiet_median", "node_busy_mean", "cotenant_cores_mean"])
         w.writeheader(); w.writerows(summ)
     print(f"wrote {args.summary_out} ({len(summ)} summary rows; quiet = cotenant_cores <= "
-          f"{args.quiet_cotenant_max:g})")
+          f"node_busy% <= {args.quiet_busy_max:g})")
 
     if itrows:
         itp = args.out.with_name(args.out.stem + "_periter.csv")
