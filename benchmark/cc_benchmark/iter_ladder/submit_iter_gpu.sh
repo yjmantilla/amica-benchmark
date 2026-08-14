@@ -30,6 +30,11 @@ module load StdEnv/2023 python/3.11 scipy-stack/2026a cuda/12.6 cudnn >/dev/null
 export JAX_PLATFORMS=cuda XLA_PYTHON_CLIENT_PREALLOCATE=false
 export AMICA_SKIP_PIN_CHECK=1
 export BIDS_ROOT_DS4505=/scratch/yorguin/ds004505      # Trillium dataset path
+# Trillium compute nodes have a read-only HOME -> redirect caches to /scratch (inherited by the
+# amica fit subprocess too; backend.py honours JAX_COMPILATION_CACHE_DIR).
+export XDG_CACHE_HOME=/scratch/yorguin/.cache XDG_DATA_HOME=/scratch/yorguin/.local/share
+export JAX_COMPILATION_CACHE_DIR=/scratch/yorguin/.cache/amica_jax MPLCONFIGDIR=/scratch/yorguin/.cache/mpl
+mkdir -p "$XDG_CACHE_HOME" "$JAX_COMPILATION_CACHE_DIR" "$MPLCONFIGDIR"
 # Trillium's sbatch wrapper forces --export=NONE, so env vars (incl. MANIFEST) do NOT reach the
 # job. Take the manifest as a positional ARG (immune to env stripping); fall back to env/default.
 MANIFEST="${1:-${MANIFEST:-iter_ladder/manifest_gpu.txt}}"
@@ -50,6 +55,9 @@ export AMICA_PYTHON_VENV=$R/.venv_fir_gpu/bin/python
 export COMPETITORS_VENV=$R/.venv_competitors_main/bin/python
 export PAMICA_VENV=$R/.venv_pamica_main/bin/python
 export AMICA_SRC=/scratch/yorguin/amica_main_src
+# activate an mne-capable venv for the orchestrator (only needed if a cache is missing and it must
+# preprocess; harmless otherwise -- fits still dispatch to the *_VENV pythons below)
+source "$R/.venv_fir_gpu/bin/activate" 2>/dev/null || true
 export AMICA_SCOTT_BATCH=$C AMICA_PYAMICA_CHUNK=$C AMICA_PAMICA_BLOCK_SIZE=$C
 export AMICA_COMPARATOR_RESULTS=/scratch/yorguin/iter_ladder/gpu
 mkdir -p "$AMICA_COMPARATOR_RESULTS"

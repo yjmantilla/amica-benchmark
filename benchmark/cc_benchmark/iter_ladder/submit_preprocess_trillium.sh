@@ -17,7 +17,12 @@ source /cvmfs/soft.computecanada.ca/config/profile/bash.sh
 module load StdEnv/2023 python/3.11 scipy-stack/2026a >/dev/null 2>&1
 export AMICA_SKIP_PIN_CHECK=1
 export BIDS_ROOT_DS4505=/scratch/yorguin/ds004505
-mkdir -p /scratch/yorguin/iter_ladder_cells /scratch/yorguin/realchunk_cache
+# Trillium compute nodes have a read-only HOME; redirect all caches to /scratch. The amica_python
+# JAX backend (backend.py) honours JAX_COMPILATION_CACHE_DIR before falling back to ~/.cache.
+export XDG_CACHE_HOME=/scratch/yorguin/.cache XDG_DATA_HOME=/scratch/yorguin/.local/share
+export JAX_COMPILATION_CACHE_DIR=/scratch/yorguin/.cache/amica_jax MPLCONFIGDIR=/scratch/yorguin/.cache/mpl
+mkdir -p /scratch/yorguin/iter_ladder_cells /scratch/yorguin/realchunk_cache \
+         "$XDG_CACHE_HOME" "$JAX_COMPILATION_CACHE_DIR" "$MPLCONFIGDIR"
 
 R=/scratch/yorguin/amica-benchmark-repro
 source $R/.venv_fir_gpu/bin/activate 2>/dev/null || true
