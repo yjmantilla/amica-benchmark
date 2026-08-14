@@ -30,7 +30,10 @@ module load StdEnv/2023 python/3.11 scipy-stack/2026a cuda/12.6 cudnn >/dev/null
 export JAX_PLATFORMS=cuda XLA_PYTHON_CLIENT_PREALLOCATE=false
 export AMICA_SKIP_PIN_CHECK=1
 export BIDS_ROOT_DS4505=/scratch/yorguin/ds004505      # Trillium dataset path
-: "${MANIFEST:?set MANIFEST=iter_ladder/manifest_gpu.txt}"
+# Trillium's sbatch wrapper forces --export=NONE, so env vars (incl. MANIFEST) do NOT reach the
+# job. Take the manifest as a positional ARG (immune to env stripping); fall back to env/default.
+MANIFEST="${1:-${MANIFEST:-iter_ladder/manifest_gpu.txt}}"
+[ -f "$MANIFEST" ] || { echo "manifest not found: $MANIFEST (pass as arg 1 on Trillium)"; exit 1; }
 mkdir -p /scratch/yorguin/iter_ladder_cells
 
 line=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MANIFEST")
