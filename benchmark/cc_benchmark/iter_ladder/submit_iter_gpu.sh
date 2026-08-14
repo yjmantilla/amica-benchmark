@@ -4,7 +4,7 @@
 # to end, at a FIXED chunk (65536). One array task per manifest line "SUBJECT IMPL CHUNK MAXITER".
 # Each cell holds ONE GPU -> no cross-cell contention; the array can run several at once.
 #
-# Trillium specifics (differ from fir): account def-kjerbi, partition compute, --gpus-per-node=1,
+# Trillium specifics (differ from fir): account rrg-kjerbi, partition compute, --gpus-per-node=1,
 # BIDS root at /scratch/yorguin/ds004505 (not the fir /project path). Venvs + amica_main_src are
 # already replicated under /scratch/yorguin on Trillium; the PCA caches are NOT -- build them once
 # first with submit_preprocess_trillium.sh (this script uses --cached-input if present, else the
@@ -12,9 +12,9 @@
 #
 # Launch (on Trillium, from benchmark/cc_benchmark/):
 #   python iter_ladder/build_manifests.py
-#   sbatch --array=1-25 iter_ladder/submit_preprocess_trillium.sh          # build 25 caches (once)
-#   MANIFEST=iter_ladder/manifest_gpu.txt sbatch --array=1-600%8 iter_ladder/submit_iter_gpu.sh
-#SBATCH --account=def-kjerbi
+#   sbatch iter_ladder/submit_preprocess_trillium.sh                       # build 25 caches (single node)
+#   sbatch --array=1-600%8 iter_ladder/submit_iter_gpu.sh iter_ladder/manifest_gpu.txt   # manifest as ARG!
+#SBATCH --account=rrg-kjerbi
 #SBATCH --partition=compute
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1

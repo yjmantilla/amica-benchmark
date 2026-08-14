@@ -4,7 +4,7 @@
 # SINGLE job that loops all 25 subjects on one node (no fit, just PCA projection -> ~1-2 min each).
 # The ladder cells then reuse the caches via --cached-input.
 #   sbatch iter_ladder/submit_preprocess_trillium.sh
-#SBATCH --account=def-kjerbi
+#SBATCH --account=rrg-kjerbi
 #SBATCH --partition=compute
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
