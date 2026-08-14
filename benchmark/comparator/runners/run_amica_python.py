@@ -107,6 +107,23 @@ def main() -> None:
     W = np.asarray(result.unmixing_matrix_white_)
     ll_history = np.asarray(result.log_likelihood).tolist()
 
+    # best-effort native per-iteration wall times (used by the iteration-ladder plots for a
+    # fine-grained curve; absent on older jamica builds, in which case it stays None).
+    iteration_times = None
+    for _src in (result, getattr(result, "convergence", None)):
+        if _src is None:
+            continue
+        for _attr in ("iteration_times", "iter_times", "per_iter_times"):
+            _v = getattr(_src, _attr, None)
+            if _v is not None:
+                try:
+                    iteration_times = [float(x) for x in np.asarray(_v).ravel().tolist()]
+                except Exception:
+                    iteration_times = None
+                break
+        if iteration_times is not None:
+            break
+
     peak = peak_rss_gb()
     out = {
         "implementation": impl,
@@ -121,6 +138,7 @@ def main() -> None:
         "nvml_peak_vram_gb": nvml_peak_vram_gb,
         "ll_final": float(ll_history[-1]) if ll_history else float("nan"),
         "ll_history": ll_history,
+        "iteration_times": iteration_times,
         "W": W.tolist(),
         "device": device,
         "dtype": "float64",
