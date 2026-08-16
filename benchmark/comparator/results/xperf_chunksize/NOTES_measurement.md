@@ -1,8 +1,62 @@
-# Measurement note — node contention in the atomic CPU sweep
+# Measurement note — AMICA chunk-sweep campaign
 
-**Status:** known limitation of the real-data CPU curves. The *ordering* and *optima* are
-trustworthy; the *absolute* CPU times carry a contention bias (see estimate). A clean rerun with
-`--exclusive` is future work (below).
+> **Update (2026-08 — corrected campaign supersedes the numbers below).** The published report now
+> uses a **realistic iteration budget** (GPU @3000, CPU @1000, not 100), **NVML** whole-GPU memory as
+> the headline VRAM, and the **corrected jamica chunked path**. Two measurement bugs from the earlier
+> 100-iter draft were found and fixed — see *The two jamica keys* and *NVML vs the allocator counters*
+> below. The §"node contention" / best-of-5 / 100-iter material further down is the **origin story**,
+> retained for provenance; where it conflicts with the two corrected sections, the corrected sections win.
+
+## The two jamica keys (the "chunk-invariant" artifact)
+The orchestrator exposes jamica under **two keys**:
+- `amica_python_jax` — the **full-batch** path. It **ignores `--amica-chunk-size`** (materialises the
+  full-width arrays regardless).
+- `amica_python_jax_chunked` — the **chunked** path. It **applies** `--amica-chunk-size`.
+
+The early chunk/memory sweeps drove jamica through `amica_python_jax`, so every "chunk" ran the same
+full-batch program — making jamica look **falsely chunk-invariant** (flat time, a fixed ~2 GB-allocator
+memory point). That was a harness-key artifact, **not** a property of jamica. All jamica chunk numbers
+in the corrected report come from **`amica_python_jax_chunked`**. Competitor keys
+(`scott_huberty_torch` / `pyamica_torch` / `pamica_torch` / `fortran_amica17`) were always correct —
+only jamica had the two-key trap. Corrected result: **jamica is a normal, device-dependent
+time/memory dial** like the others (GPU: big chunk faster, 763 s→62 s @3000; CPU: small chunk faster
+*and* leaner, 1982 s/2.2 GB @1024 → 2731 s/7.0 GB @full — a device flip).
+
+## NVML vs the allocator counters (the ~2× memory gap)
+Peak-VRAM was reported three inconsistent ways in the 100-iter draft because each framework's
+**allocator counter measures only its own live-tensor bytes** — JAX `peak_bytes_in_use`, torch
+`max_memory_allocated` — omitting the CUDA/cuDNN context and pool the driver actually holds, and the
+two frameworks count differently. They **understate the real footprint ~2×** and are **not comparable
+across implementations**. The corrected headline is **NVML whole-GPU `used`** on a dedicated GPU
+(`AMICA_NVML_CROSSCHECK=1`), which is framework-neutral and reflects what would actually fit on a card.
+Example: jamica chunked ≈ **1.6 GB allocator vs ≈ 5.4 GB NVML**. A per-framework allocator bug (a
+`bytes_in_use` fallback) had additionally produced a spurious 2.19 / 5.77 / 8.14 GB spread for jamica;
+fixed by requiring `peak_bytes_in_use` + `jax.block_until_ready`.
+
+**jamica memory is two-level.** On the chunked path jamica sits ≈ **5.4 GB NVML** across chunk sizes
+(a chunk-independent full-width array dominates the peak until the block buffer overtakes it only at
+262144). Its **full-batch path** (`chunk_size=None`, the *other* key) materialises the full-width
+arrays for ≈ **8.2 GB allocator / 11.4 GB NVML** — at **no speed benefit** over chunked-at-full. So a
+wrapper should always pass a chunk and never leave jamica on the full-batch path; a ~5 GB chunked
+footprint fits the 8–12 GB cards many users have, the ~11 GB full-batch path may not.
+
+## Corrected CPU campaign (contention, @1000, median-over-reps)
+The corrected CPU sweep ran at **1000 iterations** with **5 repetitions per cell as separate array
+tasks** and a background node-contention sampler. The cluster was **busy throughout** — the
+quiet-window filter (`node_busy_mean ≤ 25`) found essentially **no clean reps** — so we report the
+**median over 5 subj × 5 reps** and treat absolute CPU seconds as **contention-inflated**. (This
+replaces the earlier "best-of-5" statistic; both are honest handling of the same DRAM-bandwidth
+contention documented below, just at the realistic budget.) `pyamica@1024` (~767 eager blocks/iter)
+exceeds the 12 h wall and is absent; nothing else OOMed at this budget. Trust the **curve shapes,
+per-device optima, and NVML memory**; lean on CPU *ordering*, not exact CPU seconds.
+
+---
+
+# (Historical) node contention in the atomic 100-iter CPU sweep
+
+**Status:** origin-story analysis of the earlier 100-iter draft (superseded by the corrected campaign
+above, which it motivated). The *ordering* and *optima* it found are trustworthy; its *absolute* CPU
+times carry a contention bias (see estimate). A clean rerun with `--exclusive` remains future work.
 
 ## The design tradeoff that causes it
 The real-data sweep fans out **atomic `(impl, chunk)` cells** (one job fits one implementation at
