@@ -221,6 +221,27 @@ def chart_iters(series, ylab, title, sub, impls, y0zero=True):
     s.append('</svg>')
     return f'<figure class="cf"><figcaption>{sub}</figcaption>{"".join(s)}</figure>'
 
+def chart_wallbar():
+    order=sorted(IMPLS, key=lambda im: GPU[im][FULL][0])   # ascending wall time at 262K
+    W,H=520,200; ml,mr,mt,mb=96,46,32,30; pw=W-ml-mr
+    maxv=max(GPU[im][FULL][0] for im in order)*1.14
+    def X(v): return ml+v/maxv*pw
+    rowh=(H-mt-mb)/len(order); bh=min(24,rowh*0.55)
+    s=[f'<svg viewBox="0 0 {W} {H}" class="chart" role="img" aria-label="wall time at matched 3000 iterations">']
+    s.append(f'<text x="{ml-90}" y="16" class="ct">GPU · wall time @ matched 3000 iters · chunk 262K</text>')
+    v=0.0
+    while v<=maxv:
+        x=X(v); s.append(f'<line x1="{x:.1f}" y1="{mt}" x2="{x:.1f}" y2="{H-mb}" class="grid vg"/>')
+        s.append(f'<text x="{x:.1f}" y="{H-mb+14:.0f}" class="cxt">{v:.0f}</text>'); v+=100
+    s.append(f'<text x="{ml}" y="{H-4}" class="cx">wall time (s) →</text>')
+    for i,im in enumerate(order):
+        t=GPU[im][FULL][0]; y=mt+i*rowh+(rowh-bh)/2
+        s.append(f'<text x="{ml-8}" y="{y+bh*0.72:.1f}" class="cyt">{LABEL[im]}</text>')
+        s.append(f'<rect x="{ml}" y="{y:.1f}" width="{X(t)-ml:.1f}" height="{bh}" fill="{COLOR[im]}" opacity="0.85" rx="2"/>')
+        s.append(f'<text x="{X(t)+5:.1f}" y="{y+bh*0.72:.1f}" class="cxt" style="text-anchor:start">{t:.0f}s</text>')
+    s.append('</svg>')
+    return f'<figure class="cf"><figcaption>wall time = s/iter × 3000 (early-stops disabled); jamica ~4–5× faster per iteration</figcaption>{"".join(s)}</figure>'
+
 LAD_TIME={im:{n:LADDER[im][n][0] for n in LADDER[im]} for im in IMPLS}
 LAD_LL  ={im:{n:LADDER[im][n][1] for n in LADDER[im]} for im in IMPLS}
 c_lt=chart_iters(LAD_TIME,"fit time (s)","GPU · fit time vs iterations","chunk 65536 · per-subject median · slope = s/iter",IMPLS,y0zero=True)
@@ -438,7 +459,8 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   comparison — no early-stop confound. <b>Seconds/iteration</b> is still a descriptive per-iteration cost
   (it folds in fixed/compile overhead, and the update rules differ, so it is not an isolated kernel
   speed). "Iters run" is 3,000 for all four; "final LL" is where each landed at 3000 iterations.</p>
-  <table><thead><tr><th>Implementation</th><th>Wall time</th><th>s / iter</th><th>Iters run</th><th>Final LL (median)</th></tr></thead><tbody>{convrows()}</tbody></table>
+  <div class="grid2"><div class="card">{chart_wallbar()}</div>
+  <div class="card"><table><thead><tr><th>Impl</th><th>Wall</th><th>s / iter</th><th>Iters</th><th>Final LL</th></tr></thead><tbody>{convrows()}</tbody></table></div></div>
   <p class="note">jamica has both the shortest wall time and by far the lowest cost per iteration
   (~0.020&nbsp;s/iter vs 0.077–0.099 for the others — ~4–5× faster per iteration). At matched iterations
   pyamica is the longest wall time (and lands at the highest final LL), pAMICA is close behind on time but
