@@ -452,6 +452,76 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 </section>
 
 <section>
+  <h2>A note on the memory numbers</h2>
+  <div class="info-box"><b>NVML is the framework-neutral VRAM figure.</b> The per-framework allocator
+  counters (JAX <code>peak_bytes_in_use</code>, torch <code>max_memory_allocated</code>) measure only
+  live-tensor bytes in each framework's own allocator — they omit the CUDA/cuDNN context and the pool
+  the driver actually holds, and the two frameworks count differently, so they are <b>not comparable
+  across implementations</b> and understate the real footprint by <b>~1.2–3.3×</b> across the 25
+  measured impl×chunk pairs (all in <code>raw/chunk_gpumem_summary.csv</code>) — e.g. jamica chunked
+  ~1.6&nbsp;GiB allocator vs ~5.3&nbsp;GiB NVML ≈ 3.3× at small chunks, shrinking to pyamica@262K ~1.2× at
+  the largest chunk (the gap shrinks as live tensors grow to dominate the fixed context + pool overhead). The charts use
+  <b>NVML whole-GPU 'used'</b> on a dedicated GPU. Two caveats on that meter: it is a 50&nbsp;ms poll (a
+  sub-interval spike could be missed), and the frameworks run under different allocator settings (JAX
+  with pre-allocation off; torch with its caching allocator on), so NVML is a neutral <em>meter</em>
+  over somewhat different <em>protocols</em>.</div>
+  <div class="grid2" style="margin:10px 0 6px"><div class="card">{memdecomp_chart(FULL)}</div>
+  <div class="card"><table><thead><tr><th>@ 262K</th><th class="num">context</th><th class="num">live-alloc</th><th class="num">NVML total</th><th class="num">NVML÷alloc</th></tr></thead><tbody>{memdecomprows(FULL)}</tbody></table>
+  <p class="note" style="padding:0 6px">Measured medians (GiB) across 25 subjects: <b>context</b> = whole-GPU
+  used right after the CUDA context is forced, before model/data; <b>live-alloc</b> = framework allocator
+  live-tensor peak; <b>NVML total</b> = whole-GPU peak. <b>This pre-fit baseline is ~1&nbsp;GiB for all
+  four</b> (JAX 1.02, torch 1.08) — essentially equal. It is measured before the fit, so any kernel/cuDNN
+  state loaded lazily during fitting falls into the remainder below, not this baseline; we therefore claim
+  only that the measured <em>pre-fit</em> floor does not differ across frameworks, not that the complete
+  fixed framework context is ~1&nbsp;GiB. What differs is the resident/pool memory: torch's NVML ≈ baseline
+  + its live/reserved pool (and scales with chunk), whereas jamica's allocator peak stays small (~1.9)
+  while its NVML is ~5.4 — JAX holds a larger, chunk-independent resident/pool footprint the allocator
+  counter undercounts most.</p></div></div>
+  <p class="note"><b>jamica memory is two-level, and it cuts both ways.</b> On its chunked path jamica's
+  median NVML is ~5.4&nbsp;GiB across chunk sizes (per-subject ~3.4–5.4&nbsp;GiB below 262K, rising to
+  5.4–{J_CHUNKED_GPU_NVML_MAX:.1f}&nbsp;GiB at 262K for the longest recordings — flat in the median
+  across chunk, a floor, not a single constant). Its <em>full-batch</em> path
+  (<code>chunk_size=None</code> — a different orchestrator key, and jamica's shipped default) uses
+  ~{J_FULLBATCH_GPU_NVML:.1f}&nbsp;GiB NVML median (per-subject up to ~{J_FULLBATCH_GPU_NVML_MAX:.0f} for
+  the longest recording) for essentially the <b>same GPU speed</b> (~{J_FULLBATCH_GPU_SPI:.3f} vs
+  ~{J_CHUNKED_GPU_SPI:.3f}&nbsp;s/iter — no chunk benefit on GPU; the full-batch figure is from the earlier
+  memory run). On CPU, chunking helps
+  <em>both</em> axes (~{J_CHUNKED_CPU_T:,}&nbsp;s /
+  ~{J_CHUNKED_CPU_RSS:.1f}&nbsp;GiB chunked vs ~{J_FULLBATCH_CPU_T:,}&nbsp;s /
+  ~{J_FULLBATCH_CPU_RSS:.0f}&nbsp;GiB full-batch). So under these tested conditions a wrapper should pass
+  a chunk. The flip side, in fairness: jamica's ~5.4&nbsp;GiB chunked <em>floor</em> is higher than the
+  torch impls' small-chunk footprint (~1.8–3.1&nbsp;GiB NVML) — on a small card the torch impls at a
+  small chunk fit where jamica may not. (The "fits an 8–12&nbsp;GiB card" reading is an extrapolation
+  from H100 NVML with JAX pre-allocation off; it was not measured on such a card.)</p>
+  <div class="info-box"><b>"Flat jamica memory" is not the earlier full-batch measurement bug.</b> Flat
+  memory was the signature of a fixed bug where jamica was accidentally run full-batch at every chunk, so
+  we checked. Two things rule it out here: (1) jamica's <b>fit time varies ~13× with the chunk</b>
+  (775&nbsp;s→61&nbsp;s) — only possible if the chunk is actually applied; the true full-batch path is
+  chunk-<em>independent</em> in time too (~61&nbsp;s at every chunk). (2) The chunked path's memory
+  (~5.4&nbsp;GiB NVML / ~{J_CHUNKED_ALLOC:.1f}&nbsp;GiB allocator) is less than half the full-batch path's
+  (~{J_FULLBATCH_GPU_NVML:.1f}&nbsp;/&nbsp;{J_FULLBATCH_ALLOC:.1f}&nbsp;GiB) — different numbers, different
+  code path (both in <code>raw/chunk_gpumem_summary.csv</code>). The chunked NVML is flat because of what
+  it's made of: the measured context floor is only ~1&nbsp;GiB (chunk-independent, and about the same for
+  JAX and torch — see the decomposition above), and the rest of the ~5.4&nbsp;GiB is JAX's memory pool plus
+  <em>chunk-independent resident arrays</em> (the whitened data and source outputs, sized by
+  <code>n_samples</code>); the framework allocator counter (<code>peak_bytes_in_use</code>
+  ~{J_CHUNKED_ALLOC:.1f}&nbsp;GiB) undercounts that resident/pooled footprint the most for JAX, which is
+  why jamica's NVML sits far above its allocator peak. The chunk-scaled E-step block buffer is small next
+  to the resident arrays until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
+  up to ~7.4). So chunk is a real <em>time</em> dial for jamica but not a GPU-<em>memory</em> dial — a
+  genuine property of the chunked path, distinct from the full-batch key. <b>And it is by design, not a
+  leak:</b> the chunked E-step accumulates small per-chunk sufficient statistics
+  (<code>O(n_comp²)</code>) and never materialises the full-width <code>(n_comp, n_samples)</code>
+  per-sample tensors — those appear only on the full-batch path. Of the ~5.4&nbsp;GiB whole-GPU NVML, only
+  ~1&nbsp;GiB is the measured pre-fit context floor and ~1.6&nbsp;GiB is the allocator's live-tensor peak
+  (resident whitened data + accumulators); the remaining ~2.4&nbsp;GiB is JAX pool / resident bytes the
+  allocator counter does not report / post-init runtime, which we do not separate further — it is
+  chunk-independent (see the decomposition above). Chunking bounds the chunk-scaled working set as
+  intended; it simply cannot go below that context + pool + resident-data floor (which is <em>not</em> a
+  ~3.8&nbsp;GiB context — the context alone is ~1&nbsp;GiB).</div>
+</section>
+
+<section>
   <h2>Wall time at matched 3000 iterations (GPU, largest chunk)</h2>
   <p class="sub">Each implementation at chunk 262K on the H100 (per-subject median), <b>iteration-matched
   to 3000</b> (early-stops disabled). Because every implementation now runs the full 3000 iterations,
@@ -550,75 +620,6 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   cluster and will replace this section when complete.</div>
 </section>
 
-<section>
-  <h2>A note on the memory numbers</h2>
-  <div class="info-box"><b>NVML is the framework-neutral VRAM figure.</b> The per-framework allocator
-  counters (JAX <code>peak_bytes_in_use</code>, torch <code>max_memory_allocated</code>) measure only
-  live-tensor bytes in each framework's own allocator — they omit the CUDA/cuDNN context and the pool
-  the driver actually holds, and the two frameworks count differently, so they are <b>not comparable
-  across implementations</b> and understate the real footprint by <b>~1.2–3.3×</b> across the 25
-  measured impl×chunk pairs (all in <code>raw/chunk_gpumem_summary.csv</code>) — e.g. jamica chunked
-  ~1.6&nbsp;GiB allocator vs ~5.3&nbsp;GiB NVML ≈ 3.3× at small chunks, shrinking to pyamica@262K ~1.2× at
-  the largest chunk (the gap shrinks as live tensors grow to dominate the fixed context + pool overhead). The charts use
-  <b>NVML whole-GPU 'used'</b> on a dedicated GPU. Two caveats on that meter: it is a 50&nbsp;ms poll (a
-  sub-interval spike could be missed), and the frameworks run under different allocator settings (JAX
-  with pre-allocation off; torch with its caching allocator on), so NVML is a neutral <em>meter</em>
-  over somewhat different <em>protocols</em>.</div>
-  <div class="grid2" style="margin:10px 0 6px"><div class="card">{memdecomp_chart(FULL)}</div>
-  <div class="card"><table><thead><tr><th>@ 262K</th><th class="num">context</th><th class="num">live-alloc</th><th class="num">NVML total</th><th class="num">NVML÷alloc</th></tr></thead><tbody>{memdecomprows(FULL)}</tbody></table>
-  <p class="note" style="padding:0 6px">Measured medians (GiB) across 25 subjects: <b>context</b> = whole-GPU
-  used right after the CUDA context is forced, before model/data; <b>live-alloc</b> = framework allocator
-  live-tensor peak; <b>NVML total</b> = whole-GPU peak. <b>This pre-fit baseline is ~1&nbsp;GiB for all
-  four</b> (JAX 1.02, torch 1.08) — essentially equal. It is measured before the fit, so any kernel/cuDNN
-  state loaded lazily during fitting falls into the remainder below, not this baseline; we therefore claim
-  only that the measured <em>pre-fit</em> floor does not differ across frameworks, not that the complete
-  fixed framework context is ~1&nbsp;GiB. What differs is the resident/pool memory: torch's NVML ≈ baseline
-  + its live/reserved pool (and scales with chunk), whereas jamica's allocator peak stays small (~1.9)
-  while its NVML is ~5.4 — JAX holds a larger, chunk-independent resident/pool footprint the allocator
-  counter undercounts most.</p></div></div>
-  <p class="note"><b>jamica memory is two-level, and it cuts both ways.</b> On its chunked path jamica's
-  median NVML is ~5.4&nbsp;GiB across chunk sizes (per-subject ~3.4–5.4&nbsp;GiB below 262K, rising to
-  5.4–{J_CHUNKED_GPU_NVML_MAX:.1f}&nbsp;GiB at 262K for the longest recordings — flat in the median
-  across chunk, a floor, not a single constant). Its <em>full-batch</em> path
-  (<code>chunk_size=None</code> — a different orchestrator key, and jamica's shipped default) uses
-  ~{J_FULLBATCH_GPU_NVML:.1f}&nbsp;GiB NVML median (per-subject up to ~{J_FULLBATCH_GPU_NVML_MAX:.0f} for
-  the longest recording) for essentially the <b>same GPU speed</b> (~{J_FULLBATCH_GPU_SPI:.3f} vs
-  ~{J_CHUNKED_GPU_SPI:.3f}&nbsp;s/iter — no chunk benefit on GPU; the full-batch figure is from the earlier
-  memory run). On CPU, chunking helps
-  <em>both</em> axes (~{J_CHUNKED_CPU_T:,}&nbsp;s /
-  ~{J_CHUNKED_CPU_RSS:.1f}&nbsp;GiB chunked vs ~{J_FULLBATCH_CPU_T:,}&nbsp;s /
-  ~{J_FULLBATCH_CPU_RSS:.0f}&nbsp;GiB full-batch). So under these tested conditions a wrapper should pass
-  a chunk. The flip side, in fairness: jamica's ~5.4&nbsp;GiB chunked <em>floor</em> is higher than the
-  torch impls' small-chunk footprint (~1.8–3.1&nbsp;GiB NVML) — on a small card the torch impls at a
-  small chunk fit where jamica may not. (The "fits an 8–12&nbsp;GiB card" reading is an extrapolation
-  from H100 NVML with JAX pre-allocation off; it was not measured on such a card.)</p>
-  <div class="info-box"><b>"Flat jamica memory" is not the earlier full-batch measurement bug.</b> Flat
-  memory was the signature of a fixed bug where jamica was accidentally run full-batch at every chunk, so
-  we checked. Two things rule it out here: (1) jamica's <b>fit time varies ~13× with the chunk</b>
-  (775&nbsp;s→61&nbsp;s) — only possible if the chunk is actually applied; the true full-batch path is
-  chunk-<em>independent</em> in time too (~61&nbsp;s at every chunk). (2) The chunked path's memory
-  (~5.4&nbsp;GiB NVML / ~{J_CHUNKED_ALLOC:.1f}&nbsp;GiB allocator) is less than half the full-batch path's
-  (~{J_FULLBATCH_GPU_NVML:.1f}&nbsp;/&nbsp;{J_FULLBATCH_ALLOC:.1f}&nbsp;GiB) — different numbers, different
-  code path (both in <code>raw/chunk_gpumem_summary.csv</code>). The chunked NVML is flat because of what
-  it's made of: the measured context floor is only ~1&nbsp;GiB (chunk-independent, and about the same for
-  JAX and torch — see the decomposition above), and the rest of the ~5.4&nbsp;GiB is JAX's memory pool plus
-  <em>chunk-independent resident arrays</em> (the whitened data and source outputs, sized by
-  <code>n_samples</code>); the framework allocator counter (<code>peak_bytes_in_use</code>
-  ~{J_CHUNKED_ALLOC:.1f}&nbsp;GiB) undercounts that resident/pooled footprint the most for JAX, which is
-  why jamica's NVML sits far above its allocator peak. The chunk-scaled E-step block buffer is small next
-  to the resident arrays until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
-  up to ~7.4). So chunk is a real <em>time</em> dial for jamica but not a GPU-<em>memory</em> dial — a
-  genuine property of the chunked path, distinct from the full-batch key. <b>And it is by design, not a
-  leak:</b> the chunked E-step accumulates small per-chunk sufficient statistics
-  (<code>O(n_comp²)</code>) and never materialises the full-width <code>(n_comp, n_samples)</code>
-  per-sample tensors — those appear only on the full-batch path. Of the ~5.4&nbsp;GiB whole-GPU NVML, only
-  ~1&nbsp;GiB is the measured pre-fit context floor and ~1.6&nbsp;GiB is the allocator's live-tensor peak
-  (resident whitened data + accumulators); the remaining ~2.4&nbsp;GiB is JAX pool / resident bytes the
-  allocator counter does not report / post-init runtime, which we do not separate further — it is
-  chunk-independent (see the decomposition above). Chunking bounds the chunk-scaled working set as
-  intended; it simply cannot go below that context + pool + resident-data floor (which is <em>not</em> a
-  ~3.8&nbsp;GiB context — the context alone is ~1&nbsp;GiB).</div>
-</section>
 
 <footer>
   <div class="kick" style="color:var(--mut)">Provenance &amp; reproduction</div>
