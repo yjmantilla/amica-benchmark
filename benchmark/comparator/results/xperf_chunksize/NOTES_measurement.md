@@ -75,7 +75,7 @@ largest chunk (262144) the implementations use the budget very differently:
 | impl | wall time | s/iter | iters run: median [min–max] | ll_final (median) |
 |------|----------:|-------:|-----------------------------|------------------:|
 | jamica  |  62 s | 0.021 | 3000 [2572–3000] | −1.1016 |
-| scott-huberty | 79 s | 0.076 | 1106 [786–1654] (early-converges) | −1.1004 |
+| amica-python | 79 s | 0.076 | 1106 [786–1654] (early-converges) | −1.1004 |
 | pAMICA | 245 s | 0.089 | 3000 [151–3000] (early-stop can fire very early) | −1.1204 (lowest) |
 | pyamica | 294 s | 0.098 | 3000 [3000–3000] (always full cap) | −1.0995 (highest) |
 
@@ -106,7 +106,7 @@ times carry a contention bias (see estimate). A clean rerun with `--exclusive` r
 The real-data sweep fans out **atomic `(impl, chunk)` cells** (one job fits one implementation at
 one chunk size, loading a cached PCA projection). This buys **failure isolation** (a hang/OOM/diverge
 wastes only that cell — e.g. Fortran diverging at `block=1024` over 100 iters) and **wall-clock
-parallelism** (the slow scott@1024 cell no longer blocks amica@1024).
+parallelism** (the slow amica-python@1024 cell no longer blocks amica@1024).
 
 The cost: with 5 subjects × 5 impls × 5 chunks there are ~125 cells eligible to run at once, versus
 ~25 for a bundled (subject×chunk, impls-sequential) design. ~5× more concurrent jobs → the scheduler
@@ -132,7 +132,7 @@ Per-cell fit time is **heavy-tailed**. Median vs. the least-contended run (min) 
 | amica @16384    |  6.8s  |  6.0 | 43.0 |        +13%   |      6.3×      |
 | amica @full     |  5.2s  |  4.1 | 30.5 |        +27%   |      5.9×      |
 | amica @1024     | 29.2s  | 20.8 | 34.7 |        +40%   |      1.2×      |
-| scott @16384    | 15.4s  | 13.3 | 85.7 |        +16%   |      5.6×      |
+| amica-python @16384    | 15.4s  | 13.3 | 85.7 |        +16%   |      5.6×      |
 | pAMICA @1024    |139.6s  | 99.2 |170.4 |        +41%   |      1.2×      |
 
 - The reported **median carries ≈ +15–40%** over the cleanest observation.
@@ -169,9 +169,9 @@ trend and was what that draft plotted. (The current corrected report does NOT us
 the median over subjects × reps at the realistic budget, with p25–p75 bands; see the corrected campaign
 section at the top.) The directional finding that survived into the corrected report: **CPU is fastest
 at small/mid chunks** — the opposite of the GPU, a cache effect. The exact 100-iter optima quoted here
-(jamica 1024, scott/Fortran ~4096, pyamica 16384) and the "~155 s best" figure are that old draft's;
+(jamica 1024, amica-python/Fortran ~4096, pyamica 16384) and the "~155 s best" figure are that old draft's;
 the corrected @1000 numbers differ and carry wide contention bands. pyamica@1024 exceeded the runner
-wall in both campaigns; scott full-batch did not OOM in the corrected GPU/CPU runs.
+wall in both campaigns; amica-python full-batch did not OOM in the corrected GPU/CPU runs.
 
 For truly clean CPU *absolutes* (not just the trend) the remaining lever is `--exclusive`/`bynode`
 allocation — rejected here as fair-share-hostile (reserves a 192-core node for an ~8-core job that only

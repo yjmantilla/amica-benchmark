@@ -59,36 +59,36 @@ gpu_fit_s_p25,pyamica,chunk_t,65536,321,s,
 gpu_fit_s_p75,pyamica,chunk_t,65536,347,s,
 gpu_fit_s_p25,pyamica,chunk_t,262144,276,s,
 gpu_fit_s_p75,pyamica,chunk_t,262144,301,s,
-gpu_fit_s_median,scott,batch_size,1024,2023.8,s,"GPU H100 3000-iter budget, per-subj median"
-gpu_vram_gib_nvml,scott,batch_size,1024,1.82,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
-gpu_fit_s_median,scott,batch_size,4096,502.0,s,"GPU H100 3000-iter budget, per-subj median"
-gpu_vram_gib_nvml,scott,batch_size,4096,1.87,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
-gpu_fit_s_median,scott,batch_size,16384,163.2,s,"GPU H100 3000-iter budget, per-subj median"
-gpu_vram_gib_nvml,scott,batch_size,16384,2.05,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
-gpu_fit_s_median,scott,batch_size,65536,110.4,s,"GPU H100 3000-iter budget, per-subj median"
-gpu_vram_gib_nvml,scott,batch_size,65536,2.77,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
-gpu_fit_s_median,scott,batch_size,262144,79.3,s,"GPU H100 3000-iter budget, per-subj median"
-gpu_vram_gib_nvml,scott,batch_size,262144,4.88,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
-gpu_fit_s_p25,scott,batch_size,1024,1872,s,
-gpu_fit_s_p75,scott,batch_size,1024,2395,s,
-gpu_fit_s_p25,scott,batch_size,4096,485,s,
-gpu_fit_s_p75,scott,batch_size,4096,586,s,
-gpu_fit_s_p25,scott,batch_size,16384,155,s,
-gpu_fit_s_p75,scott,batch_size,16384,190,s,
-gpu_fit_s_p25,scott,batch_size,65536,102,s,
-gpu_fit_s_p75,scott,batch_size,65536,127,s,
-gpu_fit_s_p25,scott,batch_size,262144,76,s,
-gpu_fit_s_p75,scott,batch_size,262144,100,s,
+gpu_fit_s_median,amica_python,batch_size,1024,2023.8,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,amica_python,batch_size,1024,1.82,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
+gpu_fit_s_median,amica_python,batch_size,4096,502.0,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,amica_python,batch_size,4096,1.87,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
+gpu_fit_s_median,amica_python,batch_size,16384,163.2,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,amica_python,batch_size,16384,2.05,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
+gpu_fit_s_median,amica_python,batch_size,65536,110.4,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,amica_python,batch_size,65536,2.77,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
+gpu_fit_s_median,amica_python,batch_size,262144,79.3,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,amica_python,batch_size,262144,4.88,GiB,"NVML whole-GPU median, i1000 run (see raw/chunk_gpumem_summary.csv)"
+gpu_fit_s_p25,amica_python,batch_size,1024,1872,s,
+gpu_fit_s_p75,amica_python,batch_size,1024,2395,s,
+gpu_fit_s_p25,amica_python,batch_size,4096,485,s,
+gpu_fit_s_p75,amica_python,batch_size,4096,586,s,
+gpu_fit_s_p25,amica_python,batch_size,16384,155,s,
+gpu_fit_s_p75,amica_python,batch_size,16384,190,s,
+gpu_fit_s_p25,amica_python,batch_size,65536,102,s,
+gpu_fit_s_p75,amica_python,batch_size,65536,127,s,
+gpu_fit_s_p25,amica_python,batch_size,262144,76,s,
+gpu_fit_s_p75,amica_python,batch_size,262144,100,s,
 gpu_ll_final_median,jamica,chunk_size,262144,-1.1016,nats,at chunk 262144
 gpu_s_per_iter_median,jamica,chunk_size,262144,0.0206,s/iter,at chunk 262144
 gpu_n_iter_min,jamica,chunk_size,262144,2572,iters,at chunk 262144
 gpu_n_iter_median,jamica,chunk_size,262144,3000,iters,at chunk 262144
 gpu_n_iter_max,jamica,chunk_size,262144,3000,iters,at chunk 262144
-gpu_ll_final_median,scott,batch_size,262144,-1.1004,nats,at chunk 262144
-gpu_s_per_iter_median,scott,batch_size,262144,0.0757,s/iter,at chunk 262144
-gpu_n_iter_min,scott,batch_size,262144,786,iters,at chunk 262144
-gpu_n_iter_median,scott,batch_size,262144,1106,iters,at chunk 262144
-gpu_n_iter_max,scott,batch_size,262144,1654,iters,at chunk 262144
+gpu_ll_final_median,amica_python,batch_size,262144,-1.1004,nats,at chunk 262144
+gpu_s_per_iter_median,amica_python,batch_size,262144,0.0757,s/iter,at chunk 262144
+gpu_n_iter_min,amica_python,batch_size,262144,786,iters,at chunk 262144
+gpu_n_iter_median,amica_python,batch_size,262144,1106,iters,at chunk 262144
+gpu_n_iter_max,amica_python,batch_size,262144,1654,iters,at chunk 262144
 gpu_ll_final_median,pamica,block_size,262144,-1.1204,nats,at chunk 262144
 gpu_s_per_iter_median,pamica,block_size,262144,0.0889,s/iter,at chunk 262144
 gpu_n_iter_min,pamica,block_size,262144,151,iters,at chunk 262144
@@ -155,26 +155,26 @@ cpu_fit_s_bysubj_p25,pyamica,chunk_t,65536,10340,s,
 cpu_fit_s_bysubj_p75,pyamica,chunk_t,65536,11733,s,
 cpu_fit_s_bysubj_p25,pyamica,chunk_t,262144,10149,s,
 cpu_fit_s_bysubj_p75,pyamica,chunk_t,262144,11654,s,
-cpu_rss_gib_median,scott,batch_size,1024,2.0,GiB,"fir 8 cores 1000-iter, by-subject median"
-cpu_rss_gib_median,scott,batch_size,4096,2.0,GiB,"fir 8 cores 1000-iter, by-subject median"
-cpu_rss_gib_median,scott,batch_size,16384,2.0,GiB,"fir 8 cores 1000-iter, by-subject median"
-cpu_rss_gib_median,scott,batch_size,65536,2.3,GiB,"fir 8 cores 1000-iter, by-subject median"
-cpu_rss_gib_median,scott,batch_size,262144,4.2,GiB,"fir 8 cores 1000-iter, by-subject median"
-cpu_fit_s_bysubj_median,scott,batch_size,1024,3025,s,"by-subject median, n_subjects=5"
-cpu_fit_s_bysubj_median,scott,batch_size,4096,3080,s,"by-subject median, n_subjects=5"
-cpu_fit_s_bysubj_median,scott,batch_size,16384,2646,s,"by-subject median, n_subjects=5"
-cpu_fit_s_bysubj_median,scott,batch_size,65536,4037,s,"by-subject median, n_subjects=5"
-cpu_fit_s_bysubj_median,scott,batch_size,262144,4397,s,"by-subject median, n_subjects=5"
-cpu_fit_s_bysubj_p25,scott,batch_size,1024,2449,s,
-cpu_fit_s_bysubj_p75,scott,batch_size,1024,4000,s,
-cpu_fit_s_bysubj_p25,scott,batch_size,4096,2578,s,
-cpu_fit_s_bysubj_p75,scott,batch_size,4096,3592,s,
-cpu_fit_s_bysubj_p25,scott,batch_size,16384,2533,s,
-cpu_fit_s_bysubj_p75,scott,batch_size,16384,3534,s,
-cpu_fit_s_bysubj_p25,scott,batch_size,65536,3622,s,
-cpu_fit_s_bysubj_p75,scott,batch_size,65536,4423,s,
-cpu_fit_s_bysubj_p25,scott,batch_size,262144,4213,s,
-cpu_fit_s_bysubj_p75,scott,batch_size,262144,4549,s,
+cpu_rss_gib_median,amica_python,batch_size,1024,2.0,GiB,"fir 8 cores 1000-iter, by-subject median"
+cpu_rss_gib_median,amica_python,batch_size,4096,2.0,GiB,"fir 8 cores 1000-iter, by-subject median"
+cpu_rss_gib_median,amica_python,batch_size,16384,2.0,GiB,"fir 8 cores 1000-iter, by-subject median"
+cpu_rss_gib_median,amica_python,batch_size,65536,2.3,GiB,"fir 8 cores 1000-iter, by-subject median"
+cpu_rss_gib_median,amica_python,batch_size,262144,4.2,GiB,"fir 8 cores 1000-iter, by-subject median"
+cpu_fit_s_bysubj_median,amica_python,batch_size,1024,3025,s,"by-subject median, n_subjects=5"
+cpu_fit_s_bysubj_median,amica_python,batch_size,4096,3080,s,"by-subject median, n_subjects=5"
+cpu_fit_s_bysubj_median,amica_python,batch_size,16384,2646,s,"by-subject median, n_subjects=5"
+cpu_fit_s_bysubj_median,amica_python,batch_size,65536,4037,s,"by-subject median, n_subjects=5"
+cpu_fit_s_bysubj_median,amica_python,batch_size,262144,4397,s,"by-subject median, n_subjects=5"
+cpu_fit_s_bysubj_p25,amica_python,batch_size,1024,2449,s,
+cpu_fit_s_bysubj_p75,amica_python,batch_size,1024,4000,s,
+cpu_fit_s_bysubj_p25,amica_python,batch_size,4096,2578,s,
+cpu_fit_s_bysubj_p75,amica_python,batch_size,4096,3592,s,
+cpu_fit_s_bysubj_p25,amica_python,batch_size,16384,2533,s,
+cpu_fit_s_bysubj_p75,amica_python,batch_size,16384,3534,s,
+cpu_fit_s_bysubj_p25,amica_python,batch_size,65536,3622,s,
+cpu_fit_s_bysubj_p75,amica_python,batch_size,65536,4423,s,
+cpu_fit_s_bysubj_p25,amica_python,batch_size,262144,4213,s,
+cpu_fit_s_bysubj_p75,amica_python,batch_size,262144,4549,s,
 cpu_rss_gib_median,fortran,block_size,1024,0.6,GiB,"fir 8 cores 1000-iter, by-subject median"
 cpu_rss_gib_median,fortran,block_size,4096,0.6,GiB,"fir 8 cores 1000-iter, by-subject median"
 cpu_rss_gib_median,fortran,block_size,16384,0.7,GiB,"fir 8 cores 1000-iter, by-subject median"

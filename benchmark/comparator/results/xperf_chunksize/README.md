@@ -18,14 +18,14 @@ deliverable; everything else here regenerates or backs it.
 
 ## What this answers
 1. **Each implementation's batch/chunk knob is a real dial for fit *time*** — up to ~25× within one
-   implementation (scott-huberty, GPU; others 8–17×). For the torch implementations it also moves peak
+   implementation (amica-python, GPU; others 8–17×). For the torch implementations it also moves peak
    VRAM (~2.7–3.6× NVML); jamica's GPU memory is flat in the median (~5.4 GiB) on its chunked path
    (per-subject 3.4–5.4 GiB, rising to 5.4–7.4 at 262K for the longest recordings).
 2. **The fastest setting flips by device** — large chunks win on GPU, small/mid on CPU (a cache
    effect). A single recommended value is wrong for the other device.
 3. **Fit times are wall time to a fixed iteration budget (GPU 3000 / CPU 1000), NOT time to an
    equivalent solution.** The implementations run very different actual iteration counts within that
-   budget (e.g. on GPU at the largest chunk: pyamica always 3000, scott-huberty 786–1654, pAMICA
+   budget (e.g. on GPU at the largest chunk: pyamica always 3000, amica-python 786–1654, pAMICA
    151–3000) and reach final log-likelihoods in a tight but non-identical band. The report shows
    `n_iter` and `ll_final` alongside time; read them together.
 
@@ -45,5 +45,5 @@ deliverable; everything else here regenerates or backs it.
   i3000 run (logged NVML for jamica only), torch impls + jamica-fullbatch from the i1000 run.
 - CPU @1000: `/scratch/yorguin/iter_ladder/cpu/c<chunk>_i1000_r<rep>/` (fir, 8 cores, 5 subj × reps;
   by-subject median, unequal coverage — see `n_subjects` in the summary).
-- Builds (main): jamica `df18b5e` · scott-huberty `e15e158` · pyamica `a8a4d7e` · pAMICA `0c4da39` ·
+- Builds (main): jamica `df18b5e` · amica-python `e15e158` · pyamica `a8a4d7e` · pAMICA `0c4da39` ·
   Fortran ref `665b577`. 64 PCA components.

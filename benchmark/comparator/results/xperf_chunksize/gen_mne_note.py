@@ -13,14 +13,14 @@ FIT = {
  "jamica":  {1024:763.1,4096:227.9,16384:97.6,65536:71.9,262144:61.6},
  "pamica":  {1024:4086.5,4096:1043.7,16384:370.8,65536:313.6,262144:244.7},
  "pyamica": {1024:2414.4,4096:608.8,16384:365.9,65536:339.0,262144:294.0},
- "scott":   {1024:2023.8,4096:502.0,16384:163.2,65536:110.4,262144:79.3},
+ "amica_python":   {1024:2023.8,4096:502.0,16384:163.2,65536:110.4,262144:79.3},
 }
-LAB = {"jamica":"jamica","pamica":"pAMICA (SCCN)","pyamica":"pyamica","scott":"amica-python (scott-huberty)"}
-COL = {"jamica":"#3b5bdb","pamica":"#b45309","pyamica":"#0d9488","scott":"#c2410c"}
+LAB = {"jamica":"jamica","pamica":"pAMICA","pyamica":"pyamica","amica_python":"amica-python"}
+COL = {"jamica":"#3b5bdb","pamica":"#b45309","pyamica":"#0d9488","amica_python":"#c2410c"}
 # each impl at its best (=262K here) @3000: fit s, s/iter, n_iter med [min-max], NVML GiB, ll
 BEST = [  # ordered by wall time
  ("jamica",  61.6, 0.021, "3000 [2572–3000]", 5.4, -1.1016),
- ("scott",   79.3, 0.076, "1106 [786–1654]",  4.9, -1.1004),
+ ("amica_python",   79.3, 0.076, "1106 [786–1654]",  4.9, -1.1004),
  ("pamica", 244.7, 0.089, "3000 [151–3000]",  6.6, -1.1204),
  ("pyamica",294.0, 0.098, "3000",             10.9, -1.0995),
 ]
@@ -40,7 +40,7 @@ def _chart():
         s.append('<text x="%d" y="%.1f" class="tick" text-anchor="end">%ds</text>'%(x0-8,y+4,t))
     for c in XT:
         s.append('<text x="%.1f" y="352" class="tick" text-anchor="middle">%s</text>'%(X(c),XLAB[c]))
-    for im in ["scott","pamica","pyamica","jamica"]:
+    for im in ["amica_python","pamica","pyamica","jamica"]:
         cs=sorted(FIT[im]); pts=" ".join(("M" if i==0 else "L")+"%.1f,%.1f"%(X(c),Y(FIT[im][c])) for i,c in enumerate(cs))
         s.append('<path d="%s" fill="none" stroke="%s" stroke-width="2.2"/>'%(pts,COL[im]))
         for c in cs: s.append('<circle cx="%.1f" cy="%.1f" r="3" fill="%s"/>'%(X(c),Y(FIT[im][c]),COL[im]))
@@ -101,7 +101,7 @@ results already in the thread. Data, code, and an independent factual audit:
 <a href="https://github.com/snesmaeili/jamica-benchmark/pull/7">jamica-benchmark #7</a>.</p>
 
 <p><strong>Disclosure.</strong> We (the jamica group) maintain one of the implementations compared here;
-another, <code>amica-python</code>, is maintained by @scott-huberty, who is active in this thread. We've
+another, <code>amica-python</code>, is maintained by a different group whose maintainer is active in this thread. We've
 tried to compare like with like — each package at its best measured setting — and everything below is
 reproducible at the link.</p>
 
@@ -168,7 +168,7 @@ at a fixed budget but conflate per-iteration speed with how far each ran. For ch
 license, API, install footprint, multi-model support, and maintenance are likely to matter more than
 these gaps.</p>
 
-<h2>Memory — quantifying @scott-huberty's point</h2>
+<h2>Memory — quantifying the memory concern raised in the thread</h2>
 
 <p>The concern that “a 1&nbsp;GiB EEG file can lead to 3&nbsp;GiB intermediates and &gt;10&nbsp;GiB peak” is
 well-founded: AMICA's intermediates genuinely scale with <code>n_samples</code> (and with

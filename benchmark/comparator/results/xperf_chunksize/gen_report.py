@@ -32,11 +32,11 @@ import math, os, csv
 
 FULL = 262144                       # the LARGEST TESTED chunk (samples); NOT a full-batch pass.
 N_SAMP_MIN, N_SAMP_MAX = 785328, 1364633   # per-subject sample counts; 262144 = ~19-33% of a recording
-IMPLS = ["jamica", "pamica", "pyamica", "scott"]
-LABEL = {"jamica":"jamica","pamica":"pAMICA (sccn)","pyamica":"pyamica","scott":"scott-huberty"}
-KNOB  = {"jamica":"chunk_size","pamica":"block_size","pyamica":"chunk_t","scott":"batch_size","fortran":"block_size"}
-COMMIT= {"jamica":"df18b5e","pamica":"0c4da39","pyamica":"a8a4d7e","scott":"e15e158","fortran":"665b577"}
-COLOR = {"jamica":"#6366f1","pamica":"#d97706","pyamica":"#0d9488","scott":"#e11d48","fortran":"#7c3aed"}
+IMPLS = ["jamica", "pamica", "pyamica", "amica_python"]
+LABEL = {"jamica":"jamica","pamica":"pAMICA","pyamica":"pyamica","amica_python":"amica-python"}
+KNOB  = {"jamica":"chunk_size","pamica":"block_size","pyamica":"chunk_t","amica_python":"batch_size","fortran":"block_size"}
+COMMIT= {"jamica":"df18b5e","pamica":"0c4da39","pyamica":"a8a4d7e","amica_python":"e15e158","fortran":"665b577"}
+COLOR = {"jamica":"#6366f1","pamica":"#d97706","pyamica":"#0d9488","amica_python":"#e11d48","fortran":"#7c3aed"}
 
 # ===== GPU @3000, per-subject median : chunk -> (fit_s, nvml_vram_gib). jamica = chunked path.
 # fit_s from the i3000 run. nvml: jamica-chunked from i3000 (logged NVML for jamica only),
@@ -45,17 +45,17 @@ GPU = {
  "jamica":  {1024:(763.1,5.37),4096:(227.9,5.37),16384:(97.6,5.37),65536:(71.9,5.37),FULL:(61.6,5.37)},
  "pamica":  {1024:(4086.5,1.83),4096:(1043.7,1.89),16384:(370.8,2.13),65536:(313.6,3.09),FULL:(244.7,6.57)},
  "pyamica": {1024:(2414.4,3.05),4096:(608.8,3.05),16384:(365.9,3.05),65536:(339.0,4.46),FULL:(294.0,10.92)},
- "scott":   {1024:(2023.8,1.82),4096:(502.0,1.87),16384:(163.2,2.05),65536:(110.4,2.77),FULL:(79.3,4.88)},
+ "amica_python":   {1024:(2023.8,1.82),4096:(502.0,1.87),16384:(163.2,2.05),65536:(110.4,2.77),FULL:(79.3,4.88)},
 }
 GPU_BAND = {  # GPU fit-time p25,p75 across subjects
  "jamica":  {1024:(713,777),4096:(215,234),16384:(92,100),65536:(70,76),FULL:(58,63)},
  "pamica":  {1024:(3296,4229),4096:(836,1088),16384:(274,398),65536:(169,325),FULL:(64,267)},
  "pyamica": {1024:(2291,2458),4096:(580,620),16384:(350,376),65536:(321,347),FULL:(276,301)},
- "scott":   {1024:(1872,2395),4096:(485,586),16384:(155,190),65536:(102,127),FULL:(76,100)},
+ "amica_python":   {1024:(1872,2395),4096:(485,586),16384:(155,190),65536:(102,127),FULL:(76,100)},
 }
 # GPU convergence at chunk=262144 : impl -> (ll_median, n_iter_min, n_iter_median, n_iter_max, s_per_iter)
 GPU_CONV = {
- "jamica":  (-1.1016, 2572, 3000, 3000, 0.0206), "scott":  (-1.1004, 786, 1106, 1654, 0.0757),
+ "jamica":  (-1.1016, 2572, 3000, 3000, 0.0206), "amica_python":  (-1.1004, 786, 1106, 1654, 0.0757),
  "pamica":  (-1.1204, 151, 3000, 3000, 0.0889),  "pyamica": (-1.0995, 3000, 3000, 3000, 0.0980),
 }
 # ===== CPU @1000, BY-SUBJECT median (median within subject over reps, then across subjects) =====
@@ -63,27 +63,27 @@ CPU_FIT = {
  "jamica":  {1024:1985,4096:1850,16384:2140,65536:2729,FULL:2793},
  "pamica":  {1024:4664,4096:3858,16384:4397,65536:9447,FULL:8811},
  "pyamica": {4096:24452,16384:10225,65536:10941,FULL:10980},
- "scott":   {1024:3025,4096:3080,16384:2646,65536:4037,FULL:4397},
+ "amica_python":   {1024:3025,4096:3080,16384:2646,65536:4037,FULL:4397},
  "fortran": {1024:5627,4096:5301,16384:6049,65536:8015,FULL:7171},
 }
 CPU_BAND = {  # CPU by-subject p25,p75 (wide: contended cluster + unequal coverage)
  "jamica":  {1024:(1471,2135),4096:(1546,2332),16384:(2078,2434),65536:(2601,2770),FULL:(2514,3055)},
  "pamica":  {1024:(3861,4915),4096:(3043,4389),16384:(4006,4783),65536:(9115,9506),FULL:(8337,8826)},
  "pyamica": {4096:(23342,29939),16384:(9434,10886),65536:(10340,11733),FULL:(10149,11654)},
- "scott":   {1024:(2449,4000),4096:(2578,3592),16384:(2533,3534),65536:(3622,4423),FULL:(4213,4549)},
+ "amica_python":   {1024:(2449,4000),4096:(2578,3592),16384:(2533,3534),65536:(3622,4423),FULL:(4213,4549)},
 }
 CPU_NSUB = {  # subjects contributing to each cell (out of 5) -- disclose the unequal coverage
  "jamica":  {1024:5,4096:4,16384:5,65536:4,FULL:5},
  "pamica":  {1024:5,4096:5,16384:5,65536:5,FULL:5},
  "pyamica": {4096:5,16384:5,65536:5,FULL:5},
- "scott":   {1024:5,4096:5,16384:5,65536:5,FULL:5},
+ "amica_python":   {1024:5,4096:5,16384:5,65536:5,FULL:5},
  "fortran": {1024:1,4096:1,16384:1,65536:5,FULL:1},
 }
 CPU_RSS = {  # peak RSS (GiB) BY-SUBJECT median (also subject-length dependent -> same coverage caveat)
  "jamica":  {1024:2.2,4096:2.2,16384:2.2,65536:3.7,FULL:7.2},
  "pamica":  {1024:1.6,4096:1.7,16384:2.4,65536:2.9,FULL:6.2},
  "pyamica": {4096:1.9,16384:2.7,65536:3.8,FULL:9.8},
- "scott":   {1024:2.0,4096:2.0,16384:2.0,65536:2.3,FULL:4.2},
+ "amica_python":   {1024:2.0,4096:2.0,16384:2.0,65536:2.3,FULL:4.2},
  "fortran": {1024:0.6,4096:0.6,16384:0.7,65536:1.3,FULL:3.1},
 }
 CPU_FIT_MISS = {("pyamica",1024):("timeout","bad")}  # pyamica@1024 (~767-1333 eager blocks/iter): >12h wall
@@ -158,7 +158,7 @@ def chart(series, band, ylab, ylog, title, sub, impls, mark, oom=None):
 
 gpu_t={im:{c:v[0] for c,v in GPU[im].items()} for im in IMPLS}
 gpu_v={im:{c:v[1] for c,v in GPU[im].items()} for im in IMPLS}
-CPU_CHART=["jamica","pamica","pyamica","scott"]   # Fortran excluded from CPU plots (sub-01-only at 4/5 chunks)
+CPU_CHART=["jamica","pamica","pyamica","amica_python"]   # Fortran excluded from CPU plots (sub-01-only at 4/5 chunks)
 c_gt=chart(gpu_t,GPU_BAND,"fit time (s, log)",True,"GPU · fit time vs chunk","real ds004505 · H100 · 3000-iter budget · median",IMPLS,"fastest")
 c_gv=chart(gpu_v,None,"peak VRAM · NVML (GiB)",False,"GPU · memory vs chunk","real ds004505 · H100 · whole-GPU NVML peak",IMPLS,"leanest")
 c_cr=chart(CPU_RSS,None,"peak RSS (GiB)",False,"CPU · memory vs chunk","real ds004505 · 8 cores · by-subject median RSS",CPU_CHART,"leanest")
@@ -170,7 +170,7 @@ def legend(impls):
 
 def convrows():
     # GPU wall time to the budget at chunk=262144, with seconds/iter, iterations-run, final LL.
-    order=["jamica","scott","pamica","pyamica"]; r=""
+    order=["jamica","amica_python","pamica","pyamica"]; r=""
     for im in order:
         t=GPU[im][FULL][0]; ll,n0,nmed,n1,spi=GPU_CONV[im]
         nit=f'{nmed:,}' if n0==n1 else f'{nmed:,} <span class="mut">[{n0:,}–{n1:,}]</span>'
@@ -183,7 +183,7 @@ def pamrows():
     return "".join(f'<tr><td><code>{cfg}</code></td><td class="num">{t:.0f}s</td><td class="num">{v:.2f} GiB</td><td>{bd[tag]}</td></tr>' for cfg,t,v,tag in REAL_PAM)
 def cpufitrows():
     r=""
-    for im in ["jamica","pamica","pyamica","scott","fortran"]:
+    for im in ["jamica","pamica","pyamica","amica_python","fortran"]:
         cells=""
         for c in XT:
             ns=CPU_NSUB.get(im,{}).get(c)
@@ -257,7 +257,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   it also changes memory (for the torch implementations), and the fastest setting flips between GPU and
   CPU. <b>The fit times are wall time to a fixed iteration budget, not time to an equivalent
   solution</b> — read them with the convergence box below.</p>
-  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>scott-huberty <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter / CPU 1000-iter budget · H100 + 8-core AMD EPYC (fir)</span></div>
+  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>amica-python <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter / CPU 1000-iter budget · H100 + 8-core AMD EPYC (fir)</span></div>
 </header>
 
 <section>
@@ -267,9 +267,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <em>not</em> use that budget the same way, because each stops on its own early-stop default (Fortran's
   is disabled; the others differ). At the largest chunk on GPU the median iterations actually run were:
   <b>pyamica 3,000</b> (always runs the full cap), <b>jamica 3,000</b> (range 2,572–3,000),
-  <b>pAMICA 3,000</b> (but its early-stop can fire as low as 151), <b>scott-huberty 1,106</b>
+  <b>pAMICA 3,000</b> (but its early-stop can fire as low as 151), <b>amica-python 1,106</b>
   (786–1,654 — it converges and stops well before the cap). Three of the four land within ~0.002 nats of
-  each other in final log-likelihood (jamica −1.1016, scott −1.1004, pyamica −1.0995); <b>pAMICA is
+  each other in final log-likelihood (jamica −1.1016, amica-python −1.1004, pyamica −1.0995); <b>pAMICA is
   ~0.02 nats lower (−1.1204)</b> in median — and a paired per-subject delta of ~0.007 nats, negative
   for every subject — i.e. a small but consistent, meaningfully worse fit at this budget, not merely
   "the lowest." So a shorter wall time can mean a faster implementation, an
@@ -278,7 +278,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   the four decompositions are numerically equivalent (component matching against the Fortran reference
   is not part of this pass); equal budget is not equal work, and not equal convergence.</div>
   <div class="callout">
-    <div class="stat warn"><div class="big">~25×</div><div class="lab">Widest fit-time range across the setting within a single implementation (scott-huberty, GPU). The others span 8–17×; every implementation is chunk-sensitive on time.</div></div>
+    <div class="stat warn"><div class="big">~25×</div><div class="lab">Widest fit-time range across the setting within a single implementation (amica-python, GPU). The others span 8–17×; every implementation is chunk-sensitive on time.</div></div>
     <div class="stat"><div class="big">grows</div><div class="lab">Peak VRAM grows with chunk for the torch impls (~2.7–3.6× NVML). jamica's GPU memory is flat in the median (~5.4 GiB; per-subject up to ~7.4 at 262K) on its chunked path — mostly a floor, not a dial.</div></div>
     <div class="stat"><div class="big">GPU ⇄ CPU</div><div class="lab">The fastest setting flips by device: large chunks on the H100, small/mid on CPU. Budgets differ (3000 vs 1000) — do not compare GPU seconds to CPU seconds.</div></div>
   </div>
@@ -298,9 +298,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   {legend(IMPLS)}
   <ul class="tk" style="margin-top:20px">
     <li><b>Larger chunks are faster on the GPU — for all four.</b> Median fit time falls steeply as the
-    chunk grows (jamica 763&nbsp;s → 62&nbsp;s; scott-huberty 2024&nbsp;s → 79&nbsp;s from 1024 to
+    chunk grows (jamica 763&nbsp;s → 62&nbsp;s; amica-python 2024&nbsp;s → 79&nbsp;s from 1024 to
     262K). Small chunks starve the device.</li>
-    <li><b>Memory grows with chunk for the torch implementations</b> (scott-huberty ~1.8→4.9, pAMICA
+    <li><b>Memory grows with chunk for the torch implementations</b> (amica-python ~1.8→4.9, pAMICA
     ~1.8→6.6, pyamica ~3.0→10.9&nbsp;GiB NVML median). <b>jamica's GPU memory is flat in the median
     (~5.4&nbsp;GiB)</b> across chunk on its chunked path — a chunk-independent full-width array sets the
     floor — though at 262K the longest recordings do rise (per-subject 5.4→7.4&nbsp;GiB), so it is
@@ -322,7 +322,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   much of the budget each one used; "final LL" is where it landed. Read all four together.</p>
   <table><thead><tr><th>Implementation</th><th>Wall time</th><th>s / iter</th><th>Iters run</th><th>Final LL (median)</th></tr></thead><tbody>{convrows()}</tbody></table>
   <p class="note">jamica has both the shortest wall time and the lowest cost per iteration
-  (~0.021&nbsp;s/iter vs 0.076–0.098 for the others). scott-huberty's short wall time is partly because
+  (~0.021&nbsp;s/iter vs 0.076–0.098 for the others). amica-python's short wall time is partly because
   it early-converges and runs only ~1,100 of the 3000 iterations; pyamica runs the full 3000 every time
   and lands at the highest final LL; pyamica is the longest wall time and pAMICA lands at the lowest LL.
   "Faster" here means less wall time to its own stopping point — not necessarily a better or
@@ -355,7 +355,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
     wide (contention) and coverage is unequal (a cell missing the longest recording looks artificially
     fast — e.g. jamica's 4K cell drops one subject), so read only the broad small/mid-vs-large flip.</li>
     <li><b>CPU AMICA is a heavy method</b> (tens of minutes to hours at 1000 iterations): jamica ~2000&nbsp;s
-    at its best CPU setting, scott-huberty ~2600&nbsp;s, pAMICA ~3900&nbsp;s, pyamica ~10⁴&nbsp;s. Compare
+    at its best CPU setting, amica-python ~2600&nbsp;s, pAMICA ~3900&nbsp;s, pyamica ~10⁴&nbsp;s. Compare
     absolute CPU seconds only coarsely.</li>
     <li><b>Memory grows with chunk on CPU too</b> (pyamica ~9.8, jamica ~7&nbsp;GiB at 262K); small
     chunks bring the Python impls to ~1.6–2.2&nbsp;GiB. The single-threaded Fortran reference is leanest
@@ -437,7 +437,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
     <dt>Budget</dt><dd>GPU 3000-iter cap · CPU 1000-iter cap (memory is iteration-independent; time is not)</dd>
     <dt>jamica path</dt><dd>amica_python_jax_chunked (chunked); full-batch key amica_python_jax in the memory note only</dd>
     <dt>Units</dt><dd>memory in GiB (bytes / 1024³); times in seconds; GPU per-subject median, CPU by-subject median</dd>
-    <dt>Commits</dt><dd>jamica df18b5e · scott e15e158 · pyamica a8a4d7e · pAMICA 0c4da39 · Fortran 665b577</dd>
+    <dt>Commits</dt><dd>jamica df18b5e · amica-python e15e158 · pyamica a8a4d7e · pAMICA 0c4da39 · Fortran 665b577</dd>
     <dt>Caveats</dt><dd>NOTES_measurement.md (iteration-budget ≠ convergence · CPU contention + unequal coverage · NVML vs allocator · the two jamica keys)</dd>
   </dl>
   <p class="note" style="margin-top:16px">Trust the curve shapes, the NVML memory figures, the GPU
@@ -473,7 +473,7 @@ for im, (ll, n0, nmed, n1, spi) in GPU_CONV.items():
     _rows.append(("gpu_n_iter_min", im, KNOB[im], _cn(FULL), n0, "iters", "at chunk 262144"))
     _rows.append(("gpu_n_iter_median", im, KNOB[im], _cn(FULL), nmed, "iters", "at chunk 262144"))
     _rows.append(("gpu_n_iter_max", im, KNOB[im], _cn(FULL), n1, "iters", "at chunk 262144"))
-for im in ["jamica","pamica","pyamica","scott","fortran"]:
+for im in ["jamica","pamica","pyamica","amica_python","fortran"]:
     for c, v in sorted(CPU_RSS[im].items()):
         _rows.append(("cpu_rss_gib_median", im, KNOB[im], _cn(c), v, "GiB", "fir 8 cores 1000-iter, by-subject median"))
     for c, v in sorted(CPU_FIT[im].items()):
