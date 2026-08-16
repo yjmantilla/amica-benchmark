@@ -49,8 +49,15 @@ dirs, no collision). Submit in 2 waves (MaxSubmit=500) once the chunk campaign h
 - Aggregators (scratchpad, IMPL map already relabels scott_huberty_torch->amica_python): agg_chunk2.py,
   agg_mem.py, posthoc_conv.py (also committed at iter_ladder/posthoc_conv.py).
 
-## IN FLIGHT (2026-08-16): CPU stops-off campaign (fir, rrg-kjerbi_cpu, user-scoped, autonomous)
-Redesign to fix coverage + characterize contention: stops-off (AMICA_DISABLE_EARLYSTOP=1), 250 iters,
+## CALLED OFF (2026-08-16, by user): CPU stops-off campaign — DO NOT RUN unless re-requested.
+The user stopped this before launch ("stop it, only keep the caches"). NOTHING was submitted (the
+chunk-sweep/iter-ladder orchestrator was never launched); only a 1-cell preprocess test (sub-06, job
+54939617) ran and FAILED with `ModuleNotFoundError: sklearn` (the .venv_fir_gpu used for preprocessing
+lacks sklearn — a venv fix needed before any CPU preprocess; BIDS path was fine). The 5 existing fir PCA
+caches are kept, untouched. Scripts remain committed but PARKED. If ever revived: fix the preprocess
+venv (sklearn), then follow the design below. Everything below is the parked design, not an active run.
+
+### Parked design (was): stops-off (AMICA_DISABLE_EARLYSTOP=1), 250 iters,
 ALL 25 subjects, 10 reps/cell, high parallelism (%60), 12h wall, node-load monitor -> iter_ladder/cpu_nostop.
 - chunk-sweep: chunks {1024,4096,16384,65536,262144} @250 = 6250 cells (manifest_cpu_sweep_nostop.txt).
 - iter-ladder: chunk 65536, N{50,100,500} @ = 3750 cells (manifest_cpu_ladder_nostop.txt); the 250 point
