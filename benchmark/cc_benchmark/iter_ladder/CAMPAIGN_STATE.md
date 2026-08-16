@@ -49,6 +49,25 @@ dirs, no collision). Submit in 2 waves (MaxSubmit=500) once the chunk campaign h
 - Aggregators (scratchpad, IMPL map already relabels scott_huberty_torch->amica_python): agg_chunk2.py,
   agg_mem.py, posthoc_conv.py (also committed at iter_ladder/posthoc_conv.py).
 
+## IN FLIGHT (2026-08-16): CPU stops-off campaign (fir, rrg-kjerbi_cpu, user-scoped, autonomous)
+Redesign to fix coverage + characterize contention: stops-off (AMICA_DISABLE_EARLYSTOP=1), 250 iters,
+ALL 25 subjects, 10 reps/cell, high parallelism (%60), 12h wall, node-load monitor -> iter_ladder/cpu_nostop.
+- chunk-sweep: chunks {1024,4096,16384,65536,262144} @250 = 6250 cells (manifest_cpu_sweep_nostop.txt).
+- iter-ladder: chunk 65536, N{50,100,500} @ = 3750 cells (manifest_cpu_ladder_nostop.txt); the 250 point
+  is reused from the sweep's 65536 cell -> ladder curve {50,100,250,500}.
+- Prereq: fir had only 5 PCA caches; submit_preprocess_fir.sh (array 1-25) builds the missing 20
+  (BIDS /project/rrg-kjerbi/datasets/openneuro/ds004505/raw_bids). Validating with a 1-cell test
+  (sub-06, job 54939617) before the orchestrator launches.
+- fir-side orchestrator: /scratch/yorguin/orchestrator_cpu.sh (detached on fir login; log
+  iter_ladder/orchestrator_cpu.log). Does preprocess(1-25) -> chunk-sweep -> iter-ladder -> aggregate
+  to /scratch/yorguin/cpu_nostop_i{50,100,250,500}_summary.csv (agg_chunk2.py; @250 = full sweep all
+  chunks, @50/100/500 = ladder at 65536). 5 impls incl fortran (already stops-off in its runner).
+- fir has NO MaxSubmit cap (MaxArraySize=10000) so single arrays are fine. Cost is large (~10k+ cells,
+  pyamica@1024 slowest ~hours) but user-approved ("leverage parallelism, contended anyway", rrg alloc).
+- RESUME if orchestrator reaped: sbatch the sweep then ladder (see submit script headers), then run the
+  4 agg_chunk2 calls. On reconnect: pull cpu_nostop_i*_summary.csv, refresh the report's CPU section
+  (by-subject median over 25 subj x 10 reps + contention distribution from nodemon/).
+
 ## THE key bug (do not re-introduce)
 jamica has TWO orchestrator keys: `amica_python_jax` = **full-batch** (ignores `--amica-chunk-size`)
 and `amica_python_jax_chunked` = **applies the chunk**. Early campaigns used the full-batch key for
