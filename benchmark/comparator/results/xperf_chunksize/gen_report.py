@@ -73,6 +73,13 @@ LADDER = {
  "pyamica":      {100:(11.8,-1.11518),250:(28.8,-1.10445),500:(57.1,-1.100545),1000:(113.6,-1.09987),2000:(226.2,-1.09958),3000:(338.9,-1.099548)},
  "pamica":       {100:(12.2,-1.12929),250:(28.2,-1.12025),500:(54.3,-1.11791),1000:(107.5,-1.11506),2000:(215.7,-1.11223),3000:(320.3,-1.11067)},
 }
+# per-iteration GPU memory at chunk 65536 (mem_median GiB; iteration-independent -> ~flat).
+LADDER_MEM = {
+ "jamica":       {100:5.37,250:5.37,500:5.37,1000:5.37,2000:5.37,3000:5.37},
+ "amica_python": {100:2.73,250:2.73,500:2.73,1000:2.73,2000:2.80,3000:2.83},
+ "pyamica":      {100:4.46,250:4.46,500:4.46,1000:4.46,2000:4.46,3000:4.46},
+ "pamica":       {100:3.08,250:3.08,500:3.08,1000:3.08,2000:3.08,3000:3.08},
+}
 # ===== CPU @1000, BY-SUBJECT median (median within subject over reps, then across subjects) =====
 CPU_FIT = {
  "jamica":  {1024:1985,4096:1850,16384:2140,65536:2729,FULL:2793},
@@ -180,6 +187,45 @@ def chart(series, band, ylab, ylog, title, sub, impls, mark, oom=None):
     bandtxt = " · shaded = p25–p75" if band else ""
     cap=f'{sub}{bandtxt} · ◯ = {mark} setting'
     return f'<figure class="cf"><figcaption>{cap}</figcaption>{"".join(s)}</figure>'
+
+def chart_iters(series, ylab, title, sub, impls, y0zero=True):
+    # x-axis = iterations (linear), for the chunk-65536 ladder.
+    W,H=520,320; ml,mr,mt,mb=64,14,30,48; pw,ph=W-ml-mr,H-mt-mb
+    XMAXI=3120.0
+    def X(n): return ml+n/XMAXI*pw
+    allv=[v for im in impls for v in series[im].values()]
+    vmx=max(allv); vmn=min(allv)
+    if y0zero: lo,hi=0.0,vmx*1.12
+    else:
+        pad=(vmx-vmn)*0.15 or abs(vmx)*0.01; lo,hi=vmn-pad,vmx+pad
+    def Y(v): return mt+ph-(v-lo)/(hi-lo)*ph
+    rng=hi-lo; raw=rng/4; e=10**math.floor(math.log10(raw)); f=raw/e
+    step=(1 if f<1.5 else 2 if f<3 else 5 if f<7 else 10)*e
+    fmt=("%.0f" if step>=1 else "%.1f" if step>=0.1 else "%.2f" if step>=0.01 else "%.3f")
+    s=[f'<svg viewBox="0 0 {W} {H}" class="chart" role="img" aria-label="{title}">']
+    s.append(f'<text x="{ml}" y="16" class="ct">{title}</text>')
+    s.append(f'<text x="{ml}" y="{H-6}" class="cx">iterations →</text>')
+    s.append(f'<text transform="translate(14,{mt+ph/2}) rotate(-90)" class="cy">{ylab}</text>')
+    t0=math.ceil(lo/step)*step
+    while t0<=hi+1e-9:
+        y=Y(t0); s.append(f'<line x1="{ml}" y1="{y:.1f}" x2="{W-mr}" y2="{y:.1f}" class="grid"/>')
+        s.append(f'<text x="{ml-6}" y="{y+3:.1f}" class="cyt">{fmt%t0}</text>'); t0+=step
+    for n in (0,1000,2000,3000):
+        x=X(n); s.append(f'<line x1="{x:.1f}" y1="{mt}" x2="{x:.1f}" y2="{mt+ph}" class="grid vg"/>')
+        s.append(f'<text x="{x:.1f}" y="{mt+ph+16}" class="cxt">{n}</text>')
+    for im in impls:
+        cs=sorted(series[im])
+        path=" ".join((("M" if i==0 else "L")+f"{X(n):.1f},{Y(series[im][n]):.1f}") for i,n in enumerate(cs))
+        s.append(f'<path d="{path}" fill="none" stroke="{COLOR[im]}" stroke-width="2.4"/>')
+        for n in cs: s.append(f'<circle cx="{X(n):.1f}" cy="{Y(series[im][n]):.1f}" r="3" fill="{COLOR[im]}"/>')
+    s.append('</svg>')
+    return f'<figure class="cf"><figcaption>{sub}</figcaption>{"".join(s)}</figure>'
+
+LAD_TIME={im:{n:LADDER[im][n][0] for n in LADDER[im]} for im in IMPLS}
+LAD_LL  ={im:{n:LADDER[im][n][1] for n in LADDER[im]} for im in IMPLS}
+c_lt=chart_iters(LAD_TIME,"fit time (s)","GPU · fit time vs iterations","chunk 65536 · per-subject median · slope = s/iter",IMPLS,y0zero=True)
+c_ll=chart_iters(LAD_LL,"final log-likelihood","GPU · convergence vs iterations","chunk 65536 · median final LL (higher = better)",IMPLS,y0zero=False)
+c_lm=chart_iters(LADDER_MEM,"peak VRAM · NVML (GiB)","GPU · memory vs iterations","chunk 65536 · NVML whole-GPU median (iteration-independent)",IMPLS,y0zero=True)
 
 gpu_t={im:{c:v[0] for c,v in GPU[im].items()} for im in IMPLS}
 gpu_v={im:{c:v[1] for c,v in GPU[im].items()} for im in IMPLS}
@@ -409,12 +455,15 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 
 <section>
   <h2>Convergence vs iterations — the measured iteration ladder</h2>
-  <p class="sub">A direct, <em>measured</em> convergence view (not a post-hoc estimate): at a fixed chunk
-  (65536) with early-stops disabled, we ran every implementation to 100, 250, 500, 1000, 2000 and 3000
-  iterations and recorded the median final log-likelihood at each — all 25 subjects at every point. This
-  shows how fast each implementation's <em>solution quality</em> improves with iterations, orthogonal to
-  the per-iteration wall-time above.</p>
-  <table><thead><tr><th>Implementation</th><th class="num">LL@100</th><th class="num">@250</th><th class="num">@500</th><th class="num">@1000</th><th class="num">@2000</th><th class="num">@3000</th><th class="num">wall@3000</th></tr></thead><tbody>{ladderrows()}</tbody></table>
+  <p class="sub">A direct, <em>measured</em> ladder (not a post-hoc estimate): at a fixed chunk (65536)
+  with early-stops disabled, we ran every implementation to 100, 250, 500, 1000, 2000 and 3000 iterations
+  and recorded wall time, final log-likelihood, and peak memory at each — all 25 subjects at every point.
+  Fit time is linear in iterations (slope = s/iter); peak memory is flat (iteration-independent);
+  convergence (LL) is the quality story — pAMICA is the outlier.</p>
+  <div class="grid2"><div class="card">{c_lt}</div><div class="card">{c_ll}</div></div>
+  <div class="grid2" style="margin-top:16px"><div class="card">{c_lm}</div>
+  <div class="card"><table><thead><tr><th>Impl</th><th class="num">LL@100</th><th class="num">@250</th><th class="num">@500</th><th class="num">@1000</th><th class="num">@2000</th><th class="num">@3000</th><th class="num">wall@3000</th></tr></thead><tbody>{ladderrows()}</tbody></table></div></div>
+  {legend(IMPLS)}
   <ul class="tk" style="margin-top:16px">
     <li><b>jamica converges fastest in both iterations and wall time.</b> It is within ~0.001 nats of its
     own final LL by ~500 iterations (−1.1013 at 500 → −1.1005 at 3000), and because it is ~4–5× cheaper
