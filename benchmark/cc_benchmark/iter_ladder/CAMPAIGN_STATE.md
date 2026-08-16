@@ -37,11 +37,12 @@ Result JSONs: `/scratch/yorguin/iter_ladder/{gpu,cpu}/c<chunk>_i<iter>[_r<rep>]/
 Fields added this session: `nvml_peak_vram_gb` (framework-neutral headline VRAM), `peak_vram_reserved_gb`
 (torch), `cgroup_peak_gb`, `vram_stats` (raw jax memory_stats). NVML enabled via AMICA_NVML_CROSSCHECK=1.
 
-## Next (report work — not yet done)
-1. Rewrite the xperf_chunksize report + MNE-note MEMORY section around NVML (allocator understates ~2x)
-   and the CORRECTED jamica (chunk = real dial; chunked ~5GB vs full ~11GB NVML). Drop the
-   "chunk-invariant" and "jamica 2.19GB" claims.
-2. Log the two-key gotcha + the NVML/allocator gap in NOTES_measurement.md.
+## Next (report work)
+1. DONE (2026-08-15, commit dfc347c): xperf_chunksize report rewritten around NVML + corrected chunked
+   jamica (@3000 GPU / @1000 CPU); "chunk-invariant"/"2.19GB" claims dropped; published to artifact
+   5c1007ae (replaced the old "hidden variable" draft). STILL TODO: the MNE-note (#13819, artifact
+   62fc4258) MEMORY/chunk section needs the same NVML + chunked-jamica correction.
+2. DONE (2026-08-15): two-key gotcha + NVML/allocator gap logged in NOTES_measurement.md.
 3. Memory panel (fable/gpt-5.6/grok) confirmed allocator counters aren't cross-framework comparable;
    NVML is the headline. jamica-chunk-memory panel: Fable caught the key bug (dissent was right).
 Reviews kept local under reviews/ (excluded from commits).
