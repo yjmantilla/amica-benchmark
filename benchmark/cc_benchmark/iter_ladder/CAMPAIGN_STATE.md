@@ -18,6 +18,19 @@ tol=-1e30. Smoke-validated (jobs 778832/778888): all 4 run to max_iter, earlysto
 - AGGREGATE (after both waves): agg_chunk2.py on gpu_nostop @3000 -> iteration-matched fit-time + s/iter
   (everyone n_iter=3000); agg_mem.py-style for nvml_post_init. Then add the "time-to-iterations" table to
   the report next to the existing "time to comparable quality" (already added, from the baseline traces).
+
+### QUEUED next: stops-off iteration-LADDER (user-approved to run AFTER the chunk campaign, all 25 subj)
+Clean "wall time to reach N iterations" curves at fixed chunk 65536 (the current ladder's high-N points
+are confounded: amica-python/pAMICA early-stop before the cap). Manifest: manifest_gpu_ladder_nostop.txt
+= 500 cells (25 subj x 4 impls x N{100,250,500,1000,2000}; N=3000 comes free from c65536_i3000 of the
+chunk run). Reuses submit_iter_gpu_nostop.sh (stops-off + bracketing; out-tag c65536_i<N> -> distinct
+dirs, no collision). Submit in 2 waves (MaxSubmit=500) once the chunk campaign has DRAINED:
+  `ssh trillium-gpu 'cd /scratch/yorguin/amica-benchmark-repro/benchmark/cc_benchmark && sbatch --array=1-250%8 iter_ladder/submit_iter_gpu_nostop.sh iter_ladder/manifest_gpu_ladder_nostop.txt'`
+  then `--array=251-500%8 ...` once wave A drains. Aggregate per (impl, N) at chunk 65536 -> time-vs-N
+  curve (compile intercept + slope). This ladder is user pre-approved; no need to re-ask before it.
+
+### Full submission pipeline (serialize on MaxSubmit=500): chunk W1 (778907, running) -> chunk W2
+### (251-500, ASK user first) -> ladder WA (1-250) -> ladder WB (251-500).
 - Aggregators (scratchpad, IMPL map already relabels scott_huberty_torch->amica_python): agg_chunk2.py,
   agg_mem.py, posthoc_conv.py (also committed at iter_ladder/posthoc_conv.py).
 
