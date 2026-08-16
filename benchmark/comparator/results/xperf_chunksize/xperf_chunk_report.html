@@ -204,6 +204,20 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   torch impls' small-chunk footprint (~1.8–3.1&nbsp;GiB NVML) — on a small card the torch impls at a
   small chunk fit where jamica may not. (The "fits an 8–12&nbsp;GiB card" reading is an extrapolation
   from H100 NVML with JAX pre-allocation off; it was not measured on such a card.)</p>
+  <div class="info-box"><b>"Flat jamica memory" is not the earlier full-batch measurement bug.</b> Flat
+  memory was the signature of a fixed bug where jamica was accidentally run full-batch at every chunk, so
+  we checked. Two things rule it out here: (1) jamica's <b>fit time varies ~12× with the chunk</b>
+  (763&nbsp;s→62&nbsp;s) — only possible if the chunk is actually applied; the true full-batch path is
+  chunk-<em>independent</em> in time too (~61&nbsp;s at every chunk). (2) The chunked path's memory
+  (~5.4&nbsp;GiB NVML / ~1.9&nbsp;GiB allocator) is less than half the full-batch path's
+  (~13.4&nbsp;/&nbsp;8.2&nbsp;GiB) — different numbers, different
+  code path (both in <code>raw/chunk_gpumem_summary.csv</code>). The chunked NVML is flat because of what
+  it's made of: ~3.8&nbsp;GiB is the fixed CUDA/cuDNN context (chunk-independent, on any JAX GPU job) and
+  ~1.9&nbsp;GiB is live tensors <em>dominated by chunk-independent full-width arrays</em>
+  (data, sources, per-sample buffers sized by <code>n_samples</code>); the chunk-scaled E-step block buffer
+  is small next to those until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
+  up to ~7.4). So chunk is a real <em>time</em> dial for jamica but not a GPU-<em>memory</em> dial — a
+  genuine property of the chunked path, distinct from the full-batch key.</div>
 </section>
 
 <footer>

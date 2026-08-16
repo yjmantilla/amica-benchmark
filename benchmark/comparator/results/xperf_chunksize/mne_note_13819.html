@@ -128,6 +128,15 @@ chunked path (everything above) and a full-batch path (<code>chunk_size=None</co
 materialises the full-width arrays for ~13&nbsp;GiB NVML median (per-subject up to ~21) at essentially the
 <em>same</em> GPU speed — no benefit. A wrapper should always pass a chunk.</li>
 </ul>
+<p class="note"><strong>Why jamica's chunked memory looks flat (and why that is not a measurement
+artifact).</strong> Flat memory was the signature of a bug we fixed — jamica accidentally run full-batch
+at every chunk — so we checked. It is not that here: jamica's <em>fit time</em> varies ~12× with the
+chunk (763→62&nbsp;s), which only happens if the chunk is applied (the true full-batch path is flat in
+time too, ~61&nbsp;s everywhere), and the chunked path's ~5.4&nbsp;GiB is less than half the full-batch
+path's ~13&nbsp;GiB — different code paths. The ~5.4&nbsp;GiB is flat because it is ~3.8&nbsp;GiB fixed
+CUDA context plus ~1.6&nbsp;GiB of chunk-independent full-width arrays; the chunk-scaled block buffer is
+small next to those until the largest chunk. So on the GPU the chunk is a real <em>time</em> dial for
+jamica but not a memory dial — a genuine property, not the old bug.</p>
 <p class="note">On the meter: we report <strong>NVML whole-GPU peak</strong> as the headline because it is
 framework-neutral. Each backend's own allocator counter (JAX <code>peak_bytes_in_use</code>, Torch
 <code>max_memory_allocated</code>) measures only its live-tensor bytes, omits the CUDA context/pool, and
