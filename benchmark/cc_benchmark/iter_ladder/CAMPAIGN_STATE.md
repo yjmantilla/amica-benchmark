@@ -29,8 +29,23 @@ dirs, no collision). Submit in 2 waves (MaxSubmit=500) once the chunk campaign h
   then `--array=251-500%8 ...` once wave A drains. Aggregate per (impl, N) at chunk 65536 -> time-vs-N
   curve (compile intercept + slope). This ladder is user pre-approved; no need to re-ask before it.
 
-### Full submission pipeline (serialize on MaxSubmit=500): chunk W1 (778907, running) -> chunk W2
-### (251-500, ASK user first) -> ladder WA (1-250) -> ladder WB (251-500).
+### Full submission pipeline (serialize on MaxSubmit=500): chunk W1 (778907) + W2 (778977) both
+### submitted (485/500 queued) -> [stale-pAMICA re-run] -> ladder WA (1-250) -> ladder WB (251-500).
+
+### AUTONOMOUS orchestrator (2026-08-16, user asleep, approved unattended): a detached bash on the
+### Trillium LOGIN node drives the rest via local sbatch/squeue (survives ssh-master expiry).
+- Script: /scratch/yorguin/orchestrator.sh (source in session scratchpad); log:
+  /scratch/yorguin/iter_ladder/orchestrator.log (tail it to see progress).
+- Does: wait chunk drain -> re-run stale pAMICA cells (n_iter<3000; the ~5 sub-01 cells from the old
+  minlrate-only build) -> ladder WA -> WB -> aggregate to /scratch/yorguin/nostop_{gpu3000,gpumem,
+  ladder_i*}_summary.csv. Uses /scratch/yorguin/{agg_chunk2,agg_mem}.py (amica_python relabel baked in).
+- pAMICA disable was FIXED mid-flight (commit: full stop family use_min_dll+use_grad_norm+minlrate+min_nd;
+  minlrate-alone left a min_dll stop at ~495). Queued pAMICA cells use the fixed runner; only ~5 already
+  done are stale (orchestrator re-runs them).
+- IF the login process was reaped (check `pgrep -f orchestrator.sh` / the log): resume manually — submit
+  ladder WA/WB (see QUEUED section) then run the 3 aggregations. The CHUNK campaign completes via SLURM
+  regardless. On reconnect: pull the nostop_* summary CSVs, add the "time-to-iterations" table + NVML
+  context split to the report (label by impl name), commit + republish artifact 5c1007ae.
 - Aggregators (scratchpad, IMPL map already relabels scott_huberty_torch->amica_python): agg_chunk2.py,
   agg_mem.py, posthoc_conv.py (also committed at iter_ladder/posthoc_conv.py).
 
