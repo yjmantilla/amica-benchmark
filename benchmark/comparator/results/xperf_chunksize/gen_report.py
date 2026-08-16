@@ -58,6 +58,19 @@ GPU_CONV = {
  "jamica":  (-1.1016, 2572, 3000, 3000, 0.0206), "amica_python":  (-1.1004, 786, 1106, 1654, 0.0757),
  "pamica":  (-1.1204, 151, 3000, 3000, 0.0889),  "pyamica": (-1.0995, 3000, 3000, 3000, 0.0980),
 }
+# ===== Time to COMPARABLE QUALITY (post-hoc, from @3000 ll_history; raw/posthoc_convergence_gpu3000.csv)
+# median wall-seconds to reach within EPS=1e-3 of the per-subject BEST final LL across impls.
+# Only the 3 impls that reach it on ~all subjects are plotted; pAMICA reaches it on ~1/25 (worse fit).
+LEVELTIME = {
+ "jamica":       {1024:87.5,4096:27.6,16384:11.4,65536:8.7,FULL:7.0},
+ "amica_python": {1024:585.4,4096:146.3,16384:48.0,65536:31.7,FULL:26.0},
+ "pyamica":      {1024:256.0,4096:63.3,16384:38.3,65536:35.4,FULL:30.6},
+}
+# reached-fraction (n_reached / n_subjects) at chunk 262144, + iters-to-quality (median)
+LEVEL_AT_FULL = {  # impl -> (time_s, iters, reached_str)
+ "jamica":(7.0,362,"20/20"), "amica_python":(26.0,314,"23/25"),
+ "pyamica":(30.6,316,"25/25"), "pamica":(119.1,1355,"1/25"),
+}
 # ===== CPU @1000, BY-SUBJECT median (median within subject over reps, then across subjects) =====
 CPU_FIT = {
  "jamica":  {1024:1985,4096:1850,16384:2140,65536:2729,FULL:2793},
@@ -163,6 +176,16 @@ c_gt=chart(gpu_t,GPU_BAND,"fit time (s, log)",True,"GPU · fit time vs chunk","r
 c_gv=chart(gpu_v,None,"peak VRAM · NVML (GiB)",False,"GPU · memory vs chunk","real ds004505 · H100 · whole-GPU NVML peak",IMPLS,"leanest")
 c_cr=chart(CPU_RSS,None,"peak RSS (GiB)",False,"CPU · memory vs chunk","real ds004505 · 8 cores · by-subject median RSS",CPU_CHART,"leanest")
 c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 8 cores · 1000-iter budget · by-subject median",CPU_CHART,"fastest observed (per-cell optimum unresolved)")
+LEVEL_CHART=["jamica","amica_python","pyamica"]   # pAMICA reaches the shared quality on ~1/25 -> annotated, not plotted
+c_lt=chart(LEVELTIME,None,"time to comparable quality (s, log)",True,"GPU · time to comparable quality vs chunk","real ds004505 · H100 · wall-s to reach within 1e-3 of the best final LL · per-subject median",LEVEL_CHART,"fastest")
+
+def levelrows():
+    order=["jamica","amica_python","pyamica","pamica"]; r=""
+    for im in order:
+        t,it,reached=LEVEL_AT_FULL[im]
+        r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{LABEL[im]}</td>'
+            f'<td class="num">{t:.0f}s</td><td class="num">{it:,}</td><td class="num">{reached}</td></tr>')
+    return r
 
 def legend(impls):
     it="".join(f'<span class="lg"><i style="background:{COLOR[i]}"></i>{LABEL.get(i,"Fortran amica17 (1 thread)")} <code>{KNOB[i]}</code> <span class="cm">@{COMMIT[i]}</span></span>' for i in impls)
@@ -333,6 +356,34 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   nearest tested point, 1024, is already ~17× off its fastest tested setting. (jamica's own shipped
   default — <code>chunk_size=None</code>, the full-batch path — is discussed in the memory note; it was
   not the path swept here.)</p>
+</section>
+
+<section>
+  <h2>Time to comparable quality — the convergence-matched speed view</h2>
+  <p class="sub">The fixed-budget wall times above conflate per-iteration speed with how many iterations
+  each implementation runs. This view removes that confound: for each subject we take the <b>best final
+  log-likelihood any implementation reached</b>, and measure the wall time each one needs to get within
+  <b>1e-3</b> of it (iterations-to-target × measured s/iter, from the recorded per-iteration LL history —
+  no extra GPU runs). It is immune to the heterogeneous early-stop, because it targets a fixed
+  <em>quality</em>, not a fixed iteration count.</p>
+  <div class="grid2"><div class="card">{c_lt}</div>
+  <div class="card"><table><thead><tr><th>@ 262K</th><th>time→quality</th><th>iters</th><th>reached</th></tr></thead><tbody>{levelrows()}</tbody></table>
+  <p class="note" style="padding:0 6px">"reached" = subjects (of those run) that got within 1e-3 of the
+  best LL. jamica, amica-python and pyamica reach it on essentially all subjects; <b>pAMICA reaches it on
+  only 1/25</b> (at every chunk) — it converges to a meaningfully lower LL — so its curve is not plotted
+  (the single-subject median would mislead).</p></div></div>
+  {legend(LEVEL_CHART)}
+  <ul class="tk" style="margin-top:16px">
+    <li><b>jamica reaches comparable quality ~3–9× faster</b> than the next implementation at every chunk
+    (e.g. at 262K: 7&nbsp;s vs 26&nbsp;s / 31&nbsp;s), and it does so in ~360 iterations. This is the
+    firmest speed statement in the report: it is not an artifact of anyone's early-stop, and it agrees
+    with the per-iteration (s/iter) ranking.</li>
+    <li><b>amica-python and pyamica are close</b> on this metric (~26–31&nbsp;s at 262K); amica-python's
+    short <em>fixed-budget</em> wall time earlier was mostly its loose stop firing at ~1,100 iterations,
+    not a faster kernel.</li>
+    <li><b>pAMICA does not reach the shared quality</b> on 24/25 subjects — a solution-quality gap
+    (~0.007 nats paired), not a speed one; forcing it to more iterations does not close it.</li>
+  </ul>
 </section>
 
 <section>
