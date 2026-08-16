@@ -1,13 +1,14 @@
 # Cross-implementation performance benchmark — ds004505
 
-> **⚠️ Superseded (2026-08-12).** The release-vs-main conclusions here were refined by
-> the chunk-size study in [`../xperf_chunksize/`](../xperf_chunksize/README.md), which
-> shows the cross-implementation gaps are dominated by each library's batching knob
-> (`chunk_size`/`block_size`/`chunk_t`/`batch_size`), not by release↔main — and that
-> amica's apparent "flat curve" was a JIT-compile artifact, not robustness. **Read that
-> study first** for the fair each-at-optimum comparison (amica 5.5 s · pAMICA 9.2 s ·
-> pyamica 12.8 s · scott 45.7 s) and the steady-state correction. The numbers below
-> remain valid for the single-config, default-batching run they describe.
+> **⚠️ Superseded.** The cross-implementation conclusions here (a single 100-iteration,
+> default-batching run) were replaced by the chunk-size study in
+> [`../xperf_chunksize/`](../xperf_chunksize/README.md), which shows the gaps are dominated
+> by each library's batching knob (`chunk_size`/`block_size`/`chunk_t`/`batch_size`) and by
+> how many iterations each impl actually runs under its own early-stop — not by release↔main.
+> **Read that study for any speed/memory numbers**; it uses a realistic iteration budget
+> (GPU 3000 / CPU 1000), NVML memory, and reports convergence (n_iter + ll_final) alongside
+> time. The per-second rankings quoted in earlier versions of this file (from the 100-iter
+> draft) are obsolete and have been removed to avoid confusion.
 
 Timing + peak-memory measures for six AMICA implementations (including the new
 SCCN **pAMICA**) fitting the same EEG data on CPU and GPU. This directory holds

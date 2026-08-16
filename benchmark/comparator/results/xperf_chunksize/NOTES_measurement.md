@@ -14,41 +14,54 @@ The orchestrator exposes jamica under **two keys**:
 - `amica_python_jax_chunked` — the **chunked** path. It **applies** `--amica-chunk-size`.
 
 The early chunk/memory sweeps drove jamica through `amica_python_jax`, so every "chunk" ran the same
-full-batch program — making jamica look **falsely chunk-invariant** (flat time, a fixed ~2 GB-allocator
+full-batch program — making jamica look **falsely chunk-invariant** (flat time, a fixed ~2 GiB-allocator
 memory point). That was a harness-key artifact, **not** a property of jamica. All jamica chunk numbers
 in the corrected report come from **`amica_python_jax_chunked`**. Competitor keys
 (`scott_huberty_torch` / `pyamica_torch` / `pamica_torch` / `fortran_amica17`) were always correct —
 only jamica had the two-key trap. Corrected result: **jamica is a normal, device-dependent
 time/memory dial** like the others (GPU: big chunk faster, 763 s→62 s @3000; CPU: small chunk faster
-*and* leaner, 1982 s/2.2 GB @1024 → 2731 s/7.0 GB @full — a device flip).
+*and* leaner, ~1985 s/2.2 GiB @1024 → ~2794 s/7.0 GiB @262K — a device flip).
 
-## NVML vs the allocator counters (the ~2× memory gap)
+## NVML vs the allocator counters (the ~1.6–2.8× memory gap)
 Peak-VRAM was reported three inconsistent ways in the 100-iter draft because each framework's
 **allocator counter measures only its own live-tensor bytes** — JAX `peak_bytes_in_use`, torch
 `max_memory_allocated` — omitting the CUDA/cuDNN context and pool the driver actually holds, and the
-two frameworks count differently. They **understate the real footprint ~2×** and are **not comparable
+two frameworks count differently. They **understate the real footprint** and are **not comparable
 across implementations**. The corrected headline is **NVML whole-GPU `used`** on a dedicated GPU
 (`AMICA_NVML_CROSSCHECK=1`), which is framework-neutral and reflects what would actually fit on a card.
-Example: jamica chunked ≈ **1.6 GB allocator vs ≈ 5.4 GB NVML**. A per-framework allocator bug (a
-`bytes_in_use` fallback) had additionally produced a spurious 2.19 / 5.77 / 8.14 GB spread for jamica;
-fixed by requiring `peak_bytes_in_use` + `jax.block_until_ready`.
+The two traceable jamica pairs give the gap: chunked ≈ **1.94 GiB allocator vs ≈ 5.37 GiB NVML (2.8×)**;
+full-batch ≈ **8.22 vs 13.37 GiB (1.6×)** — so **~1.6–2.8×** in the pairs we can check (no torch
+allocator/NVML pair is published, so a single average is not claimed). A per-framework allocator bug (a
+`bytes_in_use` fallback) had additionally produced a spurious 2.19 / 5.77 / 8.14 GiB spread for jamica;
+fixed by requiring `peak_bytes_in_use` + `jax.block_until_ready`. All memory values are GiB
+(bytes / 1024³). NVML is a 50 ms poll of whole-GPU `used`; JAX runs with pre-allocation off and torch
+with its caching allocator on, so NVML is a neutral meter over slightly different allocator protocols.
 
-**jamica memory is two-level.** On the chunked path jamica sits ≈ **5.4 GB NVML** across chunk sizes
-(a chunk-independent full-width array dominates the peak until the block buffer overtakes it only at
-262144). Its **full-batch path** (`chunk_size=None`, the *other* key) materialises the full-width
-arrays for ≈ **8.2 GB allocator / 11.4 GB NVML** — at **no speed benefit** over chunked-at-full. So a
-wrapper should always pass a chunk and never leave jamica on the full-batch path; a ~5 GB chunked
-footprint fits the 8–12 GB cards many users have, the ~11 GB full-batch path may not.
+**jamica memory is two-level.** On the chunked path jamica sits ≈ **5.37 GiB NVML** across chunk sizes
+(per-subject ≈ 3.4–5.4 GiB, scaling with recording length — flat across *chunk*, not a single constant;
+a chunk-independent full-width array dominates the peak). Its **full-batch path** (`chunk_size=None`,
+the *other* key) materialises the full-width arrays for ≈ **8.22 GiB allocator / 13.37 GiB NVML** — at
+**no GPU speed benefit** over chunked-at-full (≈ 0.022 vs 0.021 s/iter, measured). On CPU chunking helps
+*both* axes (≈ 1985 s / 2.2 GiB chunked vs ≈ 4300 s / 19.8 GiB full-batch). So under these tested
+conditions a wrapper should pass a chunk. In fairness the flip side: jamica's ~5.4 GiB chunked *floor*
+is higher than the torch impls' small-chunk footprint (~1.8–3.1 GiB NVML), so on a small card the torch
+impls at a small chunk fit where jamica may not; the "fits an 8–12 GiB card" reading is an extrapolation
+(H100 NVML, JAX pre-allocation off), not measured on such a card.
 
 ## Corrected CPU campaign (contention, @1000, median-over-reps)
 The corrected CPU sweep ran at **1000 iterations** with **5 repetitions per cell as separate array
 tasks** and a background node-contention sampler. The cluster was **busy throughout** — the
-quiet-window filter (`node_busy_mean ≤ 25`) found essentially **no clean reps** — so we report the
-**median over 5 subj × 5 reps** and treat absolute CPU seconds as **contention-inflated**. (This
-replaces the earlier "best-of-5" statistic; both are honest handling of the same DRAM-bandwidth
-contention documented below, just at the realistic budget.) `pyamica@1024` (~767 eager blocks/iter)
-exceeds the 12 h wall and is absent; nothing else OOMed at this budget. Trust the **curve shapes,
-per-device optima, and NVML memory**; lean on CPU *ordering*, not exact CPU seconds.
+quiet-window filter (`node_busy_mean ≤ 25`) found essentially **no clean reps**. We therefore report the
+**by-subject median** (median within each subject over its reps, then the median across the subjects
+present) and treat absolute CPU seconds as **contention-inflated**. (This replaces the 100-iter draft's
+"best-of-5" statistic.) **Second confound: unequal subject coverage.** Cells contain 1–5 subjects
+(`n_subjects` in `raw/chunk_cpu1000_summary.csv`); in particular **Fortran is sub-01-only at 4 of 5
+chunks** (only 65536 has all five), and jamica@4096/65536 each drop one subject — so a cell missing the
+longest recording looks artificially fast. Because of both confounds the **exact per-cell optimum is not
+resolved**; only the broad small/mid-vs-large device flip is trustworthy. `pyamica@1024`
+(~767–1333 eager blocks/iter) exceeds the 12 h wall and is absent; nothing else OOMed at this budget.
+Trust the **curve shapes, the device flip, and NVML memory**; do not lean on exact CPU seconds or the
+exact winning chunk.
 
 ## Iteration budget ≠ equal work ≠ convergence (read the fit times with `n_iter` + `ll_final`)
 The fit-time comparison is **wall time to a fixed iteration cap** (GPU 3000 / CPU 1000), not time to an
@@ -56,16 +69,17 @@ equivalent solution. The result JSONs record the *actual* iterations run (`n_ite
 log-likelihood (`ll_final`); aggregated in `raw/chunk_{gpu3000,cpu1000}_summary.csv`. On GPU at the
 largest chunk (262144) the implementations use the budget very differently:
 
-| impl | wall time | actual iters run | ll_final (median) |
-|------|----------:|------------------|------------------:|
-| jamica  |  62 s | 2444–3000 (near cap) | −1.101 |
-| scott-huberty | 79 s | 784–1654 (early-converges, stops) | −1.100 |
-| pAMICA | 245 s | 151–3000 (early-stop can fire very early) | −1.120 (lowest) |
-| pyamica | 294 s | 3000 (always runs the full cap) | −1.0995 (highest) |
+| impl | wall time | s/iter | iters run: median [min–max] | ll_final (median) |
+|------|----------:|-------:|-----------------------------|------------------:|
+| jamica  |  62 s | 0.021 | 3000 [2572–3000] | −1.1016 |
+| scott-huberty | 79 s | 0.076 | 1106 [784–1654] (early-converges) | −1.1004 |
+| pAMICA | 245 s | 0.089 | 3000 [151–3000] (early-stop can fire very early) | −1.1204 (lowest) |
+| pyamica | 294 s | 0.098 | 3000 [3000–3000] (always full cap) | −1.0995 (highest) |
 
-So a shorter wall time can mean a faster implementation, an earlier stop, or fewer iterations — not
-necessarily a better or equally-finished decomposition. The final LLs sit in a tight band (~−1.10 to
-−1.12), which is *evidence of roughly comparable* fits but not proof of numerically equivalent
+So a shorter wall time can mean a faster implementation (jamica also has the lowest s/iter), an earlier
+stop, or fewer iterations — not necessarily a better or equally-finished decomposition. The final LLs
+sit in a tight band (−1.0995 to −1.1204), which is *evidence of roughly comparable* fits but not proof
+of numerically equivalent
 decompositions (component matching against the Fortran reference was not run this pass). The report now
 shows `n_iter` and `ll_final` next to the wall time and frames the table as "wall time to the budget,"
 not a speed verdict. On CPU almost every cell runs the full 1000 iterations (pAMICA@1024 sometimes
@@ -73,7 +87,7 @@ early-stops at 491), so the CPU comparison is more iteration-matched than the GP
 
 ## "Largest tested chunk," not full-batch
 `FULL = 262144` in the generator is the **largest chunk tested**, not a single full-batch pass:
-per-subject sample counts are **785,328–1,364,633** (from the result JSONs), so 262144 is ~15–33% of a
+per-subject sample counts are **785,328–1,364,633** (from the result JSONs), so 262144 is ~19–33% of a
 recording. The competitors at 262144 still process 3–6 blocks per iteration. Only jamica's full-batch
 *key* (`chunk_size=None`) is a genuine single-pass program, and it is reported separately (memory note).
 

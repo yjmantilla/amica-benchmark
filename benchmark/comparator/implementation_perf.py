@@ -273,8 +273,9 @@ def main() -> None:
                              "same-hardware comparison.")
     parser.add_argument("--competitor-device", choices=["cpu", "gpu"], default="cpu",
                         help="Device for the PyTorch competitors (pyamica, scott_huberty). 'gpu' sets "
-                             "TORCH_DEVICE=cuda + PYTORCH_NO_CUDA_MEMORY_CACHING=1 so "
-                             "torch.cuda.max_memory_allocated() reflects true demand. neuromechanist "
+                             "TORCH_DEVICE=cuda with the torch caching allocator left ON; the "
+                             "framework-neutral memory headline is NVML whole-GPU peak "
+                             "(AMICA_NVML_CROSSCHECK=1), not the allocator counter. neuromechanist "
                              "(NumPy) and fortran always run on CPU. Default 'cpu'.")
     parser.add_argument("--include-fortran", action="store_true",
                         help="Also run Fortran AMICA 1.7 (run_fortran.py) on the same projected input "
