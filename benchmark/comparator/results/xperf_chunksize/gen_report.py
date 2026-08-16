@@ -39,7 +39,8 @@ COMMIT= {"jamica":"df18b5e","pamica":"0c4da39","pyamica":"a8a4d7e","scott":"e15e
 COLOR = {"jamica":"#6366f1","pamica":"#d97706","pyamica":"#0d9488","scott":"#e11d48","fortran":"#7c3aed"}
 
 # ===== GPU @3000, per-subject median : chunk -> (fit_s, nvml_vram_gib). jamica = chunked path.
-# fit_s from the i3000 run; nvml from the i1000 run (memory is iteration-independent). Both in raw/.
+# fit_s from the i3000 run. nvml: jamica-chunked from i3000 (logged NVML for jamica only),
+# torch impls + fullbatch from i1000 (iteration-independent). All in raw/chunk_gpumem_summary.csv.
 GPU = {
  "jamica":  {1024:(763.1,5.37),4096:(227.9,5.37),16384:(97.6,5.37),65536:(71.9,5.37),FULL:(61.6,5.37)},
  "pamica":  {1024:(4086.5,1.83),4096:(1043.7,1.89),16384:(370.8,2.13),65536:(313.6,3.09),FULL:(244.7,6.57)},
@@ -161,7 +162,7 @@ CPU_CHART=["jamica","pamica","pyamica","scott"]   # Fortran excluded from CPU pl
 c_gt=chart(gpu_t,GPU_BAND,"fit time (s, log)",True,"GPU · fit time vs chunk","real ds004505 · H100 · 3000-iter budget · median",IMPLS,"fastest")
 c_gv=chart(gpu_v,None,"peak VRAM · NVML (GiB)",False,"GPU · memory vs chunk","real ds004505 · H100 · whole-GPU NVML peak",IMPLS,"leanest")
 c_cr=chart(CPU_RSS,None,"peak RSS (GiB)",False,"CPU · memory vs chunk","real ds004505 · 8 cores · by-subject median RSS",CPU_CHART,"leanest")
-c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 8 cores · 1000-iter budget · by-subject median",CPU_CHART,"fastest")
+c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 8 cores · 1000-iter budget · by-subject median",CPU_CHART,"fastest observed (per-cell optimum unresolved)")
 
 def legend(impls):
     it="".join(f'<span class="lg"><i style="background:{COLOR[i]}"></i>{LABEL.get(i,"Fortran amica17 (1 thread)")} <code>{KNOB[i]}</code> <span class="cm">@{COMMIT[i]}</span></span>' for i in impls)
@@ -256,7 +257,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   it also changes memory (for the torch implementations), and the fastest setting flips between GPU and
   CPU. <b>The fit times are wall time to a fixed iteration budget, not time to an equivalent
   solution</b> — read them with the convergence box below.</p>
-  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>scott-huberty <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter / CPU 1000-iter budget · H100 + 8-core Xeon</span></div>
+  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>scott-huberty <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter / CPU 1000-iter budget · H100 + 8-core AMD EPYC (fir)</span></div>
 </header>
 
 <section>
@@ -269,15 +270,16 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <b>pAMICA 3,000</b> (but its early-stop can fire as low as 151), <b>scott-huberty 1,106</b>
   (786–1,654 — it converges and stops well before the cap). Three of the four land within ~0.002 nats of
   each other in final log-likelihood (jamica −1.1016, scott −1.1004, pyamica −1.0995); <b>pAMICA is
-  ~0.02 nats lower (−1.1204)</b> — an order of magnitude further out, i.e. a meaningfully worse fit at
-  this budget, not merely "the lowest." So a shorter wall time can mean a faster implementation, an
+  ~0.02 nats lower (−1.1204)</b> in median — and a paired per-subject delta of ~0.007 nats, negative
+  for every subject — i.e. a small but consistent, meaningfully worse fit at this budget, not merely
+  "the lowest." So a shorter wall time can mean a faster implementation, an
   earlier stop, or fewer iterations of work. To normalize per-iteration cost, the GPU table below also
   reports <b>seconds/iteration</b> (median of per-subject time÷iterations-run). We do not verify that
   the four decompositions are numerically equivalent (component matching against the Fortran reference
   is not part of this pass); equal budget is not equal work, and not equal convergence.</div>
   <div class="callout">
     <div class="stat warn"><div class="big">~25×</div><div class="lab">Widest fit-time range across the setting within a single implementation (scott-huberty, GPU). The others span 8–17×; every implementation is chunk-sensitive on time.</div></div>
-    <div class="stat"><div class="big">grows</div><div class="lab">Peak VRAM grows with chunk for the torch impls (~2.7–3.6× NVML). jamica's GPU memory is flat (~5.4 GiB) on its chunked path — a floor, not a dial.</div></div>
+    <div class="stat"><div class="big">grows</div><div class="lab">Peak VRAM grows with chunk for the torch impls (~2.7–3.6× NVML). jamica's GPU memory is flat in the median (~5.4 GiB; per-subject up to ~7.4 at 262K) on its chunked path — mostly a floor, not a dial.</div></div>
     <div class="stat"><div class="big">GPU ⇄ CPU</div><div class="lab">The fastest setting flips by device: large chunks on the H100, small/mid on CPU. Budgets differ (3000 vs 1000) — do not compare GPU seconds to CPU seconds.</div></div>
   </div>
   <p class="note"><b>On "the largest tested chunk."</b> The biggest setting we swept is 262,144 samples.
@@ -379,10 +381,11 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   counters (JAX <code>peak_bytes_in_use</code>, torch <code>max_memory_allocated</code>) measure only
   live-tensor bytes in each framework's own allocator — they omit the CUDA/cuDNN context and the pool
   the driver actually holds, and the two frameworks count differently, so they are <b>not comparable
-  across implementations</b> and understate the real footprint (by ~1.6–2.8× in the two jamica pairs we
-  can check: chunked {J_CHUNKED_ALLOC:.1f}&nbsp;GiB allocator vs {J_CHUNKED_GPU_NVML:.1f}&nbsp;GiB NVML =
-  {J_CHUNKED_GPU_NVML/J_CHUNKED_ALLOC:.1f}×; full-batch {J_FULLBATCH_ALLOC:.1f} vs
-  {J_FULLBATCH_GPU_NVML:.1f}&nbsp;GiB = {J_FULLBATCH_GPU_NVML/J_FULLBATCH_ALLOC:.1f}×). The charts use
+  across implementations</b> and understate the real footprint by <b>~1.2–3.3×</b> across the 25
+  measured impl×chunk pairs (all in <code>raw/chunk_gpumem_summary.csv</code>) — e.g. jamica chunked
+  {J_CHUNKED_ALLOC:.2f}&nbsp;GiB allocator vs {J_CHUNKED_GPU_NVML:.2f}&nbsp;GiB NVML =
+  {J_CHUNKED_GPU_NVML/J_CHUNKED_ALLOC:.1f}× at the small end, pyamica@262K 1.2× at the large end (the
+  gap shrinks as live tensors grow to dominate the fixed context). The charts use
   <b>NVML whole-GPU 'used'</b> on a dedicated GPU. Two caveats on that meter: it is a 50&nbsp;ms poll (a
   sub-interval spike could be missed), and the frameworks run under different allocator settings (JAX
   with pre-allocation off; torch with its caching allocator on), so NVML is a neutral <em>meter</em>
@@ -392,7 +395,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   5.4–{J_CHUNKED_GPU_NVML_MAX:.1f}&nbsp;GiB at 262K for the longest recordings — flat in the median
   across chunk, a floor, not a single constant). Its <em>full-batch</em> path
   (<code>chunk_size=None</code> — a different orchestrator key, and jamica's shipped default) uses
-  ~{J_FULLBATCH_GPU_NVML:.0f}&nbsp;GiB NVML median (per-subject up to ~{J_FULLBATCH_GPU_NVML_MAX:.0f} for
+  ~{J_FULLBATCH_GPU_NVML:.1f}&nbsp;GiB NVML median (per-subject up to ~{J_FULLBATCH_GPU_NVML_MAX:.0f} for
   the longest recording) for essentially the <b>same GPU speed</b> (~{J_FULLBATCH_GPU_SPI:.3f} vs
   ~{J_CHUNKED_GPU_SPI:.3f}&nbsp;s/iter, same run — no chunk benefit on GPU). On CPU, chunking helps
   <em>both</em> axes (~{J_CHUNKED_CPU_T:,}&nbsp;s /
@@ -422,7 +425,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   CPU-small-to-mid device flip — not the exact CPU per-cell optima (contention + unequal subject
   coverage). Fit times are wall time to a fixed iteration budget, <b>not</b> time to an equivalent
   solution. jamica's chunk is a real GPU-time / CPU-time+memory dial; its GPU memory on the chunked path
-  is flat across chunk.</p>
+  is flat in the median across chunk (per-subject it rises at 262K for the longest recordings).</p>
 </footer>
 </div>"""
 HERE=os.path.dirname(os.path.abspath(__file__))

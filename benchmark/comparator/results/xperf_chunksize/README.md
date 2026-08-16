@@ -31,7 +31,7 @@ deliverable; everything else here regenerates or backs it.
 
 ## Measurement corrections baked into this version
 - **NVML is the headline VRAM** (framework-neutral whole-GPU peak). Per-framework allocator counters
-  (JAX `peak_bytes_in_use`, torch `max_memory_allocated`) understate the footprint ~1.6–2.8× and are
+  (JAX `peak_bytes_in_use`, torch `max_memory_allocated`) understate the footprint ~1.2–3.3× and are
   not comparable across frameworks.
 - **jamica is measured on its chunked path** (`amica_python_jax_chunked`). Its full-batch key
   (`amica_python_jax`, `chunk_size=None`) is a separate program: ~13.4 GiB NVML median (per-subject up

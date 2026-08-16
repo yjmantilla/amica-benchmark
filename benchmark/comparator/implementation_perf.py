@@ -267,8 +267,9 @@ def main() -> None:
     parser.add_argument("--skip", nargs="*", default=[],
                         help="implementations to skip (e.g. --skip pyamica_torch scott_huberty_torch)")
     parser.add_argument("--amica-device", choices=["cpu", "gpu"], default="cpu",
-                        help="Device for the amica_python_jax run. 'gpu' sets JAX_PLATFORMS=cuda "
-                             "for that runner so it actually uses the allocated GPU. The torch "
+                        help="Device for both amica JAX runs (amica_python_jax and "
+                             "amica_python_jax_chunked). 'gpu' sets JAX_PLATFORMS=cuda so they use the "
+                             "allocated GPU. The torch "
                              "competitors' device is set separately by --competitor-device (numpy and "
                              "fortran always run on CPU). Default 'cpu' keeps a same-hardware comparison.")
     parser.add_argument("--competitor-device", choices=["cpu", "gpu"], default="cpu",

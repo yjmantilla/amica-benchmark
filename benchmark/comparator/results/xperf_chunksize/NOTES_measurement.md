@@ -20,28 +20,31 @@ in the corrected report come from **`amica_python_jax_chunked`**. Competitor key
 (`scott_huberty_torch` / `pyamica_torch` / `pamica_torch` / `fortran_amica17`) were always correct —
 only jamica had the two-key trap. Corrected result: **jamica is a normal, device-dependent
 time/memory dial** like the others (GPU: big chunk faster, 763 s→62 s @3000; CPU: small chunk faster
-*and* leaner, ~1985 s/2.2 GiB @1024 → ~2794 s/7.0 GiB @262K — a device flip).
+*and* leaner, ~1985 s/2.2 GiB @1024 → ~2793 s/7.2 GiB @262K — a device flip).
 
-## NVML vs the allocator counters (the ~1.6–2.8× memory gap)
+## NVML vs the allocator counters (the ~1.2–3.3× memory gap)
 Peak-VRAM was reported three inconsistent ways in the 100-iter draft because each framework's
 **allocator counter measures only its own live-tensor bytes** — JAX `peak_bytes_in_use`, torch
 `max_memory_allocated` — omitting the CUDA/cuDNN context and pool the driver actually holds, and the
 two frameworks count differently. They **understate the real footprint** and are **not comparable
 across implementations**. The corrected headline is **NVML whole-GPU `used`** on a dedicated GPU
 (`AMICA_NVML_CROSSCHECK=1`), which is framework-neutral and reflects what would actually fit on a card.
-The two traceable jamica pairs (raw/chunk_gpumem_summary.csv) give the gap: chunked ≈ **1.94 GiB allocator vs ≈ 5.37 GiB NVML (2.8×)**;
-full-batch ≈ **8.22 vs 13.37 GiB (1.6×)** — so **~1.6–2.8×** in the pairs we can check (no torch
-allocator/NVML pair is published, so a single average is not claimed). A per-framework allocator bug (a
+Across all 25 measured impl×chunk pairs (allocator + NVML both in `raw/chunk_gpumem_summary.csv`) the
+gap is **~1.2–3.3×**: largest for jamica at small/mid chunks (chunked ≈ 1.94 GiB allocator vs 5.37 GiB
+NVML = 2.8×; jamica@65536 = 3.3×), smallest for the torch impls at the largest chunk (pyamica@262144 ≈
+9.0 vs 10.9 GiB = 1.2×), because the gap shrinks as live tensors grow to dominate the fixed CUDA context.
+A single average is not claimed. A per-framework allocator bug (a
 `bytes_in_use` fallback) had additionally produced a spurious 2.19 / 5.77 / 8.14 GiB spread for jamica;
 fixed by requiring `peak_bytes_in_use` + `jax.block_until_ready`. All memory values are GiB
 (bytes / 1024³). NVML is a 50 ms poll of whole-GPU `used`; JAX runs with pre-allocation off and torch
 with its caching allocator on, so NVML is a neutral meter over slightly different allocator protocols.
 
 **jamica memory is two-level.** On the chunked path jamica sits ≈ **5.37 GiB NVML** across chunk sizes
-(per-subject ≈ 3.4–5.4 GiB, scaling with recording length — flat across *chunk*, not a single constant;
-a chunk-independent full-width array dominates the peak). Its **full-batch path** (`chunk_size=None`,
-the *other* key) materialises the full-width arrays for ≈ **8.22 GiB allocator / 13.37 GiB NVML** — at
-**no GPU speed benefit** over chunked-at-full (≈ 0.022 vs 0.021 s/iter, measured). On CPU chunking helps
+(per-subject ≈ 3.4–5.4 GiB below 262K, rising to 5.4–7.4 GiB at 262K for the longest recordings —
+flat across *chunk* in the median, not a single constant; a chunk-independent full-width array
+dominates the peak). Its **full-batch path** (`chunk_size=None`, the *other* key) materialises the
+full-width arrays for ≈ **8.22 GiB allocator / 13.37 GiB NVML median (per-subject up to ~21.4)** — at
+**no GPU speed benefit** over chunked-at-full (≈ 0.020 vs 0.021 s/iter, same i3000 run, measured). On CPU chunking helps
 *both* axes (≈ 1985 s / 2.2 GiB chunked vs ≈ 4300 s / 19.8 GiB full-batch). So under these tested
 conditions a wrapper should pass a chunk. In fairness the flip side: jamica's ~5.4 GiB chunked *floor*
 is higher than the torch impls' small-chunk footprint (~1.8–3.1 GiB NVML), so on a small card the torch
@@ -148,9 +151,12 @@ campaign), which is the correct price for a benchmark. A controlled-concurrency 
 limit) is a cheaper middle ground. The GPU side was already close to clean because each GPU cell
 owned its GPU (`--gpus-per-node=1`).
 
-## Bottom line for readers of the curves
-Trust the **shapes, the ordering, and each implementation's optimum**. Treat **absolute CPU
-fit-times as upper bounds** carrying a ~tens-of-percent contention inflation until an `--exclusive`
+## Bottom line for readers of the curves (of the 100-iter draft — superseded)
+*This was the 100-iter draft's bottom line; the corrected campaign at the top does NOT name exact
+per-cell optima (unresolved under contention + unequal coverage) and does not use best-of-5.* That draft
+said: trust the **shapes and ordering** (and, it then claimed, each implementation's optimum). Treat
+**absolute CPU fit-times as upper bounds** carrying a ~tens-of-percent contention inflation until an
+`--exclusive`
 rerun replaces them.
 
 ## Outcome of the throttled rerun (job array %4, 5 subjects)
