@@ -29,7 +29,7 @@ import psutil
 RESULT_KEYS = (
     "implementation", "n_components", "n_samples", "max_iter",
     "fit_time_s", "peak_rss_gb", "baseline_rss_gb", "delta_rss_gb",
-    "peak_vram_gb", "nvml_peak_vram_gb",
+    "peak_vram_gb", "nvml_peak_vram_gb", "nvml_post_init_gb",
     "ll_final", "ll_history", "W",
     "device", "dtype", "n_iter",
 )
@@ -175,6 +175,32 @@ def stop_nvml_sampler(handle) -> float | None:
         handle["thread"].join(timeout=1.0)
         handle["nvml"].nvmlShutdown()
         return float(handle["peak"])
+    except Exception:
+        return None
+
+
+def nvml_used_gb(enabled: bool, gpu_index: int = 0) -> "float | None":
+    """One-shot read of whole-GPU 'used' VRAM (GiB) via NVML.
+
+    Framework-neutral point read, used to bracket the post-init memory FLOOR: call it
+    once right after the framework + CUDA context are initialised (a trivial GPU op has
+    run) but BEFORE the model/data are allocated. The gap between this floor and the
+    sampler's peak is everything the framework's own allocator counter also misses
+    (reserved pool, lazily-loaded cuBLAS/cuDNN, compiled executables) plus the live
+    tensors. Self-contained init/shutdown so it is safe to call before start_nvml_sampler.
+    Returns None if disabled or pynvml/GPU unavailable.
+    """
+    if not enabled:
+        return None
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+        try:
+            used = pynvml.nvmlDeviceGetMemoryInfo(
+                pynvml.nvmlDeviceGetHandleByIndex(gpu_index)).used
+            return float(used) / 1024 ** 3
+        finally:
+            pynvml.nvmlShutdown()
     except Exception:
         return None
 

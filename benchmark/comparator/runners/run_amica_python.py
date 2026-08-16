@@ -21,6 +21,7 @@ from _common import (
     peak_rss_gb,
     start_nvml_sampler,
     stop_nvml_sampler,
+    nvml_used_gb,
     write_result,
 )
 
@@ -69,6 +70,19 @@ def main() -> None:
         except Exception:
             device = "cpu"
 
+    # NVML post-init floor (harness-only): force the XLA/CUDA context, read whole-GPU used
+    # BEFORE the model/data are on device. peak - floor = XLA pool + executables + live tensors.
+    _use_nvml = (os.environ.get("AMICA_NVML_CROSSCHECK", "0") == "1"
+                 and not no_jax and device == "gpu")
+    nvml_post_init_gb = None
+    if _use_nvml:
+        try:
+            import jax.numpy as jnp
+            jnp.zeros(1).block_until_ready()
+            nvml_post_init_gb = nvml_used_gb(True)
+        except Exception:
+            nvml_post_init_gb = None
+
     config = AmicaConfig(
         max_iter=cfg["max_iter"],
         num_mix_comps=cfg.get("n_mix", 3),
@@ -80,8 +94,6 @@ def main() -> None:
     )
     model = Amica(config, random_state=cfg.get("seed", 0))
 
-    _use_nvml = (os.environ.get("AMICA_NVML_CROSSCHECK", "0") == "1"
-                 and not no_jax and device == "gpu")
     _nvml = start_nvml_sampler(_use_nvml)
     baseline = baseline_rss_gb()
     t0 = time.perf_counter()
@@ -154,6 +166,7 @@ def main() -> None:
         "peak_vram_gb": peak_vram_gb,
         "peak_vram_reserved_gb": None,          # JAX has no allocator-reserved concept (torch does)
         "nvml_peak_vram_gb": nvml_peak_vram_gb,  # framework-neutral cross-check (whole-GPU used)
+        "nvml_post_init_gb": nvml_post_init_gb,  # whole-GPU used after init, before model/data (context floor)
         "vram_stats": vram_stats,                # raw jax memory_stats() for provenance
         "ll_final": float(ll_history[-1]) if ll_history else float("nan"),
         "ll_history": ll_history,

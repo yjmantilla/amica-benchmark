@@ -21,6 +21,7 @@ from _common import (
     peak_rss_gb,
     start_nvml_sampler,
     stop_nvml_sampler,
+    nvml_used_gb,
     write_result,
 )
 
@@ -36,6 +37,16 @@ def main() -> None:
     device = os.environ.get("TORCH_DEVICE", "cpu")
     # sklearn fits on (n_samples, n_features); transpose
     Xt = X.T
+
+    # NVML post-init floor (harness-only, no impl change): force the CUDA context, then read
+    # whole-GPU used BEFORE the model/data are on device. peak - this floor = allocator pool +
+    # lazily-loaded cuBLAS/cuDNN + live tensors. See results/xperf_chunksize/ memory note.
+    _use_nvml = os.environ.get("AMICA_NVML_CROSSCHECK", "0") == "1" and device == "cuda"
+    nvml_post_init_gb = None
+    if _use_nvml and torch.cuda.is_available():
+        torch.zeros(1, device="cuda")
+        torch.cuda.synchronize()
+        nvml_post_init_gb = nvml_used_gb(True)
 
     model = AMICA(
         n_components=n_comp,
@@ -96,6 +107,7 @@ def main() -> None:
         "peak_vram_gb": peak_vram_gb,
         "peak_vram_reserved_gb": peak_vram_reserved_gb,
         "nvml_peak_vram_gb": nvml_peak_vram_gb,
+        "nvml_post_init_gb": nvml_post_init_gb,
         "ll_final": float(ll[-1]) if ll else float("nan"),
         "ll_history": ll,
         "W": W.tolist() if W is not None else None,

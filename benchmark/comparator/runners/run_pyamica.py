@@ -21,6 +21,7 @@ from _common import (
     peak_rss_gb,
     start_nvml_sampler,
     stop_nvml_sampler,
+    nvml_used_gb,
     write_result,
 )
 
@@ -34,6 +35,14 @@ def main() -> None:
     from pyamica import AMICA
 
     device = os.environ.get("TORCH_DEVICE", "cpu")
+    # NVML post-init floor (harness-only): force the CUDA context, read whole-GPU used BEFORE
+    # data/model are on device. peak - floor = pool + lazily-loaded libs + live tensors.
+    _use_nvml = os.environ.get("AMICA_NVML_CROSSCHECK", "0") == "1" and device == "cuda"
+    nvml_post_init_gb = None
+    if _use_nvml and torch.cuda.is_available():
+        torch.zeros(1, device="cuda")
+        torch.cuda.synchronize()
+        nvml_post_init_gb = nvml_used_gb(True)
     Xt = torch.from_numpy(X.T).to(device)  # (n_samples, n_components)
     model = AMICA(
         n_components=n_comp,
@@ -99,6 +108,7 @@ def main() -> None:
         "peak_vram_gb": peak_vram_gb,
         "peak_vram_reserved_gb": peak_vram_reserved_gb,
         "nvml_peak_vram_gb": nvml_peak_vram_gb,
+        "nvml_post_init_gb": nvml_post_init_gb,
         "ll_final": float(ll[-1]) if ll else float("nan"),
         "ll_history": ll,
         "W": W.tolist(),
