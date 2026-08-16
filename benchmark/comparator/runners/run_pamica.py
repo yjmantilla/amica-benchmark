@@ -87,8 +87,8 @@ def main() -> None:
     # "lrate_floor"); set minlrate=0 so it never fires and the fit runs the full max_iter. NB the
     # extra iterations run at a floored learning rate (see the earlystop-feasibility panel note).
     _disable_es = os.environ.get("AMICA_DISABLE_EARLYSTOP", "0") == "1"
-    _es_kw = dict(minlrate=0.0) if _disable_es else {}
-    model = AMICA(n_models=1, n_mix=cfg.get("n_mix", 3), device=device, verbose=False, **_es_kw)
+    _es_kw = dict(minlrate=0.0) if _disable_es else {}   # forwarded via fit(**kwargs) -> AMICATorchNG
+    model = AMICA(n_models=1, n_mix=cfg.get("n_mix", 3), device=device, verbose=False)
 
     _nvml = start_nvml_sampler(_use_nvml)
     if device == "cuda" and torch.cuda.is_available():
@@ -121,6 +121,7 @@ def main() -> None:
         # own default). Forwarded to AMICATorchNG. See results/xperf_chunksize/.
         **({"block_size": int(os.environ["AMICA_PAMICA_BLOCK_SIZE"])}
            if os.environ.get("AMICA_PAMICA_BLOCK_SIZE") else {}),
+        **_es_kw,   # iteration-matched: minlrate=0.0 disables the lrate_floor stop
     )
     elapsed = time.perf_counter() - t0
 
