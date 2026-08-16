@@ -83,11 +83,12 @@ def main() -> None:
         torch.cuda.synchronize()
         nvml_post_init_gb = nvml_used_gb(True)
 
-    # Iteration-matched mode: pAMICA v0.3.1's only early-stop is lrate<=minlrate (stop_reason
-    # "lrate_floor"); set minlrate=0 so it never fires and the fit runs the full max_iter. NB the
-    # extra iterations run at a floored learning rate (see the earlystop-feasibility panel note).
+    # Iteration-matched mode: pAMICA v0.3.1 has the FULL stop family (use_min_dll, use_grad_norm,
+    # min_dll, min_nd, minlrate) -- disable all so the fit runs the full max_iter. (minlrate alone
+    # left a min_dll stop firing at ~495 iters -- caught by the campaign, not the 200-iter smoke.)
     _disable_es = os.environ.get("AMICA_DISABLE_EARLYSTOP", "0") == "1"
-    _es_kw = dict(minlrate=0.0) if _disable_es else {}   # forwarded via fit(**kwargs) -> AMICATorchNG
+    _es_kw = (dict(use_min_dll=False, use_grad_norm=False, minlrate=0.0, min_nd=0.0)
+              if _disable_es else {})   # forwarded via fit(**kwargs) -> AMICATorchNG
     model = AMICA(n_models=1, n_mix=cfg.get("n_mix", 3), device=device, verbose=False)
 
     _nvml = start_nvml_sampler(_use_nvml)
