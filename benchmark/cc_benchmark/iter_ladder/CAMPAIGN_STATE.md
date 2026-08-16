@@ -3,6 +3,24 @@
 Durable hand-off so a fresh session (or the user) can finish without the in-session cron.
 Access is DIRECT ssh (`ssh -o BatchMode=yes <host> '<cmd>'`) — `cluster-run` is DEPRECATED.
 
+## IN FLIGHT (2026-08-16): iteration-matched (stops-off) GPU re-run
+Full 3000-iter GPU sweep with ALL early-stops DISABLED (AMICA_DISABLE_EARLYSTOP=1) + NVML bracketing
+(nvml_post_init_gb) + ll_history, for the "time-to-iterations" table. Runners have env-gated disable
+knobs (commit 4427fed + run_pamica fit-kwarg fix): jamica use_min_dll=False+minlrate=0; pyamica
+use_min_dll=False+use_grad_norm=False+minlrate=0+min_nd=0; pAMICA fit(minlrate=0.0); amica-python
+tol=-1e30. Smoke-validated (jobs 778832/778888): all 4 run to max_iter, earlystop_disabled=True.
+- Output dir: /scratch/yorguin/iter_ladder/gpu_nostop/c<chunk>_i3000/  (SEPARATE from the @3000 baseline).
+- Submit: iter_ladder/submit_iter_gpu_nostop.sh + manifest_gpu_nostop.txt (500 cells = 25 subj x 4 impls
+  x 5 chunks). WAVE 1 = job 778907 (--array=1-250%8, ~subjects 1-12). QOS MaxSubmit=500 so 2 waves.
+- RESUME: when wave 1 drains, submit WAVE 2:
+  `ssh trillium-gpu 'cd /scratch/yorguin/amica-benchmark-repro/benchmark/cc_benchmark && sbatch --array=251-500%8 iter_ladder/submit_iter_gpu_nostop.sh iter_ladder/manifest_gpu_nostop.txt'`
+  (ASK the user before submitting wave 2 — they want to approve job submissions.)
+- AGGREGATE (after both waves): agg_chunk2.py on gpu_nostop @3000 -> iteration-matched fit-time + s/iter
+  (everyone n_iter=3000); agg_mem.py-style for nvml_post_init. Then add the "time-to-iterations" table to
+  the report next to the existing "time to comparable quality" (already added, from the baseline traces).
+- Aggregators (scratchpad, IMPL map already relabels scott_huberty_torch->amica_python): agg_chunk2.py,
+  agg_mem.py, posthoc_conv.py (also committed at iter_ladder/posthoc_conv.py).
+
 ## THE key bug (do not re-introduce)
 jamica has TWO orchestrator keys: `amica_python_jax` = **full-batch** (ignores `--amica-chunk-size`)
 and `amica_python_jax_chunked` = **applies the chunk**. Early campaigns used the full-batch key for
