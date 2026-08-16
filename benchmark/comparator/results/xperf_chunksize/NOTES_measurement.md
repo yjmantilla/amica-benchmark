@@ -50,6 +50,33 @@ contention documented below, just at the realistic budget.) `pyamica@1024` (~767
 exceeds the 12 h wall and is absent; nothing else OOMed at this budget. Trust the **curve shapes,
 per-device optima, and NVML memory**; lean on CPU *ordering*, not exact CPU seconds.
 
+## Iteration budget ≠ equal work ≠ convergence (read the fit times with `n_iter` + `ll_final`)
+The fit-time comparison is **wall time to a fixed iteration cap** (GPU 3000 / CPU 1000), not time to an
+equivalent solution. The result JSONs record the *actual* iterations run (`n_iter`) and the final
+log-likelihood (`ll_final`); aggregated in `raw/chunk_{gpu3000,cpu1000}_summary.csv`. On GPU at the
+largest chunk (262144) the implementations use the budget very differently:
+
+| impl | wall time | actual iters run | ll_final (median) |
+|------|----------:|------------------|------------------:|
+| jamica  |  62 s | 2444–3000 (near cap) | −1.101 |
+| scott-huberty | 79 s | 784–1654 (early-converges, stops) | −1.100 |
+| pAMICA | 245 s | 151–3000 (early-stop can fire very early) | −1.120 (lowest) |
+| pyamica | 294 s | 3000 (always runs the full cap) | −1.0995 (highest) |
+
+So a shorter wall time can mean a faster implementation, an earlier stop, or fewer iterations — not
+necessarily a better or equally-finished decomposition. The final LLs sit in a tight band (~−1.10 to
+−1.12), which is *evidence of roughly comparable* fits but not proof of numerically equivalent
+decompositions (component matching against the Fortran reference was not run this pass). The report now
+shows `n_iter` and `ll_final` next to the wall time and frames the table as "wall time to the budget,"
+not a speed verdict. On CPU almost every cell runs the full 1000 iterations (pAMICA@1024 sometimes
+early-stops at 491), so the CPU comparison is more iteration-matched than the GPU one.
+
+## "Largest tested chunk," not full-batch
+`FULL = 262144` in the generator is the **largest chunk tested**, not a single full-batch pass:
+per-subject sample counts are **785,328–1,364,633** (from the result JSONs), so 262144 is ~15–33% of a
+recording. The competitors at 262144 still process 3–6 blocks per iteration. Only jamica's full-batch
+*key* (`chunk_size=None`) is a genuine single-pass program, and it is reported separately (memory note).
+
 ---
 
 # (Historical) node contention in the atomic 100-iter CPU sweep
@@ -116,11 +143,15 @@ rerun replaces them.
 
 Throttling helped only **modestly**: the per-cell **median stayed non-monotonic** (e.g. pyamica@4096
 = 2345 s next to @16384 = 970 s), because (a) `%4` still co-locates some cells on `bycore` nodes, and
-(b) the 5 subjects differ in length, so a cross-subject median mixes data sizes. The **min across
-subjects** (best observed ≈ least-contended) *does* recover a clean chunk trend and is what the report
-plots. Clean finding it exposes: **CPU optima are at small/mid chunks** (jamica 1024, scott/Fortran
-~4096, pyamica 16384) — the opposite of the GPU (full-batch), a cache effect. jamica is fastest on CPU
-too (~155 s best). pyamica@1024 exceeds the 1 h runner timeout; scott full-batch OOMs.
+(b) the 5 subjects differ in length, so a cross-subject median mixes data sizes. In *that historical
+100-iter draft* the **min across subjects** (best observed ≈ least-contended) recovered a clean chunk
+trend and was what that draft plotted. (The current corrected report does NOT use best-of-5 — it plots
+the median over subjects × reps at the realistic budget, with p25–p75 bands; see the corrected campaign
+section at the top.) The directional finding that survived into the corrected report: **CPU is fastest
+at small/mid chunks** — the opposite of the GPU, a cache effect. The exact 100-iter optima quoted here
+(jamica 1024, scott/Fortran ~4096, pyamica 16384) and the "~155 s best" figure are that old draft's;
+the corrected @1000 numbers differ and carry wide contention bands. pyamica@1024 exceeded the runner
+wall in both campaigns; scott full-batch did not OOM in the corrected GPU/CPU runs.
 
 For truly clean CPU *absolutes* (not just the trend) the remaining lever is `--exclusive`/`bynode`
 allocation — rejected here as fair-share-hostile (reserves a 192-core node for an ~8-core job that only

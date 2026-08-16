@@ -33,7 +33,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _fortran_io as fio
-from _common import load_data, parse_runner_args, write_result
+from _common import load_data, parse_runner_args, write_result, cgroup_peak_gb
 
 _DEFAULT_BIN = "amica17"  # portable default: set AMICA17_BIN to an absolute path, or have amica17 on PATH
 
@@ -121,7 +121,7 @@ def main() -> None:
         "n_samples": int(n_samples),
         "max_iter": cfg["max_iter"],
         "fit_time_s": float(elapsed),
-        "cgroup_peak_gb, peak_rss_gb": float(peak_gb),
+        "peak_rss_gb": float(peak_gb),
         # Fortran allocates up front with ~zero import baseline -> delta ~= absolute peak.
         "baseline_rss_gb": 0.0,
         "delta_rss_gb": float(peak_gb),

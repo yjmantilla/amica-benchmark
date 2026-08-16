@@ -1,101 +1,193 @@
 dataset,impl,knob,chunk,value,unit,note
-gpu_fit_s_median,jamica,chunk_size,1024,763.1,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,jamica,chunk_size,1024,5.37,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,jamica,chunk_size,4096,227.9,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,jamica,chunk_size,4096,5.37,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,jamica,chunk_size,16384,97.6,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,jamica,chunk_size,16384,5.37,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,jamica,chunk_size,65536,71.9,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,jamica,chunk_size,65536,5.37,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,jamica,chunk_size,full,61.6,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,jamica,chunk_size,full,5.37,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pamica,block_size,1024,4086.5,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pamica,block_size,1024,1.83,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pamica,block_size,4096,1043.7,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pamica,block_size,4096,1.89,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pamica,block_size,16384,370.8,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pamica,block_size,16384,2.13,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pamica,block_size,65536,313.6,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pamica,block_size,65536,3.09,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pamica,block_size,full,244.7,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pamica,block_size,full,6.57,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pyamica,chunk_t,1024,2414.4,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pyamica,chunk_t,1024,3.05,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pyamica,chunk_t,4096,608.8,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pyamica,chunk_t,4096,3.05,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pyamica,chunk_t,16384,365.9,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pyamica,chunk_t,16384,3.05,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pyamica,chunk_t,65536,339.0,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pyamica,chunk_t,65536,4.46,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,pyamica,chunk_t,full,294.0,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,pyamica,chunk_t,full,10.92,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,scott,batch_size,1024,2023.8,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,scott,batch_size,1024,1.82,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,scott,batch_size,4096,502.0,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,scott,batch_size,4096,1.87,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,scott,batch_size,16384,163.2,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,scott,batch_size,16384,2.05,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,scott,batch_size,65536,110.4,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,scott,batch_size,65536,2.77,GB,NVML whole-GPU peak (framework-neutral)
-gpu_fit_s_median,scott,batch_size,full,79.3,s,"real ds004505, H100, 3000 iters, per-subj median"
-gpu_vram_gb_nvml,scott,batch_size,full,4.88,GB,NVML whole-GPU peak (framework-neutral)
-cpu_rss_gb_median,jamica,chunk_size,1024,2.2,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,jamica,chunk_size,4096,2.2,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,jamica,chunk_size,16384,2.2,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,jamica,chunk_size,65536,3.7,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,jamica,chunk_size,full,7.0,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_fit_s_median,jamica,chunk_size,1024,1982,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,jamica,chunk_size,4096,2078,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,jamica,chunk_size,16384,2138,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,jamica,chunk_size,65536,2603,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,jamica,chunk_size,full,2731,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_rss_gb_median,pamica,block_size,1024,1.6,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,pamica,block_size,4096,1.7,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,pamica,block_size,16384,2.4,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,pamica,block_size,65536,2.7,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,pamica,block_size,full,6.0,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_fit_s_median,pamica,block_size,1024,4275,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,pamica,block_size,4096,3577,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,pamica,block_size,16384,4397,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,pamica,block_size,65536,9101,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,pamica,block_size,full,8694,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_rss_gb_median,pyamica,chunk_t,4096,1.9,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,pyamica,chunk_t,16384,2.7,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,pyamica,chunk_t,65536,3.6,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,pyamica,chunk_t,full,9.8,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_fit_s_median,pyamica,chunk_t,4096,24301,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,pyamica,chunk_t,16384,10173,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,pyamica,chunk_t,65536,9307,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,pyamica,chunk_t,full,11091,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_rss_gb_median,scott,batch_size,1024,2.0,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,scott,batch_size,4096,2.0,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,scott,batch_size,16384,2.0,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,scott,batch_size,65536,2.3,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,scott,batch_size,full,4.2,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_fit_s_median,scott,batch_size,1024,3208,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,scott,batch_size,4096,2787,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,scott,batch_size,16384,2809,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,scott,batch_size,65536,4138,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,scott,batch_size,full,4397,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_rss_gb_median,fortran,block_size,1024,0.6,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,fortran,block_size,4096,0.6,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,fortran,block_size,16384,0.7,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,fortran,block_size,65536,1.3,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_rss_gb_median,fortran,block_size,full,3.1,GB,"real ds004505, 8 cores, 1000 iters, median"
-cpu_fit_s_median,fortran,block_size,1024,5627,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,fortran,block_size,4096,5301,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,fortran,block_size,16384,6049,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,fortran,block_size,65536,8222,s,median over 5 subj x 5 reps (contention-inflated)
-cpu_fit_s_median,fortran,block_size,full,7171,s,median over 5 subj x 5 reps (contention-inflated)
+gpu_fit_s_median,jamica,chunk_size,1024,763.1,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,jamica,chunk_size,1024,5.37,GiB,NVML whole-GPU peak
+gpu_fit_s_median,jamica,chunk_size,4096,227.9,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,jamica,chunk_size,4096,5.37,GiB,NVML whole-GPU peak
+gpu_fit_s_median,jamica,chunk_size,16384,97.6,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,jamica,chunk_size,16384,5.37,GiB,NVML whole-GPU peak
+gpu_fit_s_median,jamica,chunk_size,65536,71.9,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,jamica,chunk_size,65536,5.37,GiB,NVML whole-GPU peak
+gpu_fit_s_median,jamica,chunk_size,262144,61.6,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,jamica,chunk_size,262144,5.37,GiB,NVML whole-GPU peak
+gpu_fit_s_p25,jamica,chunk_size,1024,713,s,
+gpu_fit_s_p75,jamica,chunk_size,1024,777,s,
+gpu_fit_s_p25,jamica,chunk_size,4096,215,s,
+gpu_fit_s_p75,jamica,chunk_size,4096,234,s,
+gpu_fit_s_p25,jamica,chunk_size,16384,92,s,
+gpu_fit_s_p75,jamica,chunk_size,16384,100,s,
+gpu_fit_s_p25,jamica,chunk_size,65536,70,s,
+gpu_fit_s_p75,jamica,chunk_size,65536,76,s,
+gpu_fit_s_p25,jamica,chunk_size,262144,58,s,
+gpu_fit_s_p75,jamica,chunk_size,262144,63,s,
+gpu_fit_s_median,pamica,block_size,1024,4086.5,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pamica,block_size,1024,1.83,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pamica,block_size,4096,1043.7,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pamica,block_size,4096,1.89,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pamica,block_size,16384,370.8,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pamica,block_size,16384,2.13,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pamica,block_size,65536,313.6,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pamica,block_size,65536,3.09,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pamica,block_size,262144,244.7,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pamica,block_size,262144,6.57,GiB,NVML whole-GPU peak
+gpu_fit_s_p25,pamica,block_size,1024,3296,s,
+gpu_fit_s_p75,pamica,block_size,1024,4229,s,
+gpu_fit_s_p25,pamica,block_size,4096,836,s,
+gpu_fit_s_p75,pamica,block_size,4096,1088,s,
+gpu_fit_s_p25,pamica,block_size,16384,274,s,
+gpu_fit_s_p75,pamica,block_size,16384,398,s,
+gpu_fit_s_p25,pamica,block_size,65536,169,s,
+gpu_fit_s_p75,pamica,block_size,65536,325,s,
+gpu_fit_s_p25,pamica,block_size,262144,64,s,
+gpu_fit_s_p75,pamica,block_size,262144,267,s,
+gpu_fit_s_median,pyamica,chunk_t,1024,2414.4,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pyamica,chunk_t,1024,3.05,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pyamica,chunk_t,4096,608.8,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pyamica,chunk_t,4096,3.05,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pyamica,chunk_t,16384,365.9,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pyamica,chunk_t,16384,3.05,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pyamica,chunk_t,65536,339.0,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pyamica,chunk_t,65536,4.46,GiB,NVML whole-GPU peak
+gpu_fit_s_median,pyamica,chunk_t,262144,294.0,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,pyamica,chunk_t,262144,10.92,GiB,NVML whole-GPU peak
+gpu_fit_s_p25,pyamica,chunk_t,1024,2291,s,
+gpu_fit_s_p75,pyamica,chunk_t,1024,2458,s,
+gpu_fit_s_p25,pyamica,chunk_t,4096,580,s,
+gpu_fit_s_p75,pyamica,chunk_t,4096,620,s,
+gpu_fit_s_p25,pyamica,chunk_t,16384,350,s,
+gpu_fit_s_p75,pyamica,chunk_t,16384,376,s,
+gpu_fit_s_p25,pyamica,chunk_t,65536,321,s,
+gpu_fit_s_p75,pyamica,chunk_t,65536,347,s,
+gpu_fit_s_p25,pyamica,chunk_t,262144,276,s,
+gpu_fit_s_p75,pyamica,chunk_t,262144,301,s,
+gpu_fit_s_median,scott,batch_size,1024,2023.8,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,scott,batch_size,1024,1.82,GiB,NVML whole-GPU peak
+gpu_fit_s_median,scott,batch_size,4096,502.0,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,scott,batch_size,4096,1.87,GiB,NVML whole-GPU peak
+gpu_fit_s_median,scott,batch_size,16384,163.2,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,scott,batch_size,16384,2.05,GiB,NVML whole-GPU peak
+gpu_fit_s_median,scott,batch_size,65536,110.4,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,scott,batch_size,65536,2.77,GiB,NVML whole-GPU peak
+gpu_fit_s_median,scott,batch_size,262144,79.3,s,"GPU H100 3000-iter budget, per-subj median"
+gpu_vram_gib_nvml,scott,batch_size,262144,4.88,GiB,NVML whole-GPU peak
+gpu_fit_s_p25,scott,batch_size,1024,1872,s,
+gpu_fit_s_p75,scott,batch_size,1024,2395,s,
+gpu_fit_s_p25,scott,batch_size,4096,485,s,
+gpu_fit_s_p75,scott,batch_size,4096,586,s,
+gpu_fit_s_p25,scott,batch_size,16384,155,s,
+gpu_fit_s_p75,scott,batch_size,16384,190,s,
+gpu_fit_s_p25,scott,batch_size,65536,102,s,
+gpu_fit_s_p75,scott,batch_size,65536,127,s,
+gpu_fit_s_p25,scott,batch_size,262144,76,s,
+gpu_fit_s_p75,scott,batch_size,262144,100,s,
+gpu_ll_final_median,jamica,chunk_size,262144,-1.101,nats,at chunk 262144
+gpu_n_iter_min,jamica,chunk_size,262144,2444,iters,actual iterations run
+gpu_n_iter_max,jamica,chunk_size,262144,3000,iters,
+gpu_ll_final_median,scott,batch_size,262144,-1.1,nats,at chunk 262144
+gpu_n_iter_min,scott,batch_size,262144,784,iters,actual iterations run
+gpu_n_iter_max,scott,batch_size,262144,1654,iters,
+gpu_ll_final_median,pamica,block_size,262144,-1.12,nats,at chunk 262144
+gpu_n_iter_min,pamica,block_size,262144,151,iters,actual iterations run
+gpu_n_iter_max,pamica,block_size,262144,3000,iters,
+gpu_ll_final_median,pyamica,chunk_t,262144,-1.0995,nats,at chunk 262144
+gpu_n_iter_min,pyamica,chunk_t,262144,3000,iters,actual iterations run
+gpu_n_iter_max,pyamica,chunk_t,262144,3000,iters,
+cpu_rss_gib_median,jamica,chunk_size,1024,2.2,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,jamica,chunk_size,4096,2.2,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,jamica,chunk_size,16384,2.2,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,jamica,chunk_size,65536,3.7,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,jamica,chunk_size,262144,7.0,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_fit_s_median,jamica,chunk_size,1024,1982,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,jamica,chunk_size,4096,2078,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,jamica,chunk_size,16384,2138,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,jamica,chunk_size,65536,2603,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,jamica,chunk_size,262144,2731,s,median over subj x reps (contention-inflated)
+cpu_fit_s_p25,jamica,chunk_size,1024,1313,s,
+cpu_fit_s_p75,jamica,chunk_size,1024,2706,s,
+cpu_fit_s_p25,jamica,chunk_size,4096,1761,s,
+cpu_fit_s_p75,jamica,chunk_size,4096,2537,s,
+cpu_fit_s_p25,jamica,chunk_size,16384,2039,s,
+cpu_fit_s_p75,jamica,chunk_size,16384,2367,s,
+cpu_fit_s_p25,jamica,chunk_size,65536,2295,s,
+cpu_fit_s_p75,jamica,chunk_size,65536,2773,s,
+cpu_fit_s_p25,jamica,chunk_size,262144,2428,s,
+cpu_fit_s_p75,jamica,chunk_size,262144,2926,s,
+cpu_rss_gib_median,pamica,block_size,1024,1.6,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,pamica,block_size,4096,1.7,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,pamica,block_size,16384,2.4,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,pamica,block_size,65536,2.7,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,pamica,block_size,262144,6.0,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_fit_s_median,pamica,block_size,1024,4275,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,pamica,block_size,4096,3577,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,pamica,block_size,16384,4397,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,pamica,block_size,65536,9101,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,pamica,block_size,262144,8694,s,median over subj x reps (contention-inflated)
+cpu_fit_s_p25,pamica,block_size,1024,3264,s,
+cpu_fit_s_p75,pamica,block_size,1024,5356,s,
+cpu_fit_s_p25,pamica,block_size,4096,3043,s,
+cpu_fit_s_p75,pamica,block_size,4096,4440,s,
+cpu_fit_s_p25,pamica,block_size,16384,3836,s,
+cpu_fit_s_p75,pamica,block_size,16384,5730,s,
+cpu_fit_s_p25,pamica,block_size,65536,7358,s,
+cpu_fit_s_p75,pamica,block_size,65536,9846,s,
+cpu_fit_s_p25,pamica,block_size,262144,8270,s,
+cpu_fit_s_p75,pamica,block_size,262144,9508,s,
+cpu_rss_gib_median,pyamica,chunk_t,4096,1.9,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,pyamica,chunk_t,16384,2.7,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,pyamica,chunk_t,65536,3.6,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,pyamica,chunk_t,262144,9.8,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_fit_s_median,pyamica,chunk_t,4096,24301,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,pyamica,chunk_t,16384,10173,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,pyamica,chunk_t,65536,9307,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,pyamica,chunk_t,262144,11091,s,median over subj x reps (contention-inflated)
+cpu_fit_s_p25,pyamica,chunk_t,4096,20976,s,
+cpu_fit_s_p75,pyamica,chunk_t,4096,29237,s,
+cpu_fit_s_p25,pyamica,chunk_t,16384,9279,s,
+cpu_fit_s_p75,pyamica,chunk_t,16384,11644,s,
+cpu_fit_s_p25,pyamica,chunk_t,65536,7808,s,
+cpu_fit_s_p75,pyamica,chunk_t,65536,10549,s,
+cpu_fit_s_p25,pyamica,chunk_t,262144,10149,s,
+cpu_fit_s_p75,pyamica,chunk_t,262144,14659,s,
+cpu_rss_gib_median,scott,batch_size,1024,2.0,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,scott,batch_size,4096,2.0,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,scott,batch_size,16384,2.0,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,scott,batch_size,65536,2.3,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,scott,batch_size,262144,4.2,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_fit_s_median,scott,batch_size,1024,3208,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,scott,batch_size,4096,2787,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,scott,batch_size,16384,2809,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,scott,batch_size,65536,4138,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,scott,batch_size,262144,4397,s,median over subj x reps (contention-inflated)
+cpu_fit_s_p25,scott,batch_size,1024,2411,s,
+cpu_fit_s_p75,scott,batch_size,1024,4046,s,
+cpu_fit_s_p25,scott,batch_size,4096,2277,s,
+cpu_fit_s_p75,scott,batch_size,4096,3369,s,
+cpu_fit_s_p25,scott,batch_size,16384,2498,s,
+cpu_fit_s_p75,scott,batch_size,16384,3641,s,
+cpu_fit_s_p25,scott,batch_size,65536,3356,s,
+cpu_fit_s_p75,scott,batch_size,65536,4610,s,
+cpu_fit_s_p25,scott,batch_size,262144,3718,s,
+cpu_fit_s_p75,scott,batch_size,262144,4784,s,
+cpu_rss_gib_median,fortran,block_size,1024,0.6,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,fortran,block_size,4096,0.6,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,fortran,block_size,16384,0.7,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,fortran,block_size,65536,1.3,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_rss_gib_median,fortran,block_size,262144,3.1,GiB,"fir 8 cores 1000-iter budget, median"
+cpu_fit_s_median,fortran,block_size,1024,5627,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,fortran,block_size,4096,5301,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,fortran,block_size,16384,6049,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,fortran,block_size,65536,8222,s,median over subj x reps (contention-inflated)
+cpu_fit_s_median,fortran,block_size,262144,7171,s,median over subj x reps (contention-inflated)
+cpu_fit_s_p25,fortran,block_size,1024,5610,s,
+cpu_fit_s_p75,fortran,block_size,1024,6330,s,
+cpu_fit_s_p25,fortran,block_size,4096,5292,s,
+cpu_fit_s_p75,fortran,block_size,4096,5383,s,
+cpu_fit_s_p25,fortran,block_size,16384,5906,s,
+cpu_fit_s_p75,fortran,block_size,16384,6421,s,
+cpu_fit_s_p25,fortran,block_size,65536,7555,s,
+cpu_fit_s_p75,fortran,block_size,65536,9021,s,
+cpu_fit_s_p25,fortran,block_size,262144,7045,s,
+cpu_fit_s_p75,fortran,block_size,262144,7172,s,
 cpu_fit_s_median,pyamica,chunk_t,1024,timeout,,no value: 12h wall timeout
-gpu_each_optimum,jamica,chunk_size,full-batch,61.6,s,"3000 iters, at own fastest"
-gpu_each_optimum_vram_nvml,jamica,chunk_size,full-batch,5.37,GB,NVML at own fastest
-gpu_each_optimum,scott,batch_size,full-batch,79.3,s,"3000 iters, at own fastest"
-gpu_each_optimum_vram_nvml,scott,batch_size,full-batch,4.88,GB,NVML at own fastest
-gpu_each_optimum,pamica,block_size,full-batch,244.7,s,"3000 iters, at own fastest"
-gpu_each_optimum_vram_nvml,pamica,block_size,full-batch,6.57,GB,NVML at own fastest
-gpu_each_optimum,pyamica,chunk_t,full-batch,294.0,s,"3000 iters, at own fastest"
-gpu_each_optimum_vram_nvml,pyamica,chunk_t,full-batch,10.92,GB,NVML at own fastest
 gpu_pamica_sensitivity,pamica,block_size,1024 (near 512 default),4086.5,s,artifact
 gpu_pamica_sensitivity,pamica,block_size,16384 (tuned),370.8,s,tuned
-gpu_pamica_sensitivity,pamica,block_size,full-batch (best),244.7,s,best
+gpu_pamica_sensitivity,pamica,block_size,262144 = largest tested,244.7,s,best
