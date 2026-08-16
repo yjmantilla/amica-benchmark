@@ -1,6 +1,6 @@
 """Runner for scott-huberty/amica-python (PyTorch, sklearn-style).
 
-Scott's `amica.AMICA` is sklearn-compatible: fit(X) where X is
+The amica-python `amica.AMICA` is sklearn-compatible: fit(X) where X is
 (n_samples, n_features). We pass already-PCA-projected data and disable
 its internal whitening via whiten=None / batching=None.
 """
@@ -32,7 +32,7 @@ def main() -> None:
     n_comp, n_samples = X.shape
 
     import torch
-    from amica import AMICA  # Scott's sklearn-style class
+    from amica import AMICA  # amica-python sklearn-style class
 
     device = os.environ.get("TORCH_DEVICE", "cpu")
     # sklearn fits on (n_samples, n_features); transpose
@@ -48,6 +48,11 @@ def main() -> None:
         torch.cuda.synchronize()
         nvml_post_init_gb = nvml_used_gb(True)
 
+    # Iteration-matched mode: amica-python's use_min_dll is a module constant that raises if flipped;
+    # its single public `tol` sets BOTH the ΔLL and grad-norm thresholds (min_dll = min_nd = tol), so a
+    # large-negative tol makes neither stop fire -> runs the full max_iter. See the earlystop panel.
+    _disable_es = os.environ.get("AMICA_DISABLE_EARLYSTOP", "0") == "1"
+    _es_kw = dict(tol=-1e30) if _disable_es else {}
     model = AMICA(
         n_components=n_comp,
         n_mixtures=cfg.get("n_mix", 3),
@@ -65,6 +70,7 @@ def main() -> None:
         # default full batch). See results/xperf_chunksize/.
         **({"batch_size": int(os.environ["AMICA_SCOTT_BATCH"])}
            if os.environ.get("AMICA_SCOTT_BATCH") else {}),
+        **_es_kw,
     )
 
     _use_nvml = os.environ.get("AMICA_NVML_CROSSCHECK", "0") == "1" and device == "cuda"
@@ -108,6 +114,7 @@ def main() -> None:
         "peak_vram_reserved_gb": peak_vram_reserved_gb,
         "nvml_peak_vram_gb": nvml_peak_vram_gb,
         "nvml_post_init_gb": nvml_post_init_gb,
+        "earlystop_disabled": _disable_es,
         "ll_final": float(ll[-1]) if ll else float("nan"),
         "ll_history": ll,
         "W": W.tolist() if W is not None else None,

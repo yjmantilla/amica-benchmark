@@ -83,6 +83,11 @@ def main() -> None:
         except Exception:
             nvml_post_init_gb = None
 
+    # Iteration-matched mode: disable every early-stop so the fit runs the full max_iter.
+    # jamica has TWO stops -- the ΔLL/patience path (use_min_dll) AND an ungated lrate<=minlrate
+    # exit -- so both must be neutralised. See NOTES_measurement.md / the earlystop-feasibility panel.
+    _disable_es = os.environ.get("AMICA_DISABLE_EARLYSTOP", "0") == "1"
+    _es_kw = dict(use_min_dll=False, minlrate=0.0) if _disable_es else {}
     config = AmicaConfig(
         max_iter=cfg["max_iter"],
         num_mix_comps=cfg.get("n_mix", 3),
@@ -91,6 +96,7 @@ def main() -> None:
         do_sphere=False,    # already PCA-projected by orchestrator
         do_mean=False,
         chunk_size=chunk_size,   # None = full-batch; "auto"/int = chunked (lower peak memory)
+        **_es_kw,
     )
     model = Amica(config, random_state=cfg.get("seed", 0))
 
@@ -167,6 +173,7 @@ def main() -> None:
         "peak_vram_reserved_gb": None,          # JAX has no allocator-reserved concept (torch does)
         "nvml_peak_vram_gb": nvml_peak_vram_gb,  # framework-neutral cross-check (whole-GPU used)
         "nvml_post_init_gb": nvml_post_init_gb,  # whole-GPU used after init, before model/data (context floor)
+        "earlystop_disabled": _disable_es,       # AMICA_DISABLE_EARLYSTOP: iteration-matched mode
         "vram_stats": vram_stats,                # raw jax memory_stats() for provenance
         "ll_final": float(ll_history[-1]) if ll_history else float("nan"),
         "ll_history": ll_history,

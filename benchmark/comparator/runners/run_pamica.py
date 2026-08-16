@@ -83,7 +83,12 @@ def main() -> None:
         torch.cuda.synchronize()
         nvml_post_init_gb = nvml_used_gb(True)
 
-    model = AMICA(n_models=1, n_mix=cfg.get("n_mix", 3), device=device, verbose=False)
+    # Iteration-matched mode: pAMICA v0.3.1's only early-stop is lrate<=minlrate (stop_reason
+    # "lrate_floor"); set minlrate=0 so it never fires and the fit runs the full max_iter. NB the
+    # extra iterations run at a floored learning rate (see the earlystop-feasibility panel note).
+    _disable_es = os.environ.get("AMICA_DISABLE_EARLYSTOP", "0") == "1"
+    _es_kw = dict(minlrate=0.0) if _disable_es else {}
+    model = AMICA(n_models=1, n_mix=cfg.get("n_mix", 3), device=device, verbose=False, **_es_kw)
 
     _nvml = start_nvml_sampler(_use_nvml)
     if device == "cuda" and torch.cuda.is_available():
@@ -180,6 +185,7 @@ def main() -> None:
         "peak_vram_reserved_gb": peak_vram_reserved_gb,
         "nvml_peak_vram_gb": nvml_peak_vram_gb,
         "nvml_post_init_gb": nvml_post_init_gb,
+        "earlystop_disabled": _disable_es,
         "ll_final": ll_final,
         "ll_history": ll,
         "W": W.tolist(),

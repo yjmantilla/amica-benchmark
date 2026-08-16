@@ -44,6 +44,10 @@ def main() -> None:
         torch.cuda.synchronize()
         nvml_post_init_gb = nvml_used_gb(True)
     Xt = torch.from_numpy(X.T).to(device)  # (n_samples, n_components)
+    # Iteration-matched mode: pyamica has THREE stop families (use_min_dll, use_grad_norm, minlrate);
+    # disable all so the fit runs the full max_iter. See the earlystop-feasibility panel.
+    _disable_es = os.environ.get("AMICA_DISABLE_EARLYSTOP", "0") == "1"
+    _es_kw = dict(use_min_dll=False, use_grad_norm=False, minlrate=0.0, min_nd=0.0) if _disable_es else {}
     model = AMICA(
         n_components=n_comp,
         n_models=1,
@@ -70,6 +74,7 @@ def main() -> None:
         # default full batch). See results/xperf_chunksize/.
         **({"chunk_t": int(os.environ["AMICA_PYAMICA_CHUNK"])}
            if os.environ.get("AMICA_PYAMICA_CHUNK") else {}),
+        **_es_kw,
     )
 
     _use_nvml = os.environ.get("AMICA_NVML_CROSSCHECK", "0") == "1" and device == "cuda"
@@ -109,6 +114,7 @@ def main() -> None:
         "peak_vram_reserved_gb": peak_vram_reserved_gb,
         "nvml_peak_vram_gb": nvml_peak_vram_gb,
         "nvml_post_init_gb": nvml_post_init_gb,
+        "earlystop_disabled": _disable_es,
         "ll_final": float(ll[-1]) if ll else float("nan"),
         "ll_history": ll,
         "W": W.tolist(),
