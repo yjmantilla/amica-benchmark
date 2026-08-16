@@ -80,6 +80,20 @@ LADDER_MEM = {
  "pyamica":      {100:4.46,250:4.46,500:4.46,1000:4.46,2000:4.46,3000:4.46},
  "pamica":       {100:3.08,250:3.08,500:3.08,1000:3.08,2000:3.08,3000:3.08},
 }
+# per-chunk GPU memory decomposition (median over 25 subj, from cell JSONs): context = nvml_post_init
+# (pre-fit baseline), live = framework allocator peak. NVML total per chunk = gpu_v (from the GPU dict).
+MEM_CTX = {
+ "jamica":{1024:1.02,4096:1.02,16384:1.02,65536:1.02,FULL:1.02},
+ "pamica":{1024:1.08,4096:1.08,16384:1.08,65536:1.08,FULL:1.08},
+ "pyamica":{1024:1.08,4096:1.08,16384:1.08,65536:1.08,FULL:1.08},
+ "amica_python":{1024:1.08,4096:1.08,16384:1.08,65536:1.08,FULL:1.08},
+}
+MEM_LIVE = {
+ "jamica":{1024:1.61,4096:1.61,16384:1.61,65536:1.61,FULL:1.93},
+ "pamica":{1024:0.58,4096:0.64,16384:0.86,65536:1.75,FULL:4.95},
+ "pyamica":{1024:1.66,4096:1.66,16384:1.66,65536:3.07,FULL:8.98},
+ "amica_python":{1024:0.58,4096:0.62,16384:0.77,65536:1.38,FULL:3.28},
+}
 # ===== CPU @1000, BY-SUBJECT median (median within subject over reps, then across subjects) =====
 CPU_FIT = {
  "jamica":  {1024:1985,4096:1850,16384:2140,65536:2729,FULL:2793},
@@ -255,6 +269,12 @@ c_gt=chart(gpu_t,GPU_BAND,"fit time (s, log)",True,"GPU · fit time vs chunk","r
 c_gv=chart(gpu_v,None,"peak VRAM · NVML (GiB)",False,"GPU · memory vs chunk","real ds004505 · H100 · whole-GPU NVML peak",IMPLS,"leanest")
 c_cr=chart(CPU_RSS,None,"peak RSS (GiB)",False,"CPU · memory vs chunk","real ds004505 · 8 cores · by-subject median RSS",CPU_CHART,"leanest")
 c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 8 cores · 1000-iter budget · by-subject median",CPU_CHART,"fastest observed (per-cell optimum unresolved)")
+# GPU memory decomposition, 2x2 vs chunk (context / allocator-live / NVML total / NVML÷allocator)
+c_mctx=chart(MEM_CTX,None,"context floor · pre-fit NVML (GiB)",False,"GPU · context floor vs chunk","measured before model+data · per-subj median",IMPLS,"leanest")
+c_mliv=chart(MEM_LIVE,None,"allocator live peak (GiB)",False,"GPU · allocator live-tensor vs chunk","framework peak_bytes_in_use · per-subj median",IMPLS,"leanest")
+c_mtot=chart(gpu_v,None,"NVML whole-GPU peak (GiB)",False,"GPU · NVML total vs chunk","framework-neutral whole-GPU peak · per-subj median",IMPLS,"leanest")
+MEM_RATIO={im:{c:round(gpu_v[im][c]/MEM_LIVE[im][c],2) for c in gpu_v[im]} for im in IMPLS}
+c_mrat=chart(MEM_RATIO,None,"NVML ÷ allocator (×)",False,"GPU · allocator understatement vs chunk","NVML total ÷ allocator peak · per-subj median",IMPLS,"lowest")
 # convergence is now the MEASURED iteration ladder (table below), not a post-hoc estimate.
 
 def ladderrows():
@@ -465,18 +485,18 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   sub-interval spike could be missed), and the frameworks run under different allocator settings (JAX
   with pre-allocation off; torch with its caching allocator on), so NVML is a neutral <em>meter</em>
   over somewhat different <em>protocols</em>.</div>
-  <div class="grid2" style="margin:10px 0 6px"><div class="card">{memdecomp_chart(FULL)}</div>
-  <div class="card"><table><thead><tr><th>@ 262K</th><th class="num">context</th><th class="num">live-alloc</th><th class="num">NVML total</th><th class="num">NVML÷alloc</th></tr></thead><tbody>{memdecomprows(FULL)}</tbody></table>
-  <p class="note" style="padding:0 6px">Measured medians (GiB) across 25 subjects: <b>context</b> = whole-GPU
-  used right after the CUDA context is forced, before model/data; <b>live-alloc</b> = framework allocator
-  live-tensor peak; <b>NVML total</b> = whole-GPU peak. <b>This pre-fit baseline is ~1&nbsp;GiB for all
-  four</b> (JAX 1.02, torch 1.08) — essentially equal. It is measured before the fit, so any kernel/cuDNN
-  state loaded lazily during fitting falls into the remainder below, not this baseline; we therefore claim
-  only that the measured <em>pre-fit</em> floor does not differ across frameworks, not that the complete
-  fixed framework context is ~1&nbsp;GiB. What differs is the resident/pool memory: torch's NVML ≈ baseline
-  + its live/reserved pool (and scales with chunk), whereas jamica's allocator peak stays small (~1.9)
-  while its NVML is ~5.4 — JAX holds a larger, chunk-independent resident/pool footprint the allocator
-  counter undercounts most.</p></div></div>
+  <div class="grid2" style="margin:10px 0 6px"><div class="card">{c_mctx}</div><div class="card">{c_mliv}</div></div>
+  <div class="grid2" style="margin:8px 0 6px"><div class="card">{c_mtot}</div><div class="card">{c_mrat}</div></div>
+  {legend(IMPLS)}
+  <p class="note" style="margin-top:12px">Four measured views vs chunk (per-subject median, 25 subjects).
+  <b>Context floor</b> (pre-fit NVML, before model/data) is ~1&nbsp;GiB and flat for all four — the
+  frameworks do not differ in the pre-fit baseline (kernel/cuDNN loaded later during the fit falls into the
+  resident/pool remainder, not here). <b>Allocator-live</b> and <b>NVML total</b> scale steeply with chunk
+  for the torch impls but stay ~flat for jamica (its chunked path holds a chunk-independent resident/pool
+  footprint). <b>NVML ÷ allocator</b> shows how much each framework's own counter understates the whole-GPU
+  footprint (~1.2–3.3×): largest for jamica at small chunks (~3.3×, its ~5.4&nbsp;GiB NVML over a
+  ~1.6&nbsp;GiB allocator peak — the gap is JAX pool + resident data, not context), shrinking toward ~1.2×
+  as live tensors grow to dominate.</p>
   <p class="note"><b>jamica memory is two-level, and it cuts both ways.</b> On its chunked path jamica's
   median NVML is ~5.4&nbsp;GiB across chunk sizes (per-subject ~3.4–5.4&nbsp;GiB below 262K, rising to
   5.4–{J_CHUNKED_GPU_NVML_MAX:.1f}&nbsp;GiB at 262K for the longest recordings — flat in the median
