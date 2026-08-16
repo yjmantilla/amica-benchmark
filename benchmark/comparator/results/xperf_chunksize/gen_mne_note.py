@@ -195,7 +195,11 @@ time too, ~61&nbsp;s everywhere), and the chunked path's ~5.4&nbsp;GiB is less t
 path's ~13&nbsp;GiB — different code paths. The ~5.4&nbsp;GiB is flat because it is ~3.8&nbsp;GiB fixed
 CUDA context plus ~1.6&nbsp;GiB of chunk-independent full-width arrays; the chunk-scaled block buffer is
 small next to those until the largest chunk. So on the GPU the chunk is a real <em>time</em> dial for
-jamica but not a memory dial — a genuine property, not the old bug.</p>
+jamica but not a memory dial — a genuine property, not the old bug. This floor is <em>by design</em>,
+not a leak: jamica's chunked E-step accumulates small per-chunk sufficient statistics rather than
+materialising the full-width per-sample arrays (those appear only on the full-batch path), so the ~1.6&nbsp;GiB
+of live tensors is the resident data + accumulators, and the rest is fixed JAX/CUDA runtime context —
+which chunking cannot reduce.</p>
 <p class="note">On the meter: we report <strong>NVML whole-GPU peak</strong> as the headline because it is
 framework-neutral. Each backend's own allocator counter (JAX <code>peak_bytes_in_use</code>, Torch
 <code>max_memory_allocated</code>) measures only its live-tensor bytes, omits the CUDA context/pool, and

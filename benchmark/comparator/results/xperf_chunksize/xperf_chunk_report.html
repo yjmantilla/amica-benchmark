@@ -217,7 +217,13 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   (data, sources, per-sample buffers sized by <code>n_samples</code>); the chunk-scaled E-step block buffer
   is small next to those until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
   up to ~7.4). So chunk is a real <em>time</em> dial for jamica but not a GPU-<em>memory</em> dial — a
-  genuine property of the chunked path, distinct from the full-batch key.</div>
+  genuine property of the chunked path, distinct from the full-batch key. <b>And it is by design, not a
+  leak:</b> the chunked E-step accumulates small per-chunk sufficient statistics
+  (<code>O(n_comp²)</code>) and never materialises the full-width <code>(n_comp, n_samples)</code>
+  per-sample tensors — those appear only on the full-batch path. So the ~1.6&nbsp;GiB of live tensors is
+  the resident whitened data + accumulators (not avoidable per-sample arrays), and the rest of the
+  ~5.4&nbsp;GiB is the fixed JAX/CUDA runtime. Chunking bounds the working set as intended; it simply
+  can't go below the data + framework-context floor.</div>
 </section>
 
 <footer>
