@@ -55,8 +55,12 @@ Fields added this session: `nvml_peak_vram_gb` (framework-neutral headline VRAM)
    < scott 0.076 < pAMICA 0.089 < pyamica 0.098; early-stop heterogeneous (Fortran off, pyamica full-cap,
    jamica 2572-3000, scott 786-1654, pAMICA 151-3000); jamica NVML chunked ~5.4 (up to 7.4@262K) vs
    full-batch key ~13.4 (up to 21.4); allocator understates 1.6-2.8x.
-STILL TODO: the MNE-note (#13819, artifact 62fc4258) MEMORY/chunk section needs the same NVML +
-chunked-jamica + convergence correction the xperf_chunksize report now has.
+4. DONE (2026-08-16, commit 7dd720f): the MNE-note (#13819, artifact 62fc4258) rebuilt as a committed
+   generator (results/xperf_chunksize/gen_mne_note.py) with the same corrections — 3000-iter budget, NVML
+   memory, chunked jamica + its higher ~5.4GiB floor / ~13GiB full-batch default, convergence (s/iter +
+   n_iter + ll), 262K-not-full-batch, AMD-EPYC-not-Xeon, no false OOM. Artifact 62fc4258 updated in place.
+   The xperf_chunksize report itself went through a 4th confirmatory panel (round-4, commit 2ba7774,
+   all ship) — see reviews/report-panel4-431515d/. Both deliverables now corrected + panel-hardened.
 3. Memory panel (fable/gpt-5.6/grok) confirmed allocator counters aren't cross-framework comparable;
    NVML is the headline. jamica-chunk-memory panel: Fable caught the key bug (dissent was right).
 Reviews kept local under reviews/ (excluded from commits).
