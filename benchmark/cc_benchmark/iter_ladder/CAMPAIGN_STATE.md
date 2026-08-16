@@ -40,9 +40,23 @@ Fields added this session: `nvml_peak_vram_gb` (framework-neutral headline VRAM)
 ## Next (report work)
 1. DONE (2026-08-15, commit dfc347c): xperf_chunksize report rewritten around NVML + corrected chunked
    jamica (@3000 GPU / @1000 CPU); "chunk-invariant"/"2.19GB" claims dropped; published to artifact
-   5c1007ae (replaced the old "hidden variable" draft). STILL TODO: the MNE-note (#13819, artifact
-   62fc4258) MEMORY/chunk section needs the same NVML + chunked-jamica correction.
+   5c1007ae (replaced the old "hidden variable" draft).
 2. DONE (2026-08-15): two-key gotcha + NVML/allocator gap logged in NOTES_measurement.md.
+3. DONE (2026-08-16): report hardened over THREE independent review panels (codex=gpt-5.6-sol /
+   grok-4.6 / claude-fable-5, via ~/Projects/agent-utilities/reviews/run_reviewers.sh; rounds under
+   reviews/report-{corrected-dfc347c,panel2-33c6d9e,panel3-e14611a,panel4-431515d}/). Verdicts:
+   do-not-ship -> ship-with-fixes -> ship-with-fixes (numbers verified against raw/). Commits:
+   33c6d9e (convergence framing: n_iter+ll_final+s/iter, budget!=convergence box), e14611a (by-subject
+   CPU + coverage disclosure, GPU-mem provenance, 262K-not-full-batch relabel, fixed run_fortran.py
+   key+import), 431515d (README/NOTES reconcile, raw/chunk_gpumem_*.csv NVML+alloc traceable, per-subject
+   memory spread, sibling README obsolete-ranking removed). Raw evidence: raw/chunk_{gpu3000,gpumem,
+   cpu1000}_*.csv aggregated from cluster JSONs (Trillium GPU / fir CPU). Round-4 = confirmatory.
+   KEY corrected facts: n_samples 785k-1.36M (262144 = 19-33%, not full-batch); GPU s/iter jamica 0.021
+   < scott 0.076 < pAMICA 0.089 < pyamica 0.098; early-stop heterogeneous (Fortran off, pyamica full-cap,
+   jamica 2572-3000, scott 786-1654, pAMICA 151-3000); jamica NVML chunked ~5.4 (up to 7.4@262K) vs
+   full-batch key ~13.4 (up to 21.4); allocator understates 1.6-2.8x.
+STILL TODO: the MNE-note (#13819, artifact 62fc4258) MEMORY/chunk section needs the same NVML +
+chunked-jamica + convergence correction the xperf_chunksize report now has.
 3. Memory panel (fable/gpt-5.6/grok) confirmed allocator counters aren't cross-framework comparable;
    NVML is the headline. jamica-chunk-memory panel: Fable caught the key bug (dissent was right).
 Reviews kept local under reviews/ (excluded from commits).
