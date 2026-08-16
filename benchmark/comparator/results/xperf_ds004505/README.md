@@ -33,20 +33,17 @@ Python 3.11.
 | `make_summary.py` | regenerates `xperf_summary.json` from the CSV (`python make_summary.py`; needs scipy). Auditable — the stats reproduce from the committed measures alone. |
 | `xperf_report.html` | standalone visual report (open in a browser) |
 
-## Headline (mean fit time, 25 subjects, 100 iterations)
+## Headline — removed (obsolete 100-iteration, default-batching run)
 
-**GPU (H100):** amica-python-JAX **9.6 s** · scott-huberty 10.1 s · pyamica 11.0 s
-· **pAMICA 265.7 s** (~27× slower)
-**CPU (8 cores):** amica-JAX-chunked **218 s** · amica-JAX-full 458 s · scott 558 s
-· pAMICA 673 s · Fortran 914 s · pyamica 1125 s
-
-Peak memory (GB, mean): amica-full is the memory outlier on CPU (**20.5 GB**,
-full-batch); amica-chunked / pyamica / pAMICA ~3.3 GB; scott ~6.1 GB.
-
-Paired tests (GPU, vs amica-chunked): amica **≈ scott** (t p=0.097, Wilcoxon
-p=0.048 — a statistical tie), amica **>** pyamica (p=0.01), amica **≫** pAMICA
-(p<1e-25). All implementations agree numerically (|W corr| 0.997–1.000 vs the
-Fortran reference), so these are fair timings of code computing the same answer.
+The per-second rankings this section used to show (a single 100-iteration run at each
+library's *default* batching) are **obsolete and misleading** — the follow-up chunk-size
+study showed those gaps were dominated by the batching knob and by how many iterations
+each impl actually runs, not by the implementations themselves. The numbers have been
+removed to avoid them being quoted. **For any speed/memory/convergence numbers, use
+[`../xperf_chunksize/`](../xperf_chunksize/README.md)** (realistic iteration budget, NVML
+memory, n_iter + ll_final reported). The only claim that carries over unchanged: all
+implementations agreed numerically here (|W corr| 0.997–1.000 vs the Fortran reference),
+i.e. they compute the same answer.
 
 ## How to reproduce the measures
 

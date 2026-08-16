@@ -268,9 +268,9 @@ def main() -> None:
                         help="implementations to skip (e.g. --skip pyamica_torch scott_huberty_torch)")
     parser.add_argument("--amica-device", choices=["cpu", "gpu"], default="cpu",
                         help="Device for the amica_python_jax run. 'gpu' sets JAX_PLATFORMS=cuda "
-                             "for that runner so it actually uses the allocated GPU (the competitors "
-                             "are torch/numpy and always run on CPU). Default 'cpu' keeps a "
-                             "same-hardware comparison.")
+                             "for that runner so it actually uses the allocated GPU. The torch "
+                             "competitors' device is set separately by --competitor-device (numpy and "
+                             "fortran always run on CPU). Default 'cpu' keeps a same-hardware comparison.")
     parser.add_argument("--competitor-device", choices=["cpu", "gpu"], default="cpu",
                         help="Device for the PyTorch competitors (pyamica, scott_huberty). 'gpu' sets "
                              "TORCH_DEVICE=cuda with the torch caching allocator left ON; the "

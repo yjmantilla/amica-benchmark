@@ -9,9 +9,10 @@ Provenance (every dict below is the aggregate of the per-cell result JSONs; the 
 in raw/ and this generator is cross-checked against them):
  - GPU FIT + convergence @3000: /scratch/yorguin/iter_ladder/gpu/c<chunk>_i3000/  (Trillium H100).
    -> raw/chunk_gpu3000_{summary,percell}.csv  (fit_time, s/iter, ll_final, n_iter; 20-25 subj/cell).
- - GPU MEMORY (NVML, iteration-independent) @1000: /scratch/yorguin/iter_ladder/gpu/c<chunk>_i1000/
-   (the i3000 fit run did not record NVML; the i1000 run did -> memory is iteration-independent).
-   -> raw/chunk_gpu1000mem_{summary,percell}.csv  (nvml_peak_vram_gb for ALL impls, ~20 subj/cell).
+ - GPU MEMORY (NVML + allocator, iteration-independent): raw/chunk_gpumem_{summary,percell}.csv.
+   Source per impl (memory does not depend on iteration count): jamica-CHUNKED from the i3000 run
+   (which logged NVML for jamica but not the torch impls); jamica_fullbatch + the torch impls from the
+   i1000 run. Columns: nvml_median / nvml_min / nvml_max (per-subject range) + alloc_median + source_iter.
  - CPU FIT + RSS @1000: /scratch/yorguin/iter_ladder/cpu/c<chunk>_i1000_r<rep>/  (fir, 8 cores).
    -> raw/chunk_cpu1000_{summary,percell}.csv  (BY-SUBJECT median: median within subject over reps,
    then across subjects; n_subjects disclosed because cells have UNEQUAL subject coverage).
@@ -58,7 +59,7 @@ GPU_CONV = {
 }
 # ===== CPU @1000, BY-SUBJECT median (median within subject over reps, then across subjects) =====
 CPU_FIT = {
- "jamica":  {1024:1985,4096:1850,16384:2141,65536:2729,FULL:2794},
+ "jamica":  {1024:1985,4096:1850,16384:2140,65536:2729,FULL:2793},
  "pamica":  {1024:4664,4096:3858,16384:4397,65536:9447,FULL:8811},
  "pyamica": {4096:24452,16384:10225,65536:10941,FULL:10980},
  "scott":   {1024:3025,4096:3080,16384:2646,65536:4037,FULL:4397},
@@ -77,18 +78,19 @@ CPU_NSUB = {  # subjects contributing to each cell (out of 5) -- disclose the un
  "scott":   {1024:5,4096:5,16384:5,65536:5,FULL:5},
  "fortran": {1024:1,4096:1,16384:1,65536:5,FULL:1},
 }
-CPU_RSS = {  # peak RSS (GiB) median (also subject-length dependent -> same coverage caveat)
- "jamica":  {1024:2.2,4096:2.2,16384:2.2,65536:3.7,FULL:7.0},
- "pamica":  {1024:1.6,4096:1.7,16384:2.4,65536:2.7,FULL:6.0},
- "pyamica": {4096:1.9,16384:2.7,65536:3.6,FULL:9.8},
+CPU_RSS = {  # peak RSS (GiB) BY-SUBJECT median (also subject-length dependent -> same coverage caveat)
+ "jamica":  {1024:2.2,4096:2.2,16384:2.2,65536:3.7,FULL:7.2},
+ "pamica":  {1024:1.6,4096:1.7,16384:2.4,65536:2.9,FULL:6.2},
+ "pyamica": {4096:1.9,16384:2.7,65536:3.8,FULL:9.8},
  "scott":   {1024:2.0,4096:2.0,16384:2.0,65536:2.3,FULL:4.2},
  "fortran": {1024:0.6,4096:0.6,16384:0.7,65536:1.3,FULL:3.1},
 }
 CPU_FIT_MISS = {("pyamica",1024):("timeout","bad")}  # pyamica@1024 (~767-1333 eager blocks/iter): >12h wall
-# jamica two orchestrator keys (measured, traceable to raw/ except where noted):
-J_CHUNKED_GPU_NVML, J_FULLBATCH_GPU_NVML = 5.37, 13.37   # GiB NVML (i1000 mem run)
-J_CHUNKED_ALLOC, J_FULLBATCH_ALLOC = 1.94, 8.22          # GiB JAX allocator (peak_bytes_in_use)
-J_CHUNKED_GPU_SPI, J_FULLBATCH_GPU_SPI = 0.0206, 0.0219  # s/iter -> ~same GPU wall time (no chunk benefit)
+# jamica two orchestrator keys (all traceable to raw/chunk_gpumem_summary.csv):
+J_CHUNKED_GPU_NVML, J_FULLBATCH_GPU_NVML = 5.37, 13.37   # GiB NVML median
+J_CHUNKED_GPU_NVML_MAX, J_FULLBATCH_GPU_NVML_MAX = 7.37, 21.37  # per-subject max (longest recording)
+J_CHUNKED_ALLOC, J_FULLBATCH_ALLOC = 1.94, 8.22          # GiB JAX allocator (peak_bytes_in_use), at 262144
+J_CHUNKED_GPU_SPI, J_FULLBATCH_GPU_SPI = 0.0206, 0.0204  # s/iter @3000 (same run) -> no GPU chunk benefit
 J_CHUNKED_CPU_T, J_FULLBATCH_CPU_T = 1985, 4300          # s @1000 (CPU: chunking helps time too)
 J_CHUNKED_CPU_RSS, J_FULLBATCH_CPU_RSS = 2.2, 19.8       # GiB
 # pAMICA block_size sensitivity, GPU @3000 (the ~17x within one impl):
@@ -265,10 +267,12 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   is disabled; the others differ). At the largest chunk on GPU the median iterations actually run were:
   <b>pyamica 3,000</b> (always runs the full cap), <b>jamica 3,000</b> (range 2,572–3,000),
   <b>pAMICA 3,000</b> (but its early-stop can fire as low as 151), <b>scott-huberty 1,106</b>
-  (784–1,654 — it converges and stops well before the cap). They reach final log-likelihoods in a tight
-  but non-identical band (−1.0995 to −1.1204; pAMICA's is the lowest). So a shorter wall time can mean a
-  faster implementation, an earlier stop, or fewer iterations of work. To separate per-iteration speed
-  from iterations-run, the GPU table below also reports <b>seconds/iteration</b>. We do not verify that
+  (786–1,654 — it converges and stops well before the cap). Three of the four land within ~0.002 nats of
+  each other in final log-likelihood (jamica −1.1016, scott −1.1004, pyamica −1.0995); <b>pAMICA is
+  ~0.02 nats lower (−1.1204)</b> — an order of magnitude further out, i.e. a meaningfully worse fit at
+  this budget, not merely "the lowest." So a shorter wall time can mean a faster implementation, an
+  earlier stop, or fewer iterations of work. To normalize per-iteration cost, the GPU table below also
+  reports <b>seconds/iteration</b> (median of per-subject time÷iterations-run). We do not verify that
   the four decompositions are numerically equivalent (component matching against the Fortran reference
   is not part of this pass); equal budget is not equal work, and not equal convergence.</div>
   <div class="callout">
@@ -295,9 +299,11 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
     chunk grows (jamica 763&nbsp;s → 62&nbsp;s; scott-huberty 2024&nbsp;s → 79&nbsp;s from 1024 to
     262K). Small chunks starve the device.</li>
     <li><b>Memory grows with chunk for the torch implementations</b> (scott-huberty ~1.8→4.9, pAMICA
-    ~1.8→6.6, pyamica ~3.0→10.9&nbsp;GiB NVML). <b>jamica's GPU memory is flat at ~5.4&nbsp;GiB</b> on
-    its chunked path — a chunk-independent full-width array sets a floor, so for jamica the chunk is a
-    time dial but not a GPU-memory dial. Nothing exceeded the 80&nbsp;GiB card (peak ~10.9&nbsp;GiB).</li>
+    ~1.8→6.6, pyamica ~3.0→10.9&nbsp;GiB NVML median). <b>jamica's GPU memory is flat in the median
+    (~5.4&nbsp;GiB)</b> across chunk on its chunked path — a chunk-independent full-width array sets the
+    floor — though at 262K the longest recordings do rise (per-subject 5.4→7.4&nbsp;GiB), so it is
+    mostly, not entirely, a memory-flat dial. Nothing exceeded the 80&nbsp;GiB card; the heaviest cell
+    median is pyamica ~10.9&nbsp;GiB (per-subject up to ~11.4).</li>
     <li><b>The bands are informative.</b> pAMICA's wide 262K band reflects its early-stop firing at very
     different iteration counts across subjects (see the convergence box).</li>
   </ul>
@@ -306,9 +312,12 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 <section>
   <h2>Wall time to the iteration budget (GPU, largest chunk)</h2>
   <p class="sub">Each implementation at chunk 262K on the H100 (per-subject median, 3000-iter budget).
-  This is <b>not</b> a convergence-equalised ranking. <b>Seconds/iteration</b> isolates per-iteration
-  speed; "iters run" (median [min–max]) shows how much of the budget each one actually used; "final LL"
-  is where it landed. Read all four together.</p>
+  This is <b>not</b> a convergence-equalised ranking. <b>Seconds/iteration</b> is the median across
+  subjects of (wall&nbsp;time&nbsp;÷&nbsp;iterations actually run) — a descriptive per-iteration cost, not
+  an isolated kernel speed (it still folds in fixed/compile overhead and the update rules differ). Note
+  the columns will <em>not</em> multiply back to wall time when iterations vary (e.g. pAMICA's
+  early-stoppers pull its wall-time median below s/iter × 3000). "iters run" (median [min–max]) shows how
+  much of the budget each one used; "final LL" is where it landed. Read all four together.</p>
   <table><thead><tr><th>Implementation</th><th>Wall time</th><th>s / iter</th><th>Iters run</th><th>Final LL (median)</th></tr></thead><tbody>{convrows()}</tbody></table>
   <p class="note">jamica has both the shortest wall time and the lowest cost per iteration
   (~0.021&nbsp;s/iter vs 0.076–0.098 for the others). scott-huberty's short wall time is partly because
@@ -337,12 +346,12 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <p class="note"><code>*n</code> = fewer than 5 subjects in that cell (n shown). Fortran is sub-01 only
   except at 64K; jamica@4K/64K are missing one subject.</p>
   <ul class="tk" style="margin-top:8px">
-    <li><b>The fastest setting flips on CPU.</b> The Python implementations are fastest at <em>small/mid</em>
-    chunks (jamica ~1–4K, scott-huberty/pyamica ~16K, pAMICA ~4K) — the opposite of the GPU, where large
-    chunks won — consistent with a cache effect (small blocks stay resident; not directly measured).
-    <b>But the exact per-cell optimum is not resolved:</b>
-    the by-subject bands are wide (contention) and coverage is unequal, so read only the broad
-    small/mid-vs-large flip, not the exact winning chunk.</li>
+    <li><b>The fastest setting flips on CPU.</b> The Python implementations are fastest at
+    <em>small/mid</em> chunks (roughly 1K–16K) — the opposite of the GPU, where large chunks won —
+    consistent with a cache effect (small blocks stay resident; not directly measured). <b>The exact
+    per-cell winner is not resolved and we do not name a per-impl optimum:</b> the by-subject bands are
+    wide (contention) and coverage is unequal (a cell missing the longest recording looks artificially
+    fast — e.g. jamica's 4K cell drops one subject), so read only the broad small/mid-vs-large flip.</li>
     <li><b>CPU AMICA is a heavy method</b> (tens of minutes to hours at 1000 iterations): jamica ~2000&nbsp;s
     at its best CPU setting, scott-huberty ~2600&nbsp;s, pAMICA ~3900&nbsp;s, pyamica ~10⁴&nbsp;s. Compare
     absolute CPU seconds only coarsely.</li>
@@ -378,13 +387,15 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   sub-interval spike could be missed), and the frameworks run under different allocator settings (JAX
   with pre-allocation off; torch with its caching allocator on), so NVML is a neutral <em>meter</em>
   over somewhat different <em>protocols</em>.</div>
-  <p class="note"><b>jamica memory is two-level, and it cuts both ways.</b> On its chunked path jamica
-  sits at ~5.4&nbsp;GiB NVML across chunk sizes (per-subject it is ~3.4–5.4&nbsp;GiB, scaling with
-  recording length — "flat across chunk," not a single constant). Its <em>full-batch</em> path
+  <p class="note"><b>jamica memory is two-level, and it cuts both ways.</b> On its chunked path jamica's
+  median NVML is ~5.4&nbsp;GiB across chunk sizes (per-subject ~3.4–5.4&nbsp;GiB below 262K, rising to
+  5.4–{J_CHUNKED_GPU_NVML_MAX:.1f}&nbsp;GiB at 262K for the longest recordings — flat in the median
+  across chunk, a floor, not a single constant). Its <em>full-batch</em> path
   (<code>chunk_size=None</code> — a different orchestrator key, and jamica's shipped default) uses
-  ~{J_FULLBATCH_GPU_NVML:.0f}&nbsp;GiB NVML for essentially the <b>same GPU speed</b>
-  (~{J_FULLBATCH_GPU_SPI:.3f} vs ~{J_CHUNKED_GPU_SPI:.3f}&nbsp;s/iter — measured, no chunk benefit on
-  GPU). On CPU, chunking helps <em>both</em> axes (~{J_CHUNKED_CPU_T:,}&nbsp;s /
+  ~{J_FULLBATCH_GPU_NVML:.0f}&nbsp;GiB NVML median (per-subject up to ~{J_FULLBATCH_GPU_NVML_MAX:.0f} for
+  the longest recording) for essentially the <b>same GPU speed</b> (~{J_FULLBATCH_GPU_SPI:.3f} vs
+  ~{J_CHUNKED_GPU_SPI:.3f}&nbsp;s/iter, same run — no chunk benefit on GPU). On CPU, chunking helps
+  <em>both</em> axes (~{J_CHUNKED_CPU_T:,}&nbsp;s /
   ~{J_CHUNKED_CPU_RSS:.1f}&nbsp;GiB chunked vs ~{J_FULLBATCH_CPU_T:,}&nbsp;s /
   ~{J_FULLBATCH_CPU_RSS:.0f}&nbsp;GiB full-batch). So under these tested conditions a wrapper should pass
   a chunk. The flip side, in fairness: jamica's ~5.4&nbsp;GiB chunked <em>floor</em> is higher than the
@@ -398,7 +409,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <dl class="prov">
     <dt>Dataset</dt><dd>ds004505 · 64 PCA components · {N_SAMP_MIN:,}–{N_SAMP_MAX:,} samples/subject</dd>
     <dt>GPU fit @3000</dt><dd>/scratch/yorguin/iter_ladder/gpu/c&lt;chunk&gt;_i3000/ → raw/chunk_gpu3000_*.csv (Trillium H100, 20-25 subj/cell)</dd>
-    <dt>GPU memory (NVML)</dt><dd>/scratch/yorguin/iter_ladder/gpu/c&lt;chunk&gt;_i1000/ → raw/chunk_gpu1000mem_*.csv (iteration-independent; the i3000 run did not log NVML)</dd>
+    <dt>GPU memory (NVML+alloc)</dt><dd>raw/chunk_gpumem_*.csv (iteration-independent; jamica-chunked from the i3000 run, torch impls + jamica-fullbatch from i1000; nvml_min/max = per-subject range)</dd>
     <dt>CPU @1000</dt><dd>/scratch/yorguin/iter_ladder/cpu/c&lt;chunk&gt;_i1000_r&lt;rep&gt;/ → raw/chunk_cpu1000_*.csv (fir 8 cores; by-subject median; n_subjects in the summary)</dd>
     <dt>Budget</dt><dd>GPU 3000-iter cap · CPU 1000-iter cap (memory is iteration-independent; time is not)</dd>
     <dt>jamica path</dt><dd>amica_python_jax_chunked (chunked); full-batch key amica_python_jax in the memory note only</dd>
@@ -428,7 +439,8 @@ _rows = [("dataset", "impl", "knob", "chunk", "value", "unit", "note")]
 for im in IMPLS:
     for c, (t, v) in sorted(GPU[im].items()):
         _rows.append(("gpu_fit_s_median", im, KNOB[im], _cn(c), t, "s", "GPU H100 3000-iter budget, per-subj median"))
-        _rows.append(("gpu_vram_gib_nvml", im, KNOB[im], _cn(c), v, "GiB", "NVML whole-GPU peak (i1000 run)"))
+        _src = "i3000 run" if im == "jamica" else "i1000 run"
+        _rows.append(("gpu_vram_gib_nvml", im, KNOB[im], _cn(c), v, "GiB", f"NVML whole-GPU median, {_src} (see raw/chunk_gpumem_summary.csv)"))
     for c, (lo, hi) in sorted(GPU_BAND[im].items()):
         _rows.append(("gpu_fit_s_p25", im, KNOB[im], _cn(c), lo, "s", ""))
         _rows.append(("gpu_fit_s_p75", im, KNOB[im], _cn(c), hi, "s", ""))

@@ -29,7 +29,7 @@ Peak-VRAM was reported three inconsistent ways in the 100-iter draft because eac
 two frameworks count differently. They **understate the real footprint** and are **not comparable
 across implementations**. The corrected headline is **NVML whole-GPU `used`** on a dedicated GPU
 (`AMICA_NVML_CROSSCHECK=1`), which is framework-neutral and reflects what would actually fit on a card.
-The two traceable jamica pairs give the gap: chunked ≈ **1.94 GiB allocator vs ≈ 5.37 GiB NVML (2.8×)**;
+The two traceable jamica pairs (raw/chunk_gpumem_summary.csv) give the gap: chunked ≈ **1.94 GiB allocator vs ≈ 5.37 GiB NVML (2.8×)**;
 full-batch ≈ **8.22 vs 13.37 GiB (1.6×)** — so **~1.6–2.8×** in the pairs we can check (no torch
 allocator/NVML pair is published, so a single average is not claimed). A per-framework allocator bug (a
 `bytes_in_use` fallback) had additionally produced a spurious 2.19 / 5.77 / 8.14 GiB spread for jamica;
@@ -72,7 +72,7 @@ largest chunk (262144) the implementations use the budget very differently:
 | impl | wall time | s/iter | iters run: median [min–max] | ll_final (median) |
 |------|----------:|-------:|-----------------------------|------------------:|
 | jamica  |  62 s | 0.021 | 3000 [2572–3000] | −1.1016 |
-| scott-huberty | 79 s | 0.076 | 1106 [784–1654] (early-converges) | −1.1004 |
+| scott-huberty | 79 s | 0.076 | 1106 [786–1654] (early-converges) | −1.1004 |
 | pAMICA | 245 s | 0.089 | 3000 [151–3000] (early-stop can fire very early) | −1.1204 (lowest) |
 | pyamica | 294 s | 0.098 | 3000 [3000–3000] (always full cap) | −1.0995 (highest) |
 
