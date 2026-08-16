@@ -7,23 +7,27 @@ Neutral and even-handed — measurements, not a product verdict.
 
 Provenance (every dict below is the aggregate of the per-cell result JSONs; the aggregates are shipped
 in raw/ and this generator is cross-checked against them):
- - GPU FIT + convergence @3000: /scratch/yorguin/iter_ladder/gpu/c<chunk>_i3000/  (Trillium H100).
-   -> raw/chunk_gpu3000_{summary,percell}.csv  (fit_time, s/iter, ll_final, n_iter; 20-25 subj/cell).
- - GPU MEMORY (NVML + allocator, iteration-independent): raw/chunk_gpumem_{summary,percell}.csv.
-   Source per impl (memory does not depend on iteration count): jamica-CHUNKED from the i3000 run
-   (which logged NVML for jamica but not the torch impls); jamica_fullbatch + the torch impls from the
-   i1000 run. Columns: nvml_median / nvml_min / nvml_max (per-subject range) + alloc_median + source_iter.
- - CPU FIT + RSS @1000: /scratch/yorguin/iter_ladder/cpu/c<chunk>_i1000_r<rep>/  (fir, 8 cores).
-   -> raw/chunk_cpu1000_{summary,percell}.csv  (BY-SUBJECT median: median within subject over reps,
-   then across subjects; n_subjects disclosed because cells have UNEQUAL subject coverage).
+ - GPU FIT + convergence @3000, ITERATION-MATCHED (early-stops DISABLED, every impl runs the full 3000):
+   -> raw/nostop_gpu3000_summary.csv (t_subj_median, s_per_iter_median, ll_median, n_iter_min/med/max=3000;
+   25 subj/cell; Trillium H100). s_per_iter x 3000 = wall time exactly.
+ - GPU CONVERGENCE LADDER (chunk 65536, early-stops disabled): raw/nostop_ladder_i{100,250,500,1000,2000,
+   3000}_summary.csv (LL + wall at each iteration count; all 25 subj).
+ - GPU MEMORY: raw/nostop_gpumem_summary.csv (NVML + allocator) + raw/nostop_gpumem_decomp.csv (measured
+   decomposition: context=nvml_post_init pre-fit baseline, live=allocator peak, nvml_total; medians over
+   25 subj). Per-chunk NVML also appears as mem_median in nostop_gpu3000_summary.csv. Memory is
+   iteration-independent. jamica's FULL-BATCH key (amica_python_jax, chunk_size=None) memory (13.37 GiB
+   etc.) is from the earlier memory run (raw/chunk_gpumem_summary.csv) -- a separate program shown only in
+   the memory note.
+ - CPU FIT + RSS @1000 (the EARLIER, non-iteration-matched, contended run -- superseded by the Narval
+   whole-node re-run in progress): raw/chunk_cpu1000_{summary,percell}.csv (BY-SUBJECT median; n_subjects
+   disclosed because cells have UNEQUAL subject coverage).
 
-jamica = the CHUNKED path (amica_python_jax_chunked). Its full-batch key (amica_python_jax,
-chunk_size=None) is a separate program shown only in the memory note. Memory in GiB (bytes/1024**3).
+jamica = the CHUNKED path (amica_python_jax_chunked). Memory in GiB (bytes/1024**3).
 
 CAVEATS baked into the report (see NOTES_measurement.md):
- - Fit time is wall time to a fixed ITERATION BUDGET (GPU 3000 / CPU 1000), NOT time to an equivalent
-   solution. The impls run different actual iteration counts (n_iter) under their own early-stop
-   defaults; seconds/iter is reported to separate per-iteration speed from iterations-run.
+ - GPU fit time is wall time at a MATCHED 3000 iterations (early-stops disabled, all impls run the full
+   3000), so it is directly per-iteration-comparable (s/iter x 3000 = wall). The CPU section is the EARLIER
+   run at a 1000-iter cap with each impl's own early-stop ON -- NOT iteration-matched.
  - CPU cells have unequal subject coverage (Fortran is sub-01-only at 4 of 5 chunks) AND ran on a
    contended cluster -> absolute CPU seconds and exact per-cell optima are not resolved; only the broad
    small/mid-vs-large device flip is trustworthy.
@@ -42,34 +46,32 @@ COLOR = {"jamica":"#6366f1","pamica":"#d97706","pyamica":"#0d9488","amica_python
 # fit_s from the i3000 run. nvml: jamica-chunked from i3000 (logged NVML for jamica only),
 # torch impls + fullbatch from i1000 (iteration-independent). All in raw/chunk_gpumem_summary.csv.
 GPU = {
- "jamica":  {1024:(763.1,5.37),4096:(227.9,5.37),16384:(97.6,5.37),65536:(71.9,5.37),FULL:(61.6,5.37)},
- "pamica":  {1024:(4086.5,1.83),4096:(1043.7,1.89),16384:(370.8,2.13),65536:(313.6,3.09),FULL:(244.7,6.57)},
- "pyamica": {1024:(2414.4,3.05),4096:(608.8,3.05),16384:(365.9,3.05),65536:(339.0,4.46),FULL:(294.0,10.92)},
- "amica_python":   {1024:(2023.8,1.82),4096:(502.0,1.87),16384:(163.2,2.05),65536:(110.4,2.77),FULL:(79.3,4.88)},
+ "jamica":  {1024:(775.3,5.31),4096:(227.8,5.37),16384:(97.0,5.37),65536:(70.8,5.37),FULL:(61.0,5.37)},
+ "pamica":  {1024:(4155.5,1.82),4096:(1058.0,1.89),16384:(392.7,2.13),65536:(320.3,3.08),FULL:(262.4,6.54)},
+ "pyamica": {1024:(2417.7,3.05),4096:(615.3,3.05),16384:(366.2,3.05),65536:(338.9,4.46),FULL:(295.7,10.92)},
+ "amica_python":   {1024:(5646.0,1.82),4096:(1410.0,1.88),16384:(459.1,2.09),65536:(303.3,2.83),FULL:(230.3,4.89)},
 }
-GPU_BAND = {  # GPU fit-time p25,p75 across subjects
- "jamica":  {1024:(713,777),4096:(215,234),16384:(92,100),65536:(70,76),FULL:(58,63)},
- "pamica":  {1024:(3296,4229),4096:(836,1088),16384:(274,398),65536:(169,325),FULL:(64,267)},
- "pyamica": {1024:(2291,2458),4096:(580,620),16384:(350,376),65536:(321,347),FULL:(276,301)},
- "amica_python":   {1024:(1872,2395),4096:(485,586),16384:(155,190),65536:(102,127),FULL:(76,100)},
+GPU_BAND = {  # GPU fit-time p25,p75 across subjects (iteration-matched @3000)
+ "jamica":  {1024:(743,788),4096:(221,232),16384:(96,99),65536:(69,73),FULL:(58,63)},
+ "pamica":  {1024:(3902,4250),4096:(1008,1079),16384:(369,404),65536:(313,330),FULL:(258,267)},
+ "pyamica": {1024:(2308,2450),4096:(576,626),16384:(348,378),65536:(323,348),FULL:(278,301)},
+ "amica_python":   {1024:(5443,5832),4096:(1365,1479),16384:(441,475),65536:(290,315),FULL:(220,242)},
 }
-# GPU convergence at chunk=262144 : impl -> (ll_median, n_iter_min, n_iter_median, n_iter_max, s_per_iter)
+# GPU convergence at chunk=262144, ITERATION-MATCHED (early-stops disabled -> all run the full 3000):
+# impl -> (ll_median, n_iter_min, n_iter_median, n_iter_max, s_per_iter). raw/nostop_gpu3000_summary.csv.
 GPU_CONV = {
- "jamica":  (-1.1016, 2572, 3000, 3000, 0.0206), "amica_python":  (-1.1004, 786, 1106, 1654, 0.0757),
- "pamica":  (-1.1204, 151, 3000, 3000, 0.0889),  "pyamica": (-1.0995, 3000, 3000, 3000, 0.0980),
+ "jamica":  (-1.1005, 3000, 3000, 3000, 0.0203), "amica_python":  (-1.1002, 3000, 3000, 3000, 0.0768),
+ "pamica":  (-1.1107, 3000, 3000, 3000, 0.0875),  "pyamica": (-1.0995, 3000, 3000, 3000, 0.0986),
 }
-# ===== Time to COMPARABLE QUALITY (post-hoc, from @3000 ll_history; raw/posthoc_convergence_gpu3000.csv)
-# median wall-seconds to reach within EPS=1e-3 of the per-subject BEST final LL across impls.
-# Only the 3 impls that reach it on ~all subjects are plotted; pAMICA reaches it on ~1/25 (worse fit).
-LEVELTIME = {
- "jamica":       {1024:87.5,4096:27.6,16384:11.4,65536:8.7,FULL:7.0},
- "amica_python": {1024:585.4,4096:146.3,16384:48.0,65536:31.7,FULL:26.0},
- "pyamica":      {1024:256.0,4096:63.3,16384:38.3,65536:35.4,FULL:30.6},
-}
-# reached-fraction (n_reached / n_subjects) at chunk 262144, + iters-to-quality (median)
-LEVEL_AT_FULL = {  # impl -> (time_s, iters, reached_str)
- "jamica":(7.0,362,"20/20"), "amica_python":(26.0,314,"23/25"),
- "pyamica":(30.6,316,"25/25"), "pamica":(119.1,1355,"1/25"),
+# ===== ITERATION LADDER (measured), chunk fixed at 65536, early-stops disabled so every point is the
+# full iteration count. impl -> {iters: (wall_s_median, ll_median)}. raw/nostop_ladder_i*_summary.csv
+# (i3000 point = the 65536 cell of nostop_gpu3000_summary.csv). All 25 subjects at every point.
+LAD_ITERS = [100, 250, 500, 1000, 2000, 3000]
+LADDER = {
+ "jamica":       {100:(4.6,-1.11197),250:(7.9,-1.10503),500:(13.7,-1.10126),1000:(25.2,-1.10056),2000:(48.0,-1.10050),3000:(70.8,-1.10047)},
+ "amica_python": {100:(11.2,-1.11537),250:(26.1,-1.10503),500:(51.2,-1.10283),1000:(102.0,-1.10075),2000:(204.1,-1.10058),3000:(303.3,-1.10056)},
+ "pyamica":      {100:(11.8,-1.11518),250:(28.8,-1.10445),500:(57.1,-1.100545),1000:(113.6,-1.09987),2000:(226.2,-1.09958),3000:(338.9,-1.099548)},
+ "pamica":       {100:(12.2,-1.12929),250:(28.2,-1.12025),500:(54.3,-1.11791),1000:(107.5,-1.11506),2000:(215.7,-1.11223),3000:(320.3,-1.11067)},
 }
 # ===== CPU @1000, BY-SUBJECT median (median within subject over reps, then across subjects) =====
 CPU_FIT = {
@@ -101,15 +103,25 @@ CPU_RSS = {  # peak RSS (GiB) BY-SUBJECT median (also subject-length dependent -
 }
 CPU_FIT_MISS = {("pyamica",1024):("timeout","bad")}  # pyamica@1024 (~767-1333 eager blocks/iter): >12h wall
 # jamica two orchestrator keys (all traceable to raw/chunk_gpumem_summary.csv):
-J_CHUNKED_GPU_NVML, J_FULLBATCH_GPU_NVML = 5.37, 13.37   # GiB NVML median
+J_CHUNKED_GPU_NVML, J_FULLBATCH_GPU_NVML = 5.37, 13.37   # GiB NVML median (full-batch key from the prior memory run)
 J_CHUNKED_GPU_NVML_MAX, J_FULLBATCH_GPU_NVML_MAX = 7.37, 21.37  # per-subject max (longest recording)
-J_CHUNKED_ALLOC, J_FULLBATCH_ALLOC = 1.94, 8.22          # GiB JAX allocator (peak_bytes_in_use), at 262144
-J_CHUNKED_GPU_SPI, J_FULLBATCH_GPU_SPI = 0.0206, 0.0204  # s/iter @3000 (same run) -> no GPU chunk benefit
+J_CHUNKED_ALLOC, J_FULLBATCH_ALLOC = 1.93, 8.22          # GiB JAX allocator (peak_bytes_in_use), at 262144
+J_CHUNKED_GPU_SPI, J_FULLBATCH_GPU_SPI = 0.0203, 0.0204  # s/iter @3000 matched (same run) -> no GPU chunk benefit
 J_CHUNKED_CPU_T, J_FULLBATCH_CPU_T = 1985, 4300          # s @1000 (CPU: chunking helps time too)
 J_CHUNKED_CPU_RSS, J_FULLBATCH_CPU_RSS = 2.2, 19.8       # GiB
-# pAMICA block_size sensitivity, GPU @3000 (the ~17x within one impl):
-REAL_PAM = [("1024 (near 512 default)",4086.5,1.83,"artifact"),("16384 (tuned)",370.8,2.13,"tuned"),
-            ("262144 = largest tested",244.7,6.57,"best")]
+# pAMICA block_size sensitivity, GPU @3000 matched (the ~16x within one impl):
+REAL_PAM = [("1024 (near 512 default)",4155.5,1.82,"artifact"),("16384 (tuned)",392.7,2.13,"tuned"),
+            ("262144 = largest tested",262.4,6.54,"best")]
+# Measured GPU memory DECOMPOSITION (median across 25 subjects) from the per-cell JSONs:
+#   context = nvml_post_init_gb (whole-GPU used right after the CUDA context is forced, BEFORE model+data)
+#   live    = peak_vram_gb (framework allocator live-tensor peak: JAX peak_bytes_in_use / torch max_allocated)
+#   total   = nvml_peak_vram_gb (whole-GPU NVML peak)   -- impl -> chunk -> (context, live, total), GiB.
+MEMDECOMP = {
+ "jamica":       {65536:(1.02,1.61,5.37), 262144:(1.02,1.93,5.37)},
+ "amica_python": {65536:(1.08,1.38,2.83), 262144:(1.08,3.28,4.89)},
+ "pamica":       {65536:(1.08,1.75,3.08), 262144:(1.08,4.95,6.54)},
+ "pyamica":      {65536:(1.08,3.07,4.46), 262144:(1.08,8.98,10.92)},
+}
 
 def xlog(c): return math.log2(c)
 XT=[1024,4096,16384,65536,FULL]; XMIN,XMAX=math.log2(1024)-0.4,xlog(FULL)+0.4
@@ -176,16 +188,52 @@ c_gt=chart(gpu_t,GPU_BAND,"fit time (s, log)",True,"GPU · fit time vs chunk","r
 c_gv=chart(gpu_v,None,"peak VRAM · NVML (GiB)",False,"GPU · memory vs chunk","real ds004505 · H100 · whole-GPU NVML peak",IMPLS,"leanest")
 c_cr=chart(CPU_RSS,None,"peak RSS (GiB)",False,"CPU · memory vs chunk","real ds004505 · 8 cores · by-subject median RSS",CPU_CHART,"leanest")
 c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 8 cores · 1000-iter budget · by-subject median",CPU_CHART,"fastest observed (per-cell optimum unresolved)")
-LEVEL_CHART=["jamica","amica_python","pyamica"]   # pAMICA reaches the shared quality on ~1/25 -> annotated, not plotted
-c_lt=chart(LEVELTIME,None,"time to comparable quality (s, log)",True,"GPU · time to comparable quality vs chunk","real ds004505 · H100 · wall-s to reach within 1e-3 of the best final LL · per-subject median",LEVEL_CHART,"fastest")
+# convergence is now the MEASURED iteration ladder (table below), not a post-hoc estimate.
 
-def levelrows():
-    order=["jamica","amica_python","pyamica","pamica"]; r=""
+def ladderrows():
+    # measured ladder at chunk 65536: LL at each iteration count + wall time at the endpoint.
+    order=["jamica","pyamica","amica_python","pamica"]; r=""
     for im in order:
-        t,it,reached=LEVEL_AT_FULL[im]
+        cells="".join(f'<td class="num">{LADDER[im][n][1]:.4f}</td>' for n in LAD_ITERS)
+        w3=LADDER[im][3000][0]
         r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{LABEL[im]}</td>'
-            f'<td class="num">{t:.0f}s</td><td class="num">{it:,}</td><td class="num">{reached}</td></tr>')
+            f'{cells}<td class="num">{w3:.0f}s</td></tr>')
     return r
+
+def memdecomprows(chunk):
+    order=["jamica","pyamica","pamica","amica_python"]; r=""
+    for im in order:
+        ctx,liv,tot=MEMDECOMP[im][chunk]
+        r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{LABEL[im]}</td>'
+            f'<td class="num">{ctx:.2f}</td><td class="num">{liv:.2f}</td><td class="num">{tot:.2f}</td>'
+            f'<td class="num">{tot/liv:.1f}×</td></tr>')
+    return r
+
+def memdecomp_chart(chunk):
+    order=["pyamica","pamica","amica_python","jamica"]
+    W,H=520,210; ml,mr,mt,mb=94,26,30,30; pw=W-ml-mr
+    maxv=max(MEMDECOMP[im][chunk][2] for im in order)*1.10
+    def X(v): return ml+v/maxv*pw
+    rowh=(H-mt-mb)/len(order); bh=min(20,rowh*0.5)
+    clab="262K" if chunk>=262144 else f"{chunk//1024}K"
+    s=[f'<svg viewBox="0 0 {W} {H}" class="chart" role="img" aria-label="GPU memory decomposition at chunk {clab}">']
+    s.append(f'<text x="{ml-86}" y="16" class="ct">GPU memory decomposition · chunk {clab} · median</text>')
+    v=0.0
+    while v<=maxv:
+        x=X(v); s.append(f'<line x1="{x:.1f}" y1="{mt}" x2="{x:.1f}" y2="{H-mb}" class="grid vg"/>')
+        s.append(f'<text x="{x:.1f}" y="{H-mb+14:.0f}" class="cxt">{v:.0f}</text>'); v+=2
+    s.append(f'<text x="{ml}" y="{H-4}" class="cx">GiB →</text>')
+    for i,im in enumerate(order):
+        ctx,liv,tot=MEMDECOMP[im][chunk]; y=mt+i*rowh+(rowh-bh)/2
+        s.append(f'<text x="{ml-8}" y="{y+bh*0.75:.1f}" class="cyt">{LABEL[im]}</text>')
+        s.append(f'<rect x="{ml}" y="{y:.1f}" width="{X(tot)-ml:.1f}" height="{bh}" fill="{COLOR[im]}" opacity="0.14"/>')
+        s.append(f'<rect x="{ml}" y="{y:.1f}" width="{max(X(ctx)-ml,1):.1f}" height="{bh}" fill="{COLOR[im]}" opacity="0.9"/>')
+        s.append(f'<rect x="{X(ctx):.1f}" y="{y:.1f}" width="{X(ctx+liv)-X(ctx):.1f}" height="{bh}" fill="{COLOR[im]}" opacity="0.45"/>')
+        s.append(f'<text x="{X(tot)+4:.1f}" y="{y+bh*0.75:.1f}" class="cxt" style="text-anchor:start">{tot:.1f}</text>')
+    s.append('</svg>')
+    cap=('dark = context floor (measured, before model+data) · mid = allocator live-tensor peak · '
+         'light = remaining NVML (JAX pool / resident data / overhead) · number = NVML total')
+    return f'<figure class="cf"><figcaption>{cap}</figcaption>{"".join(s)}</figure>'
 
 def legend(impls):
     it="".join(f'<span class="lg"><i style="background:{COLOR[i]}"></i>{LABEL.get(i,"Fortran amica17 (1 thread)")} <code>{KNOB[i]}</code> <span class="cm">@{COMMIT[i]}</span></span>' for i in impls)
@@ -198,7 +246,7 @@ def convrows():
         t=GPU[im][FULL][0]; ll,n0,nmed,n1,spi=GPU_CONV[im]
         nit=f'{nmed:,}' if n0==n1 else f'{nmed:,} <span class="mut">[{n0:,}–{n1:,}]</span>'
         r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{LABEL[im]}</td>'
-            f'<td class="num">{t:.0f}s</td><td class="num">{spi:.3f}</td>'
+            f'<td class="num">{t:.0f}s</td><td class="num">{spi:.4f}</td>'
             f'<td class="num">{nit}</td><td class="num">{ll:.4f}</td></tr>')
     return r
 def pamrows():
@@ -280,28 +328,28 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   it also changes memory (for the torch implementations), and the fastest setting flips between GPU and
   CPU. <b>The fit times are wall time to a fixed iteration budget, not time to an equivalent
   solution</b> — read them with the convergence box below.</p>
-  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>amica-python <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter / CPU 1000-iter budget · H100 + 8-core AMD EPYC (fir)</span></div>
+  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>amica-python <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter matched (early-stops off) · CPU 1000-iter (earlier run) · H100 + 8-core AMD EPYC (fir)</span></div>
 </header>
 
 <section>
   <h2>How to read this</h2>
-  <div class="info-box big"><b>These are wall times to a fixed iteration budget — not a convergence
-  race.</b> Every fit was capped at 3000 iterations on GPU / 1000 on CPU, but the implementations do
-  <em>not</em> use that budget the same way, because each stops on its own early-stop default (Fortran's
-  is disabled; the others differ). At the largest chunk on GPU the median iterations actually run were:
-  <b>pyamica 3,000</b> (always runs the full cap), <b>jamica 3,000</b> (range 2,572–3,000),
-  <b>pAMICA 3,000</b> (but its early-stop can fire as low as 151), <b>amica-python 1,106</b>
-  (786–1,654 — it converges and stops well before the cap). Three of the four land within ~0.002 nats of
-  each other in final log-likelihood (jamica −1.1016, amica-python −1.1004, pyamica −1.0995); <b>pAMICA is
-  ~0.02 nats lower (−1.1204)</b> in median — and a paired per-subject delta of ~0.007 nats, negative
-  for every subject — i.e. a small but consistent, meaningfully worse fit at this budget, not merely
-  "the lowest." So a shorter wall time can mean a faster implementation, an
-  earlier stop, or fewer iterations of work. To normalize per-iteration cost, the GPU table below also
-  reports <b>seconds/iteration</b> (median of per-subject time÷iterations-run). We do not verify that
-  the four decompositions are numerically equivalent (component matching against the Fortran reference
-  is not part of this pass); equal budget is not equal work, and not equal convergence.</div>
+  <div class="info-box big"><b>The GPU fits are iteration-matched: every implementation's early-stops
+  were disabled, so all run the full 3000 iterations.</b> That removes the earlier confound of
+  implementations quitting at different points — GPU wall time is now directly comparable per iteration
+  (<b>seconds/iteration × 3000 = wall time</b>, exactly), so time differences reflect genuine
+  per-iteration throughput, not who stopped early. At the largest chunk all four run 3,000/3,000
+  iterations. Three of the four land within ~0.001 nats of each other in final log-likelihood (jamica
+  −1.1005, amica-python −1.1002, pyamica −1.0995); <b>pAMICA is ~0.011 nats lower (−1.1107)</b> in
+  median — consistently, at <em>matched</em> iterations — i.e. a small but real
+  <em>convergence-quality</em> gap, not an early-stop artifact (it runs the same 3000 iterations as the
+  others and still lands ~0.011 nats lower; the measured iteration ladder below shows it still slowly
+  improving at 3000 but far short of the others, and we did not test a larger budget). We do not
+  verify that the four decompositions are numerically equivalent (component matching against the Fortran
+  reference is not part of this pass); equal iterations is not proof of equal solutions. <b>The CPU
+  section further down is the earlier, non-iteration-matched run</b> (its own caveats apply; a
+  contention-free, iteration-matched CPU re-run is in progress — see that section).</div>
   <div class="callout">
-    <div class="stat warn"><div class="big">~25×</div><div class="lab">Widest fit-time range across the setting within a single implementation (amica-python, GPU). The others span 8–17×; every implementation is chunk-sensitive on time.</div></div>
+    <div class="stat warn"><div class="big">~25×</div><div class="lab">Widest fit-time range across the setting within a single implementation (amica-python, GPU, iteration-matched). The others span 8–16×; every implementation is chunk-sensitive on time.</div></div>
     <div class="stat"><div class="big">grows</div><div class="lab">Peak VRAM grows with chunk for the torch impls (~2.7–3.6× NVML). jamica's GPU memory is flat in the median (~5.4 GiB; per-subject up to ~7.4 at 262K) on its chunked path — mostly a floor, not a dial.</div></div>
     <div class="stat"><div class="big">GPU ⇄ CPU</div><div class="lab">The fastest setting flips by device: large chunks on the H100, small/mid on CPU. Budgets differ (3000 vs 1000) — do not compare GPU seconds to CPU seconds.</div></div>
   </div>
@@ -321,68 +369,65 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   {legend(IMPLS)}
   <ul class="tk" style="margin-top:20px">
     <li><b>Larger chunks are faster on the GPU — for all four.</b> Median fit time falls steeply as the
-    chunk grows (jamica 763&nbsp;s → 62&nbsp;s; amica-python 2024&nbsp;s → 79&nbsp;s from 1024 to
-    262K). Small chunks starve the device.</li>
+    chunk grows (jamica 775&nbsp;s → 61&nbsp;s; amica-python 5646&nbsp;s → 230&nbsp;s from 1024 to
+    262K, all at matched 3000 iterations). Small chunks under-utilise the device (utilisation not directly
+    measured).</li>
     <li><b>Memory grows with chunk for the torch implementations</b> (amica-python ~1.8→4.9, pAMICA
-    ~1.8→6.6, pyamica ~3.0→10.9&nbsp;GiB NVML median). <b>jamica's GPU memory is flat in the median
+    ~1.8→6.5, pyamica ~3.0→10.9&nbsp;GiB NVML median). <b>jamica's GPU memory is flat in the median
     (~5.4&nbsp;GiB)</b> across chunk on its chunked path — a chunk-independent full-width array sets the
     floor — though at 262K the longest recordings do rise (per-subject 5.4→7.4&nbsp;GiB), so it is
     mostly, not entirely, a memory-flat dial. Nothing exceeded the 80&nbsp;GiB card; the heaviest cell
     median is pyamica ~10.9&nbsp;GiB (per-subject up to ~11.4).</li>
-    <li><b>The bands are informative.</b> pAMICA's wide 262K band reflects its early-stop firing at very
-    different iteration counts across subjects (see the convergence box).</li>
+    <li><b>The bands are tight now.</b> With early-stops disabled every subject runs the same 3000
+    iterations, so the p25–p75 fit-time spread reflects only per-subject recording length (e.g. pAMICA at
+    262K is 258–267&nbsp;s) — the wide, early-stop-driven scatter of the previous run is gone.</li>
   </ul>
 </section>
 
 <section>
-  <h2>Wall time to the iteration budget (GPU, largest chunk)</h2>
-  <p class="sub">Each implementation at chunk 262K on the H100 (per-subject median, 3000-iter budget).
-  This is <b>not</b> a convergence-equalised ranking. <b>Seconds/iteration</b> is the median across
-  subjects of (wall&nbsp;time&nbsp;÷&nbsp;iterations actually run) — a descriptive per-iteration cost, not
-  an isolated kernel speed (it still folds in fixed/compile overhead and the update rules differ). Note
-  the columns will <em>not</em> multiply back to wall time when iterations vary (e.g. pAMICA's
-  early-stoppers pull its wall-time median below s/iter × 3000). "iters run" (median [min–max]) shows how
-  much of the budget each one used; "final LL" is where it landed. Read all four together.</p>
+  <h2>Wall time at matched 3000 iterations (GPU, largest chunk)</h2>
+  <p class="sub">Each implementation at chunk 262K on the H100 (per-subject median), <b>iteration-matched
+  to 3000</b> (early-stops disabled). Because every implementation now runs the full 3000 iterations,
+  <b>seconds/iteration × 3000 = wall time</b> and this ranking is a clean per-iteration-throughput
+  comparison — no early-stop confound. <b>Seconds/iteration</b> is still a descriptive per-iteration cost
+  (it folds in fixed/compile overhead, and the update rules differ, so it is not an isolated kernel
+  speed). "Iters run" is 3,000 for all four; "final LL" is where each landed at 3000 iterations.</p>
   <table><thead><tr><th>Implementation</th><th>Wall time</th><th>s / iter</th><th>Iters run</th><th>Final LL (median)</th></tr></thead><tbody>{convrows()}</tbody></table>
-  <p class="note">jamica has both the shortest wall time and the lowest cost per iteration
-  (~0.021&nbsp;s/iter vs 0.076–0.098 for the others). amica-python's short wall time is partly because
-  it early-converges and runs only ~1,100 of the 3000 iterations; pyamica runs the full 3000 every time
-  and lands at the highest final LL; pyamica is the longest wall time and pAMICA lands at the lowest LL.
-  "Faster" here means less wall time to its own stopping point — not necessarily a better or
-  equally-finished decomposition. As a separate illustration of how far one setting sits from an
-  implementation's best, pAMICA's <code>block_size</code> spans ~17× end to end:</p>
+  <p class="note">jamica has both the shortest wall time and by far the lowest cost per iteration
+  (~0.020&nbsp;s/iter vs 0.077–0.099 for the others — ~4–5× faster per iteration). At matched iterations
+  pyamica is the longest wall time (and lands at the highest final LL), pAMICA is close behind on time but
+  lands ~0.011 nats lower, and amica-python sits in between. Equal iterations is not proof of equal
+  solutions — but with the budget matched, the wall-time differences here are per-iteration speed, not
+  early stopping. As a separate illustration of how far one setting sits from an implementation's best,
+  pAMICA's <code>block_size</code> spans ~16× end to end:</p>
   <table><thead><tr><th><code>block_size</code></th><th>Wall time</th><th>Peak VRAM (NVML)</th><th></th></tr></thead><tbody>{pamrows()}</tbody></table>
   <p class="note">pAMICA's shipped default is <code>block_size=512</code>, not re-measured here; the
-  nearest tested point, 1024, is already ~17× off its fastest tested setting. (jamica's own shipped
+  nearest tested point, 1024, is already ~16× off its fastest tested setting. (jamica's own shipped
   default — <code>chunk_size=None</code>, the full-batch path — is discussed in the memory note; it was
   not the path swept here.)</p>
 </section>
 
 <section>
-  <h2>Time to comparable quality — the convergence-matched speed view</h2>
-  <p class="sub">The fixed-budget wall times above conflate per-iteration speed with how many iterations
-  each implementation runs. This view removes that confound: for each subject we take the <b>best final
-  log-likelihood any implementation reached</b>, and measure the wall time each one needs to get within
-  <b>1e-3</b> of it (iterations-to-target × measured s/iter, from the recorded per-iteration LL history —
-  no extra GPU runs). It is immune to the heterogeneous early-stop, because it targets a fixed
-  <em>quality</em>, not a fixed iteration count.</p>
-  <div class="grid2"><div class="card">{c_lt}</div>
-  <div class="card"><table><thead><tr><th>@ 262K</th><th>time→quality</th><th>iters</th><th>reached</th></tr></thead><tbody>{levelrows()}</tbody></table>
-  <p class="note" style="padding:0 6px">"reached" = subjects (of those run) that got within 1e-3 of the
-  best LL. jamica, amica-python and pyamica reach it on essentially all subjects; <b>pAMICA reaches it on
-  only 1/25</b> (at every chunk) — it converges to a meaningfully lower LL — so its curve is not plotted
-  (the single-subject median would mislead).</p></div></div>
-  {legend(LEVEL_CHART)}
+  <h2>Convergence vs iterations — the measured iteration ladder</h2>
+  <p class="sub">A direct, <em>measured</em> convergence view (not a post-hoc estimate): at a fixed chunk
+  (65536) with early-stops disabled, we ran every implementation to 100, 250, 500, 1000, 2000 and 3000
+  iterations and recorded the median final log-likelihood at each — all 25 subjects at every point. This
+  shows how fast each implementation's <em>solution quality</em> improves with iterations, orthogonal to
+  the per-iteration wall-time above.</p>
+  <table><thead><tr><th>Implementation</th><th class="num">LL@100</th><th class="num">@250</th><th class="num">@500</th><th class="num">@1000</th><th class="num">@2000</th><th class="num">@3000</th><th class="num">wall@3000</th></tr></thead><tbody>{ladderrows()}</tbody></table>
   <ul class="tk" style="margin-top:16px">
-    <li><b>jamica reaches comparable quality ~3–9× faster</b> than the next implementation at every chunk
-    (e.g. at 262K: 7&nbsp;s vs 26&nbsp;s / 31&nbsp;s), and it does so in ~360 iterations. This is the
-    firmest speed statement in the report: it is not an artifact of anyone's early-stop, and it agrees
-    with the per-iteration (s/iter) ranking.</li>
-    <li><b>amica-python and pyamica are close</b> on this metric (~26–31&nbsp;s at 262K); amica-python's
-    short <em>fixed-budget</em> wall time earlier was mostly its loose stop firing at ~1,100 iterations,
-    not a faster kernel.</li>
-    <li><b>pAMICA does not reach the shared quality</b> on 24/25 subjects — a solution-quality gap
-    (~0.007 nats paired), not a speed one; forcing it to more iterations does not close it.</li>
+    <li><b>jamica converges fastest in both iterations and wall time.</b> It is within ~0.001 nats of its
+    own final LL by ~500 iterations (−1.1013 at 500 → −1.1005 at 3000), and because it is ~4–5× cheaper
+    per iteration it gets there in ~14&nbsp;s — versus ~51–57&nbsp;s for the others to run the same 500
+    iterations.</li>
+    <li><b>pyamica reaches the best (least-negative) reported LL</b> (−1.0995) but uses most of the budget to squeeze the last
+    fraction; amica-python tracks it and plateaus around −1.1006.</li>
+    <li><b>pAMICA stays ~0.011 nats lower across the whole ladder.</b> Its LL climbs from −1.1293 (100) to
+    −1.1107 (3000) but never reaches the other three's ~−1.100. It is <em>still improving</em> at the end
+    (~0.0016 nats over the last 1000 iters, vs ≤0.0001 for the others), so this is a genuine
+    convergence-quality gap at matched iterations — not an early-stop artifact. We did not run past 3000, so
+    the honest claim is that the gap persists through 3000 and is not closing at any practical budget, not
+    that it can never close.</li>
   </ul>
 </section>
 
@@ -414,7 +459,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
     <li><b>One setting failed:</b> pyamica at 1024 (hundreds–thousands of eager blocks/iter) exceeded the
     12&nbsp;h wall — absent from the curve.</li>
   </ul>
-  <div class="warn-box" style="margin-top:14px"><b>On the CPU numbers.</b> Two confounds, both disclosed
+  <div class="warn-box" style="margin-top:14px"><b>On the CPU numbers.</b> Three confounds, all disclosed
   here: (1) <b>contention</b> — CPU fits ran on shared cluster nodes, AMICA is memory-bandwidth-bound,
   and the cluster was busy throughout (no quiet window), which is why the p25–p75 bands are wide;
   (2) <b>unequal subject coverage</b> — cells contain 1–5 subjects (see the <code>*n</code> marks), so a
@@ -423,7 +468,15 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   as unresolved — only the broad device flip is trustworthy. CPU memory scales with chunk (and with
   recording length). Fortran is single-threaded (<code>OMP_NUM_THREADS=1</code>); per core-second it is
   actually more efficient than the 8-thread Python impls, so it is a reference footprint, not a
-  head-to-head. Detail + per-cell data: <code>NOTES_measurement.md</code>, <code>raw/</code>.</div>
+  head-to-head. And (3) <b>these CPU fits are not iteration-matched</b> — unlike the GPU section above, they
+  used each implementation's own early-stop under a 1000-iteration cap, so CPU wall times are not directly
+  per-iteration-comparable and are read only for the coarse device flip. Detail + per-cell data:
+  <code>NOTES_measurement.md</code>, <code>raw/</code>.</div>
+  <div class="info-box"><b>A contention-free, iteration-matched CPU re-run is in progress.</b> The CPU
+  numbers above are from the earlier shared-cluster run (contended, unequal subject coverage, early-stop
+  on). A clean re-run — <b>whole-node exclusive</b> (one fit per node, so no memory-bandwidth contention),
+  <b>iteration-matched</b> (early-stops disabled), all 25 subjects — is currently executing on the Narval
+  cluster and will replace this section when complete.</div>
 </section>
 
 <section>
@@ -434,13 +487,24 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   the driver actually holds, and the two frameworks count differently, so they are <b>not comparable
   across implementations</b> and understate the real footprint by <b>~1.2–3.3×</b> across the 25
   measured impl×chunk pairs (all in <code>raw/chunk_gpumem_summary.csv</code>) — e.g. jamica chunked
-  {J_CHUNKED_ALLOC:.2f}&nbsp;GiB allocator vs {J_CHUNKED_GPU_NVML:.2f}&nbsp;GiB NVML =
-  {J_CHUNKED_GPU_NVML/J_CHUNKED_ALLOC:.1f}× at the small end, pyamica@262K 1.2× at the large end (the
-  gap shrinks as live tensors grow to dominate the fixed context). The charts use
+  ~1.6&nbsp;GiB allocator vs ~5.3&nbsp;GiB NVML ≈ 3.3× at small chunks, shrinking to pyamica@262K ~1.2× at
+  the largest chunk (the gap shrinks as live tensors grow to dominate the fixed context + pool overhead). The charts use
   <b>NVML whole-GPU 'used'</b> on a dedicated GPU. Two caveats on that meter: it is a 50&nbsp;ms poll (a
   sub-interval spike could be missed), and the frameworks run under different allocator settings (JAX
   with pre-allocation off; torch with its caching allocator on), so NVML is a neutral <em>meter</em>
   over somewhat different <em>protocols</em>.</div>
+  <div class="grid2" style="margin:10px 0 6px"><div class="card">{memdecomp_chart(FULL)}</div>
+  <div class="card"><table><thead><tr><th>@ 262K</th><th class="num">context</th><th class="num">live-alloc</th><th class="num">NVML total</th><th class="num">NVML÷alloc</th></tr></thead><tbody>{memdecomprows(FULL)}</tbody></table>
+  <p class="note" style="padding:0 6px">Measured medians (GiB) across 25 subjects: <b>context</b> = whole-GPU
+  used right after the CUDA context is forced, before model/data; <b>live-alloc</b> = framework allocator
+  live-tensor peak; <b>NVML total</b> = whole-GPU peak. <b>This pre-fit baseline is ~1&nbsp;GiB for all
+  four</b> (JAX 1.02, torch 1.08) — essentially equal. It is measured before the fit, so any kernel/cuDNN
+  state loaded lazily during fitting falls into the remainder below, not this baseline; we therefore claim
+  only that the measured <em>pre-fit</em> floor does not differ across frameworks, not that the complete
+  fixed framework context is ~1&nbsp;GiB. What differs is the resident/pool memory: torch's NVML ≈ baseline
+  + its live/reserved pool (and scales with chunk), whereas jamica's allocator peak stays small (~1.9)
+  while its NVML is ~5.4 — JAX holds a larger, chunk-independent resident/pool footprint the allocator
+  counter undercounts most.</p></div></div>
   <p class="note"><b>jamica memory is two-level, and it cuts both ways.</b> On its chunked path jamica's
   median NVML is ~5.4&nbsp;GiB across chunk sizes (per-subject ~3.4–5.4&nbsp;GiB below 262K, rising to
   5.4–{J_CHUNKED_GPU_NVML_MAX:.1f}&nbsp;GiB at 262K for the longest recordings — flat in the median
@@ -448,7 +512,8 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   (<code>chunk_size=None</code> — a different orchestrator key, and jamica's shipped default) uses
   ~{J_FULLBATCH_GPU_NVML:.1f}&nbsp;GiB NVML median (per-subject up to ~{J_FULLBATCH_GPU_NVML_MAX:.0f} for
   the longest recording) for essentially the <b>same GPU speed</b> (~{J_FULLBATCH_GPU_SPI:.3f} vs
-  ~{J_CHUNKED_GPU_SPI:.3f}&nbsp;s/iter, same run — no chunk benefit on GPU). On CPU, chunking helps
+  ~{J_CHUNKED_GPU_SPI:.3f}&nbsp;s/iter — no chunk benefit on GPU; the full-batch figure is from the earlier
+  memory run). On CPU, chunking helps
   <em>both</em> axes (~{J_CHUNKED_CPU_T:,}&nbsp;s /
   ~{J_CHUNKED_CPU_RSS:.1f}&nbsp;GiB chunked vs ~{J_FULLBATCH_CPU_T:,}&nbsp;s /
   ~{J_FULLBATCH_CPU_RSS:.0f}&nbsp;GiB full-batch). So under these tested conditions a wrapper should pass
@@ -458,34 +523,41 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   from H100 NVML with JAX pre-allocation off; it was not measured on such a card.)</p>
   <div class="info-box"><b>"Flat jamica memory" is not the earlier full-batch measurement bug.</b> Flat
   memory was the signature of a fixed bug where jamica was accidentally run full-batch at every chunk, so
-  we checked. Two things rule it out here: (1) jamica's <b>fit time varies ~12× with the chunk</b>
-  (763&nbsp;s→62&nbsp;s) — only possible if the chunk is actually applied; the true full-batch path is
+  we checked. Two things rule it out here: (1) jamica's <b>fit time varies ~13× with the chunk</b>
+  (775&nbsp;s→61&nbsp;s) — only possible if the chunk is actually applied; the true full-batch path is
   chunk-<em>independent</em> in time too (~61&nbsp;s at every chunk). (2) The chunked path's memory
   (~5.4&nbsp;GiB NVML / ~{J_CHUNKED_ALLOC:.1f}&nbsp;GiB allocator) is less than half the full-batch path's
   (~{J_FULLBATCH_GPU_NVML:.1f}&nbsp;/&nbsp;{J_FULLBATCH_ALLOC:.1f}&nbsp;GiB) — different numbers, different
   code path (both in <code>raw/chunk_gpumem_summary.csv</code>). The chunked NVML is flat because of what
-  it's made of: ~3.8&nbsp;GiB is the fixed CUDA/cuDNN context (chunk-independent, on any JAX GPU job) and
-  ~{J_CHUNKED_ALLOC:.1f}&nbsp;GiB is live tensors <em>dominated by chunk-independent full-width arrays</em>
-  (data, sources, per-sample buffers sized by <code>n_samples</code>); the chunk-scaled E-step block buffer
-  is small next to those until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
+  it's made of: the measured context floor is only ~1&nbsp;GiB (chunk-independent, and about the same for
+  JAX and torch — see the decomposition above), and the rest of the ~5.4&nbsp;GiB is JAX's memory pool plus
+  <em>chunk-independent resident arrays</em> (the whitened data and source outputs, sized by
+  <code>n_samples</code>); the framework allocator counter (<code>peak_bytes_in_use</code>
+  ~{J_CHUNKED_ALLOC:.1f}&nbsp;GiB) undercounts that resident/pooled footprint the most for JAX, which is
+  why jamica's NVML sits far above its allocator peak. The chunk-scaled E-step block buffer is small next
+  to the resident arrays until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
   up to ~7.4). So chunk is a real <em>time</em> dial for jamica but not a GPU-<em>memory</em> dial — a
   genuine property of the chunked path, distinct from the full-batch key. <b>And it is by design, not a
   leak:</b> the chunked E-step accumulates small per-chunk sufficient statistics
   (<code>O(n_comp²)</code>) and never materialises the full-width <code>(n_comp, n_samples)</code>
-  per-sample tensors — those appear only on the full-batch path. So the ~1.6&nbsp;GiB of live tensors is
-  the resident whitened data + accumulators (not avoidable per-sample arrays), and the rest of the
-  ~5.4&nbsp;GiB is the fixed JAX/CUDA runtime. Chunking bounds the working set as intended; it simply
-  can't go below the data + framework-context floor.</div>
+  per-sample tensors — those appear only on the full-batch path. Of the ~5.4&nbsp;GiB whole-GPU NVML, only
+  ~1&nbsp;GiB is the measured pre-fit context floor and ~1.6&nbsp;GiB is the allocator's live-tensor peak
+  (resident whitened data + accumulators); the remaining ~2.4&nbsp;GiB is JAX pool / resident bytes the
+  allocator counter does not report / post-init runtime, which we do not separate further — it is
+  chunk-independent (see the decomposition above). Chunking bounds the chunk-scaled working set as
+  intended; it simply cannot go below that context + pool + resident-data floor (which is <em>not</em> a
+  ~3.8&nbsp;GiB context — the context alone is ~1&nbsp;GiB).</div>
 </section>
 
 <footer>
   <div class="kick" style="color:var(--mut)">Provenance &amp; reproduction</div>
   <dl class="prov">
     <dt>Dataset</dt><dd>ds004505 · 64 PCA components · {N_SAMP_MIN:,}–{N_SAMP_MAX:,} samples/subject</dd>
-    <dt>GPU fit @3000</dt><dd>/scratch/yorguin/iter_ladder/gpu/c&lt;chunk&gt;_i3000/ → raw/chunk_gpu3000_*.csv (Trillium H100, 20-25 subj/cell)</dd>
-    <dt>GPU memory (NVML+alloc)</dt><dd>raw/chunk_gpumem_*.csv (iteration-independent; jamica-chunked from the i3000 run, torch impls + jamica-fullbatch from i1000; nvml_min/max = per-subject range)</dd>
-    <dt>CPU @1000</dt><dd>/scratch/yorguin/iter_ladder/cpu/c&lt;chunk&gt;_i1000_r&lt;rep&gt;/ → raw/chunk_cpu1000_*.csv (fir 8 cores; by-subject median; n_subjects in the summary)</dd>
-    <dt>Budget</dt><dd>GPU 3000-iter cap · CPU 1000-iter cap (memory is iteration-independent; time is not)</dd>
+    <dt>GPU fit @3000 (matched)</dt><dd>iteration-matched, early-stops disabled → raw/nostop_gpu3000_summary.csv (Trillium H100, 25 subj/cell, all n_iter=3000)</dd>
+    <dt>GPU convergence ladder</dt><dd>raw/nostop_ladder_i{100,250,500,1000,2000,3000}_summary.csv (chunk 65536, all 25 subj, early-stops disabled)</dd>
+    <dt>GPU memory (NVML+alloc)</dt><dd>raw/chunk_gpumem_*.csv + raw/nostop_gpumem_summary.csv (iteration-independent; per-chunk NVML also confirmed by the matched i3000 run; nvml_min/max = per-subject range; full-batch key from the prior memory run)</dd>
+    <dt>CPU @1000 (earlier)</dt><dd>raw/chunk_cpu1000_*.csv (fir 8 cores; by-subject median; n_subjects in the summary; NOT iteration-matched — superseded by the Narval re-run in progress)</dd>
+    <dt>Budget</dt><dd>GPU 3000-iter MATCHED (early-stops disabled, all impls run full 3000) · CPU 1000-iter (earlier run, each impl's early-stop on) · memory is iteration-independent</dd>
     <dt>jamica path</dt><dd>amica_python_jax_chunked (chunked); full-batch key amica_python_jax in the memory note only</dd>
     <dt>Units</dt><dd>memory in GiB (bytes / 1024³); times in seconds; GPU per-subject median, CPU by-subject median</dd>
     <dt>Commits</dt><dd>jamica df18b5e · amica-python e15e158 · pyamica a8a4d7e · pAMICA 0c4da39 · Fortran 665b577</dd>
@@ -512,9 +584,8 @@ def _cn(c): return str(c)
 _rows = [("dataset", "impl", "knob", "chunk", "value", "unit", "note")]
 for im in IMPLS:
     for c, (t, v) in sorted(GPU[im].items()):
-        _rows.append(("gpu_fit_s_median", im, KNOB[im], _cn(c), t, "s", "GPU H100 3000-iter budget, per-subj median"))
-        _src = "i3000 run" if im == "jamica" else "i1000 run"
-        _rows.append(("gpu_vram_gib_nvml", im, KNOB[im], _cn(c), v, "GiB", f"NVML whole-GPU median, {_src} (see raw/chunk_gpumem_summary.csv)"))
+        _rows.append(("gpu_fit_s_median", im, KNOB[im], _cn(c), t, "s", "GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"))
+        _rows.append(("gpu_vram_gib_nvml", im, KNOB[im], _cn(c), v, "GiB", "NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"))
     for c, (lo, hi) in sorted(GPU_BAND[im].items()):
         _rows.append(("gpu_fit_s_p25", im, KNOB[im], _cn(c), lo, "s", ""))
         _rows.append(("gpu_fit_s_p75", im, KNOB[im], _cn(c), hi, "s", ""))

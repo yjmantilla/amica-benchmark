@@ -57,28 +57,28 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   it also changes memory (for the torch implementations), and the fastest setting flips between GPU and
   CPU. <b>The fit times are wall time to a fixed iteration budget, not time to an equivalent
   solution</b> — read them with the convergence box below.</p>
-  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>amica-python <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter / CPU 1000-iter budget · H100 + 8-core AMD EPYC (fir)</span></div>
+  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>amica-python <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 comp · GPU 3000-iter matched (early-stops off) · CPU 1000-iter (earlier run) · H100 + 8-core AMD EPYC (fir)</span></div>
 </header>
 
 <section>
   <h2>How to read this</h2>
-  <div class="info-box big"><b>These are wall times to a fixed iteration budget — not a convergence
-  race.</b> Every fit was capped at 3000 iterations on GPU / 1000 on CPU, but the implementations do
-  <em>not</em> use that budget the same way, because each stops on its own early-stop default (Fortran's
-  is disabled; the others differ). At the largest chunk on GPU the median iterations actually run were:
-  <b>pyamica 3,000</b> (always runs the full cap), <b>jamica 3,000</b> (range 2,572–3,000),
-  <b>pAMICA 3,000</b> (but its early-stop can fire as low as 151), <b>amica-python 1,106</b>
-  (786–1,654 — it converges and stops well before the cap). Three of the four land within ~0.002 nats of
-  each other in final log-likelihood (jamica −1.1016, amica-python −1.1004, pyamica −1.0995); <b>pAMICA is
-  ~0.02 nats lower (−1.1204)</b> in median — and a paired per-subject delta of ~0.007 nats, negative
-  for every subject — i.e. a small but consistent, meaningfully worse fit at this budget, not merely
-  "the lowest." So a shorter wall time can mean a faster implementation, an
-  earlier stop, or fewer iterations of work. To normalize per-iteration cost, the GPU table below also
-  reports <b>seconds/iteration</b> (median of per-subject time÷iterations-run). We do not verify that
-  the four decompositions are numerically equivalent (component matching against the Fortran reference
-  is not part of this pass); equal budget is not equal work, and not equal convergence.</div>
+  <div class="info-box big"><b>The GPU fits are iteration-matched: every implementation's early-stops
+  were disabled, so all run the full 3000 iterations.</b> That removes the earlier confound of
+  implementations quitting at different points — GPU wall time is now directly comparable per iteration
+  (<b>seconds/iteration × 3000 = wall time</b>, exactly), so time differences reflect genuine
+  per-iteration throughput, not who stopped early. At the largest chunk all four run 3,000/3,000
+  iterations. Three of the four land within ~0.001 nats of each other in final log-likelihood (jamica
+  −1.1005, amica-python −1.1002, pyamica −1.0995); <b>pAMICA is ~0.011 nats lower (−1.1107)</b> in
+  median — consistently, at <em>matched</em> iterations — i.e. a small but real
+  <em>convergence-quality</em> gap, not an early-stop artifact (it runs the same 3000 iterations as the
+  others and still lands ~0.011 nats lower; the measured iteration ladder below shows it still slowly
+  improving at 3000 but far short of the others, and we did not test a larger budget). We do not
+  verify that the four decompositions are numerically equivalent (component matching against the Fortran
+  reference is not part of this pass); equal iterations is not proof of equal solutions. <b>The CPU
+  section further down is the earlier, non-iteration-matched run</b> (its own caveats apply; a
+  contention-free, iteration-matched CPU re-run is in progress — see that section).</div>
   <div class="callout">
-    <div class="stat warn"><div class="big">~25×</div><div class="lab">Widest fit-time range across the setting within a single implementation (amica-python, GPU). The others span 8–17×; every implementation is chunk-sensitive on time.</div></div>
+    <div class="stat warn"><div class="big">~25×</div><div class="lab">Widest fit-time range across the setting within a single implementation (amica-python, GPU, iteration-matched). The others span 8–16×; every implementation is chunk-sensitive on time.</div></div>
     <div class="stat"><div class="big">grows</div><div class="lab">Peak VRAM grows with chunk for the torch impls (~2.7–3.6× NVML). jamica's GPU memory is flat in the median (~5.4 GiB; per-subject up to ~7.4 at 262K) on its chunked path — mostly a floor, not a dial.</div></div>
     <div class="stat"><div class="big">GPU ⇄ CPU</div><div class="lab">The fastest setting flips by device: large chunks on the H100, small/mid on CPU. Budgets differ (3000 vs 1000) — do not compare GPU seconds to CPU seconds.</div></div>
   </div>
@@ -94,72 +94,69 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   <p class="sub">Each implementation swept across its setting on real ds004505 (per-subject median,
   3000-iter budget, H100). Shaded band = p25–p75 across subjects. VRAM is the <b>NVML whole-GPU peak</b>
   (framework-neutral; see the memory note).</p>
-  <div class="grid2"><div class="card"><figure class="cf"><figcaption>real ds004505 · H100 · 3000-iter budget · median · shaded = p25–p75 · ◯ = fastest setting</figcaption><svg viewBox="0 0 520 340" class="chart" role="img" aria-label="GPU · fit time vs chunk"><text x="56" y="16" class="ct">GPU · fit time vs chunk</text><text x="56" y="334" class="cx">chunk / block size (samples) →</text><text transform="translate(14,160.0) rotate(-90)" class="cy">fit time (s, log)</text><line x1="56" y1="284.0" x2="506" y2="284.0" class="grid"/><text x="50" y="287.0" class="cyt">50</text><line x1="56" y1="246.5" x2="506" y2="246.5" class="grid"/><text x="50" y="249.5" class="cyt">100</text><line x1="56" y1="209.0" x2="506" y2="209.0" class="grid"/><text x="50" y="212.0" class="cyt">200</text><line x1="56" y1="159.5" x2="506" y2="159.5" class="grid"/><text x="50" y="162.5" class="cyt">500</text><line x1="56" y1="122.0" x2="506" y2="122.0" class="grid"/><text x="50" y="125.0" class="cyt">1000</text><line x1="56" y1="84.5" x2="506" y2="84.5" class="grid"/><text x="50" y="87.5" class="cyt">2000</text><line x1="56" y1="35.0" x2="506" y2="35.0" class="grid"/><text x="50" y="38.0" class="cyt">5000</text><line x1="76.5" y1="32" x2="76.5" y2="288" class="grid vg"/><text x="76.5" y="304" class="cxt">1K</text><line x1="178.7" y1="32" x2="178.7" y2="288" class="grid vg"/><text x="178.7" y="304" class="cxt">4K</text><line x1="281.0" y1="32" x2="281.0" y2="288" class="grid vg"/><text x="281.0" y="304" class="cxt">16K</text><line x1="383.3" y1="32" x2="383.3" y2="288" class="grid vg"/><text x="383.3" y="304" class="cxt">64K</text><line x1="485.5" y1="32" x2="485.5" y2="288" class="grid vg"/><text x="485.5" y="304" class="cxt">262K</text><polygon points="76.5,135.7 178.7,200.5 281.0,246.5 383.3,261.3 485.5,271.5 485.5,275.9 383.3,265.8 281.0,251.0 178.7,205.1 76.5,140.3" fill="#6366f1" opacity="0.09"/><path d="M76.5,136.6 L178.7,202.0 L281.0,247.8 L383.3,264.3 L485.5,272.7" fill="none" stroke="#6366f1" stroke-width="2.4"/><circle cx="76.5" cy="136.6" r="3" fill="#6366f1"/><circle cx="178.7" cy="202.0" r="3" fill="#6366f1"/><circle cx="281.0" cy="247.8" r="3" fill="#6366f1"/><circle cx="383.3" cy="264.3" r="3" fill="#6366f1"/><circle cx="485.5" cy="272.7" r="3" fill="#6366f1"/><circle cx="485.5" cy="272.7" r="6" fill="none" stroke="#6366f1" stroke-width="2"/><polygon points="76.5,44.1 178.7,117.5 281.0,171.8 383.3,182.8 485.5,193.4 485.5,270.6 383.3,218.1 281.0,192.0 178.7,131.7 76.5,57.5" fill="#d97706" opacity="0.09"/><path d="M76.5,45.9 L178.7,119.7 L281.0,175.6 L383.3,184.7 L485.5,198.1" fill="none" stroke="#d97706" stroke-width="2.4"/><circle cx="76.5" cy="45.9" r="3" fill="#d97706"/><circle cx="178.7" cy="119.7" r="3" fill="#d97706"/><circle cx="281.0" cy="175.6" r="3" fill="#d97706"/><circle cx="383.3" cy="184.7" r="3" fill="#d97706"/><circle cx="485.5" cy="198.1" r="3" fill="#d97706"/><circle cx="485.5" cy="198.1" r="6" fill="none" stroke="#d97706" stroke-width="2"/><polygon points="76.5,73.4 178.7,147.9 281.0,174.9 383.3,179.2 485.5,186.9 485.5,191.6 383.3,183.4 281.0,178.8 178.7,151.5 76.5,77.2" fill="#0d9488" opacity="0.09"/><path d="M76.5,74.4 L178.7,148.8 L281.0,176.4 L383.3,180.5 L485.5,188.2" fill="none" stroke="#0d9488" stroke-width="2.4"/><circle cx="76.5" cy="74.4" r="3" fill="#0d9488"/><circle cx="178.7" cy="148.8" r="3" fill="#0d9488"/><circle cx="281.0" cy="176.4" r="3" fill="#0d9488"/><circle cx="383.3" cy="180.5" r="3" fill="#0d9488"/><circle cx="485.5" cy="188.2" r="3" fill="#0d9488"/><circle cx="485.5" cy="188.2" r="6" fill="none" stroke="#0d9488" stroke-width="2"/><polygon points="76.5,74.8 178.7,150.9 281.0,211.8 383.3,233.6 485.5,246.5 485.5,261.3 383.3,245.4 281.0,222.8 178.7,161.1 76.5,88.1" fill="#e11d48" opacity="0.09"/><path d="M76.5,83.9 L178.7,159.3 L281.0,220.0 L383.3,241.1 L485.5,259.0" fill="none" stroke="#e11d48" stroke-width="2.4"/><circle cx="76.5" cy="83.9" r="3" fill="#e11d48"/><circle cx="178.7" cy="159.3" r="3" fill="#e11d48"/><circle cx="281.0" cy="220.0" r="3" fill="#e11d48"/><circle cx="383.3" cy="241.1" r="3" fill="#e11d48"/><circle cx="485.5" cy="259.0" r="3" fill="#e11d48"/><circle cx="485.5" cy="259.0" r="6" fill="none" stroke="#e11d48" stroke-width="2"/></svg></figure></div><div class="card"><figure class="cf"><figcaption>real ds004505 · H100 · whole-GPU NVML peak · ◯ = leanest setting</figcaption><svg viewBox="0 0 520 340" class="chart" role="img" aria-label="GPU · memory vs chunk"><text x="56" y="16" class="ct">GPU · memory vs chunk</text><text x="56" y="334" class="cx">chunk / block size (samples) →</text><text transform="translate(14,160.0) rotate(-90)" class="cy">peak VRAM · NVML (GiB)</text><line x1="56" y1="288.0" x2="506" y2="288.0" class="grid"/><text x="50" y="291.0" class="cyt">0.0</text><line x1="56" y1="183.3" x2="506" y2="183.3" class="grid"/><text x="50" y="186.3" class="cyt">5</text><line x1="56" y1="78.7" x2="506" y2="78.7" class="grid"/><text x="50" y="81.7" class="cyt">10</text><line x1="76.5" y1="32" x2="76.5" y2="288" class="grid vg"/><text x="76.5" y="304" class="cxt">1K</text><line x1="178.7" y1="32" x2="178.7" y2="288" class="grid vg"/><text x="178.7" y="304" class="cxt">4K</text><line x1="281.0" y1="32" x2="281.0" y2="288" class="grid vg"/><text x="281.0" y="304" class="cxt">16K</text><line x1="383.3" y1="32" x2="383.3" y2="288" class="grid vg"/><text x="383.3" y="304" class="cxt">64K</text><line x1="485.5" y1="32" x2="485.5" y2="288" class="grid vg"/><text x="485.5" y="304" class="cxt">262K</text><path d="M76.5,175.6 L178.7,175.6 L281.0,175.6 L383.3,175.6 L485.5,175.6" fill="none" stroke="#6366f1" stroke-width="2.4"/><circle cx="76.5" cy="175.6" r="3" fill="#6366f1"/><circle cx="178.7" cy="175.6" r="3" fill="#6366f1"/><circle cx="281.0" cy="175.6" r="3" fill="#6366f1"/><circle cx="383.3" cy="175.6" r="3" fill="#6366f1"/><circle cx="485.5" cy="175.6" r="3" fill="#6366f1"/><circle cx="76.5" cy="175.6" r="6" fill="none" stroke="#6366f1" stroke-width="2"/><path d="M76.5,249.7 L178.7,248.4 L281.0,243.4 L383.3,223.3 L485.5,150.5" fill="none" stroke="#d97706" stroke-width="2.4"/><circle cx="76.5" cy="249.7" r="3" fill="#d97706"/><circle cx="178.7" cy="248.4" r="3" fill="#d97706"/><circle cx="281.0" cy="243.4" r="3" fill="#d97706"/><circle cx="383.3" cy="223.3" r="3" fill="#d97706"/><circle cx="485.5" cy="150.5" r="3" fill="#d97706"/><circle cx="76.5" cy="249.7" r="6" fill="none" stroke="#d97706" stroke-width="2"/><path d="M76.5,224.2 L178.7,224.2 L281.0,224.2 L383.3,194.6 L485.5,59.4" fill="none" stroke="#0d9488" stroke-width="2.4"/><circle cx="76.5" cy="224.2" r="3" fill="#0d9488"/><circle cx="178.7" cy="224.2" r="3" fill="#0d9488"/><circle cx="281.0" cy="224.2" r="3" fill="#0d9488"/><circle cx="383.3" cy="194.6" r="3" fill="#0d9488"/><circle cx="485.5" cy="59.4" r="3" fill="#0d9488"/><circle cx="76.5" cy="224.2" r="6" fill="none" stroke="#0d9488" stroke-width="2"/><path d="M76.5,249.9 L178.7,248.9 L281.0,245.1 L383.3,230.0 L485.5,185.9" fill="none" stroke="#e11d48" stroke-width="2.4"/><circle cx="76.5" cy="249.9" r="3" fill="#e11d48"/><circle cx="178.7" cy="248.9" r="3" fill="#e11d48"/><circle cx="281.0" cy="245.1" r="3" fill="#e11d48"/><circle cx="383.3" cy="230.0" r="3" fill="#e11d48"/><circle cx="485.5" cy="185.9" r="3" fill="#e11d48"/><circle cx="76.5" cy="249.9" r="6" fill="none" stroke="#e11d48" stroke-width="2"/></svg></figure></div></div>
+  <div class="grid2"><div class="card"><figure class="cf"><figcaption>real ds004505 · H100 · 3000-iter budget · median · shaded = p25–p75 · ◯ = fastest setting</figcaption><svg viewBox="0 0 520 340" class="chart" role="img" aria-label="GPU · fit time vs chunk"><text x="56" y="16" class="ct">GPU · fit time vs chunk</text><text x="56" y="334" class="cx">chunk / block size (samples) →</text><text transform="translate(14,160.0) rotate(-90)" class="cy">fit time (s, log)</text><line x1="56" y1="284.2" x2="506" y2="284.2" class="grid"/><text x="50" y="287.2" class="cyt">50</text><line x1="56" y1="249.1" x2="506" y2="249.1" class="grid"/><text x="50" y="252.1" class="cyt">100</text><line x1="56" y1="214.0" x2="506" y2="214.0" class="grid"/><text x="50" y="217.0" class="cyt">200</text><line x1="56" y1="167.7" x2="506" y2="167.7" class="grid"/><text x="50" y="170.7" class="cyt">500</text><line x1="56" y1="132.6" x2="506" y2="132.6" class="grid"/><text x="50" y="135.6" class="cyt">1000</text><line x1="56" y1="97.5" x2="506" y2="97.5" class="grid"/><text x="50" y="100.5" class="cyt">2000</text><line x1="56" y1="51.1" x2="506" y2="51.1" class="grid"/><text x="50" y="54.1" class="cyt">5000</text><line x1="76.5" y1="32" x2="76.5" y2="288" class="grid vg"/><text x="76.5" y="304" class="cxt">1K</text><line x1="178.7" y1="32" x2="178.7" y2="288" class="grid vg"/><text x="178.7" y="304" class="cxt">4K</text><line x1="281.0" y1="32" x2="281.0" y2="288" class="grid vg"/><text x="281.0" y="304" class="cxt">16K</text><line x1="383.3" y1="32" x2="383.3" y2="288" class="grid vg"/><text x="383.3" y="304" class="cxt">64K</text><line x1="485.5" y1="32" x2="485.5" y2="288" class="grid vg"/><text x="485.5" y="304" class="cxt">262K</text><polygon points="76.5,144.6 178.7,206.5 281.0,249.6 383.3,265.1 485.5,272.5 485.5,276.7 383.3,267.9 281.0,251.2 178.7,209.0 76.5,147.6" fill="#6366f1" opacity="0.09"/><path d="M76.5,145.4 L178.7,207.4 L281.0,250.7 L383.3,266.6 L485.5,274.2" fill="none" stroke="#6366f1" stroke-width="2.4"/><circle cx="76.5" cy="145.4" r="3" fill="#6366f1"/><circle cx="178.7" cy="207.4" r="3" fill="#6366f1"/><circle cx="281.0" cy="250.7" r="3" fill="#6366f1"/><circle cx="383.3" cy="266.6" r="3" fill="#6366f1"/><circle cx="485.5" cy="274.2" r="3" fill="#6366f1"/><circle cx="485.5" cy="274.2" r="6" fill="none" stroke="#6366f1" stroke-width="2"/><polygon points="76.5,59.3 178.7,128.7 281.0,178.4 383.3,188.7 485.5,199.4 485.5,201.1 383.3,191.4 281.0,183.0 178.7,132.2 76.5,63.6" fill="#d97706" opacity="0.09"/><path d="M76.5,60.5 L178.7,129.7 L281.0,179.9 L383.3,190.2 L485.5,200.3" fill="none" stroke="#d97706" stroke-width="2.4"/><circle cx="76.5" cy="60.5" r="3" fill="#d97706"/><circle cx="178.7" cy="129.7" r="3" fill="#d97706"/><circle cx="281.0" cy="179.9" r="3" fill="#d97706"/><circle cx="383.3" cy="190.2" r="3" fill="#d97706"/><circle cx="485.5" cy="200.3" r="3" fill="#d97706"/><circle cx="485.5" cy="200.3" r="6" fill="none" stroke="#d97706" stroke-width="2"/><polygon points="76.5,87.2 178.7,156.3 281.0,181.8 383.3,186.0 485.5,193.3 485.5,197.4 383.3,189.8 281.0,186.0 178.7,160.5 76.5,90.2" fill="#0d9488" opacity="0.09"/><path d="M76.5,87.9 L178.7,157.1 L281.0,183.4 L383.3,187.3 L485.5,194.2" fill="none" stroke="#0d9488" stroke-width="2.4"/><circle cx="76.5" cy="87.9" r="3" fill="#0d9488"/><circle cx="178.7" cy="157.1" r="3" fill="#0d9488"/><circle cx="281.0" cy="183.4" r="3" fill="#0d9488"/><circle cx="383.3" cy="187.3" r="3" fill="#0d9488"/><circle cx="485.5" cy="194.2" r="3" fill="#0d9488"/><circle cx="485.5" cy="194.2" r="6" fill="none" stroke="#0d9488" stroke-width="2"/><polygon points="76.5,43.3 178.7,112.8 281.0,170.2 383.3,191.0 485.5,204.4 485.5,209.2 383.3,195.2 281.0,174.0 178.7,116.8 76.5,46.8" fill="#e11d48" opacity="0.09"/><path d="M76.5,44.9 L178.7,115.2 L281.0,172.0 L383.3,193.0 L485.5,206.9" fill="none" stroke="#e11d48" stroke-width="2.4"/><circle cx="76.5" cy="44.9" r="3" fill="#e11d48"/><circle cx="178.7" cy="115.2" r="3" fill="#e11d48"/><circle cx="281.0" cy="172.0" r="3" fill="#e11d48"/><circle cx="383.3" cy="193.0" r="3" fill="#e11d48"/><circle cx="485.5" cy="206.9" r="3" fill="#e11d48"/><circle cx="485.5" cy="206.9" r="6" fill="none" stroke="#e11d48" stroke-width="2"/></svg></figure></div><div class="card"><figure class="cf"><figcaption>real ds004505 · H100 · whole-GPU NVML peak · ◯ = leanest setting</figcaption><svg viewBox="0 0 520 340" class="chart" role="img" aria-label="GPU · memory vs chunk"><text x="56" y="16" class="ct">GPU · memory vs chunk</text><text x="56" y="334" class="cx">chunk / block size (samples) →</text><text transform="translate(14,160.0) rotate(-90)" class="cy">peak VRAM · NVML (GiB)</text><line x1="56" y1="288.0" x2="506" y2="288.0" class="grid"/><text x="50" y="291.0" class="cyt">0.0</text><line x1="56" y1="183.3" x2="506" y2="183.3" class="grid"/><text x="50" y="186.3" class="cyt">5</text><line x1="56" y1="78.7" x2="506" y2="78.7" class="grid"/><text x="50" y="81.7" class="cyt">10</text><line x1="76.5" y1="32" x2="76.5" y2="288" class="grid vg"/><text x="76.5" y="304" class="cxt">1K</text><line x1="178.7" y1="32" x2="178.7" y2="288" class="grid vg"/><text x="178.7" y="304" class="cxt">4K</text><line x1="281.0" y1="32" x2="281.0" y2="288" class="grid vg"/><text x="281.0" y="304" class="cxt">16K</text><line x1="383.3" y1="32" x2="383.3" y2="288" class="grid vg"/><text x="383.3" y="304" class="cxt">64K</text><line x1="485.5" y1="32" x2="485.5" y2="288" class="grid vg"/><text x="485.5" y="304" class="cxt">262K</text><path d="M76.5,176.9 L178.7,175.6 L281.0,175.6 L383.3,175.6 L485.5,175.6" fill="none" stroke="#6366f1" stroke-width="2.4"/><circle cx="76.5" cy="176.9" r="3" fill="#6366f1"/><circle cx="178.7" cy="175.6" r="3" fill="#6366f1"/><circle cx="281.0" cy="175.6" r="3" fill="#6366f1"/><circle cx="383.3" cy="175.6" r="3" fill="#6366f1"/><circle cx="485.5" cy="175.6" r="3" fill="#6366f1"/><circle cx="76.5" cy="176.9" r="6" fill="none" stroke="#6366f1" stroke-width="2"/><path d="M76.5,249.9 L178.7,248.4 L281.0,243.4 L383.3,223.5 L485.5,151.1" fill="none" stroke="#d97706" stroke-width="2.4"/><circle cx="76.5" cy="249.9" r="3" fill="#d97706"/><circle cx="178.7" cy="248.4" r="3" fill="#d97706"/><circle cx="281.0" cy="243.4" r="3" fill="#d97706"/><circle cx="383.3" cy="223.5" r="3" fill="#d97706"/><circle cx="485.5" cy="151.1" r="3" fill="#d97706"/><circle cx="76.5" cy="249.9" r="6" fill="none" stroke="#d97706" stroke-width="2"/><path d="M76.5,224.2 L178.7,224.2 L281.0,224.2 L383.3,194.6 L485.5,59.4" fill="none" stroke="#0d9488" stroke-width="2.4"/><circle cx="76.5" cy="224.2" r="3" fill="#0d9488"/><circle cx="178.7" cy="224.2" r="3" fill="#0d9488"/><circle cx="281.0" cy="224.2" r="3" fill="#0d9488"/><circle cx="383.3" cy="194.6" r="3" fill="#0d9488"/><circle cx="485.5" cy="59.4" r="3" fill="#0d9488"/><circle cx="76.5" cy="224.2" r="6" fill="none" stroke="#0d9488" stroke-width="2"/><path d="M76.5,249.9 L178.7,248.6 L281.0,244.3 L383.3,228.8 L485.5,185.6" fill="none" stroke="#e11d48" stroke-width="2.4"/><circle cx="76.5" cy="249.9" r="3" fill="#e11d48"/><circle cx="178.7" cy="248.6" r="3" fill="#e11d48"/><circle cx="281.0" cy="244.3" r="3" fill="#e11d48"/><circle cx="383.3" cy="228.8" r="3" fill="#e11d48"/><circle cx="485.5" cy="185.6" r="3" fill="#e11d48"/><circle cx="76.5" cy="249.9" r="6" fill="none" stroke="#e11d48" stroke-width="2"/></svg></figure></div></div>
   <div class="legend"><span class="lg"><i style="background:#6366f1"></i>jamica <code>chunk_size</code> <span class="cm">@df18b5e</span></span><span class="lg"><i style="background:#d97706"></i>pAMICA <code>block_size</code> <span class="cm">@0c4da39</span></span><span class="lg"><i style="background:#0d9488"></i>pyamica <code>chunk_t</code> <span class="cm">@a8a4d7e</span></span><span class="lg"><i style="background:#e11d48"></i>amica-python <code>batch_size</code> <span class="cm">@e15e158</span></span></div>
   <ul class="tk" style="margin-top:20px">
     <li><b>Larger chunks are faster on the GPU — for all four.</b> Median fit time falls steeply as the
-    chunk grows (jamica 763&nbsp;s → 62&nbsp;s; amica-python 2024&nbsp;s → 79&nbsp;s from 1024 to
-    262K). Small chunks starve the device.</li>
+    chunk grows (jamica 775&nbsp;s → 61&nbsp;s; amica-python 5646&nbsp;s → 230&nbsp;s from 1024 to
+    262K, all at matched 3000 iterations). Small chunks under-utilise the device (utilisation not directly
+    measured).</li>
     <li><b>Memory grows with chunk for the torch implementations</b> (amica-python ~1.8→4.9, pAMICA
-    ~1.8→6.6, pyamica ~3.0→10.9&nbsp;GiB NVML median). <b>jamica's GPU memory is flat in the median
+    ~1.8→6.5, pyamica ~3.0→10.9&nbsp;GiB NVML median). <b>jamica's GPU memory is flat in the median
     (~5.4&nbsp;GiB)</b> across chunk on its chunked path — a chunk-independent full-width array sets the
     floor — though at 262K the longest recordings do rise (per-subject 5.4→7.4&nbsp;GiB), so it is
     mostly, not entirely, a memory-flat dial. Nothing exceeded the 80&nbsp;GiB card; the heaviest cell
     median is pyamica ~10.9&nbsp;GiB (per-subject up to ~11.4).</li>
-    <li><b>The bands are informative.</b> pAMICA's wide 262K band reflects its early-stop firing at very
-    different iteration counts across subjects (see the convergence box).</li>
+    <li><b>The bands are tight now.</b> With early-stops disabled every subject runs the same 3000
+    iterations, so the p25–p75 fit-time spread reflects only per-subject recording length (e.g. pAMICA at
+    262K is 258–267&nbsp;s) — the wide, early-stop-driven scatter of the previous run is gone.</li>
   </ul>
 </section>
 
 <section>
-  <h2>Wall time to the iteration budget (GPU, largest chunk)</h2>
-  <p class="sub">Each implementation at chunk 262K on the H100 (per-subject median, 3000-iter budget).
-  This is <b>not</b> a convergence-equalised ranking. <b>Seconds/iteration</b> is the median across
-  subjects of (wall&nbsp;time&nbsp;÷&nbsp;iterations actually run) — a descriptive per-iteration cost, not
-  an isolated kernel speed (it still folds in fixed/compile overhead and the update rules differ). Note
-  the columns will <em>not</em> multiply back to wall time when iterations vary (e.g. pAMICA's
-  early-stoppers pull its wall-time median below s/iter × 3000). "iters run" (median [min–max]) shows how
-  much of the budget each one used; "final LL" is where it landed. Read all four together.</p>
-  <table><thead><tr><th>Implementation</th><th>Wall time</th><th>s / iter</th><th>Iters run</th><th>Final LL (median)</th></tr></thead><tbody><tr><td><span class="dot" style="background:#6366f1"></span>jamica</td><td class="num">62s</td><td class="num">0.021</td><td class="num">3,000 <span class="mut">[2,572–3,000]</span></td><td class="num">-1.1016</td></tr><tr><td><span class="dot" style="background:#e11d48"></span>amica-python</td><td class="num">79s</td><td class="num">0.076</td><td class="num">1,106 <span class="mut">[786–1,654]</span></td><td class="num">-1.1004</td></tr><tr><td><span class="dot" style="background:#d97706"></span>pAMICA</td><td class="num">245s</td><td class="num">0.089</td><td class="num">3,000 <span class="mut">[151–3,000]</span></td><td class="num">-1.1204</td></tr><tr><td><span class="dot" style="background:#0d9488"></span>pyamica</td><td class="num">294s</td><td class="num">0.098</td><td class="num">3,000</td><td class="num">-1.0995</td></tr></tbody></table>
-  <p class="note">jamica has both the shortest wall time and the lowest cost per iteration
-  (~0.021&nbsp;s/iter vs 0.076–0.098 for the others). amica-python's short wall time is partly because
-  it early-converges and runs only ~1,100 of the 3000 iterations; pyamica runs the full 3000 every time
-  and lands at the highest final LL; pyamica is the longest wall time and pAMICA lands at the lowest LL.
-  "Faster" here means less wall time to its own stopping point — not necessarily a better or
-  equally-finished decomposition. As a separate illustration of how far one setting sits from an
-  implementation's best, pAMICA's <code>block_size</code> spans ~17× end to end:</p>
-  <table><thead><tr><th><code>block_size</code></th><th>Wall time</th><th>Peak VRAM (NVML)</th><th></th></tr></thead><tbody><tr><td><code>1024 (near 512 default)</code></td><td class="num">4086s</td><td class="num">1.83 GiB</td><td><span class="badge bad">near default</span></td></tr><tr><td><code>16384 (tuned)</code></td><td class="num">371s</td><td class="num">2.13 GiB</td><td><span class="badge ok">tuned</span></td></tr><tr><td><code>262144 = largest tested</code></td><td class="num">245s</td><td class="num">6.57 GiB</td><td><span class="badge best">largest tested</span></td></tr></tbody></table>
+  <h2>Wall time at matched 3000 iterations (GPU, largest chunk)</h2>
+  <p class="sub">Each implementation at chunk 262K on the H100 (per-subject median), <b>iteration-matched
+  to 3000</b> (early-stops disabled). Because every implementation now runs the full 3000 iterations,
+  <b>seconds/iteration × 3000 = wall time</b> and this ranking is a clean per-iteration-throughput
+  comparison — no early-stop confound. <b>Seconds/iteration</b> is still a descriptive per-iteration cost
+  (it folds in fixed/compile overhead, and the update rules differ, so it is not an isolated kernel
+  speed). "Iters run" is 3,000 for all four; "final LL" is where each landed at 3000 iterations.</p>
+  <table><thead><tr><th>Implementation</th><th>Wall time</th><th>s / iter</th><th>Iters run</th><th>Final LL (median)</th></tr></thead><tbody><tr><td><span class="dot" style="background:#6366f1"></span>jamica</td><td class="num">61s</td><td class="num">0.0203</td><td class="num">3,000</td><td class="num">-1.1005</td></tr><tr><td><span class="dot" style="background:#e11d48"></span>amica-python</td><td class="num">230s</td><td class="num">0.0768</td><td class="num">3,000</td><td class="num">-1.1002</td></tr><tr><td><span class="dot" style="background:#d97706"></span>pAMICA</td><td class="num">262s</td><td class="num">0.0875</td><td class="num">3,000</td><td class="num">-1.1107</td></tr><tr><td><span class="dot" style="background:#0d9488"></span>pyamica</td><td class="num">296s</td><td class="num">0.0986</td><td class="num">3,000</td><td class="num">-1.0995</td></tr></tbody></table>
+  <p class="note">jamica has both the shortest wall time and by far the lowest cost per iteration
+  (~0.020&nbsp;s/iter vs 0.077–0.099 for the others — ~4–5× faster per iteration). At matched iterations
+  pyamica is the longest wall time (and lands at the highest final LL), pAMICA is close behind on time but
+  lands ~0.011 nats lower, and amica-python sits in between. Equal iterations is not proof of equal
+  solutions — but with the budget matched, the wall-time differences here are per-iteration speed, not
+  early stopping. As a separate illustration of how far one setting sits from an implementation's best,
+  pAMICA's <code>block_size</code> spans ~16× end to end:</p>
+  <table><thead><tr><th><code>block_size</code></th><th>Wall time</th><th>Peak VRAM (NVML)</th><th></th></tr></thead><tbody><tr><td><code>1024 (near 512 default)</code></td><td class="num">4156s</td><td class="num">1.82 GiB</td><td><span class="badge bad">near default</span></td></tr><tr><td><code>16384 (tuned)</code></td><td class="num">393s</td><td class="num">2.13 GiB</td><td><span class="badge ok">tuned</span></td></tr><tr><td><code>262144 = largest tested</code></td><td class="num">262s</td><td class="num">6.54 GiB</td><td><span class="badge best">largest tested</span></td></tr></tbody></table>
   <p class="note">pAMICA's shipped default is <code>block_size=512</code>, not re-measured here; the
-  nearest tested point, 1024, is already ~17× off its fastest tested setting. (jamica's own shipped
+  nearest tested point, 1024, is already ~16× off its fastest tested setting. (jamica's own shipped
   default — <code>chunk_size=None</code>, the full-batch path — is discussed in the memory note; it was
   not the path swept here.)</p>
 </section>
 
 <section>
-  <h2>Time to comparable quality — the convergence-matched speed view</h2>
-  <p class="sub">The fixed-budget wall times above conflate per-iteration speed with how many iterations
-  each implementation runs. This view removes that confound: for each subject we take the <b>best final
-  log-likelihood any implementation reached</b>, and measure the wall time each one needs to get within
-  <b>1e-3</b> of it (iterations-to-target × measured s/iter, from the recorded per-iteration LL history —
-  no extra GPU runs). It is immune to the heterogeneous early-stop, because it targets a fixed
-  <em>quality</em>, not a fixed iteration count.</p>
-  <div class="grid2"><div class="card"><figure class="cf"><figcaption>real ds004505 · H100 · wall-s to reach within 1e-3 of the best final LL · per-subject median · ◯ = fastest setting</figcaption><svg viewBox="0 0 520 340" class="chart" role="img" aria-label="GPU · time to comparable quality vs chunk"><text x="56" y="16" class="ct">GPU · time to comparable quality vs chunk</text><text x="56" y="334" class="cx">chunk / block size (samples) →</text><text transform="translate(14,160.0) rotate(-90)" class="cy">time to comparable quality (s, log)</text><line x1="56" y1="294.0" x2="506" y2="294.0" class="grid"/><text x="50" y="297.0" class="cyt">5</text><line x1="56" y1="257.5" x2="506" y2="257.5" class="grid"/><text x="50" y="260.5" class="cyt">10</text><line x1="56" y1="221.1" x2="506" y2="221.1" class="grid"/><text x="50" y="224.1" class="cyt">20</text><line x1="56" y1="173.0" x2="506" y2="173.0" class="grid"/><text x="50" y="176.0" class="cyt">50</text><line x1="56" y1="136.6" x2="506" y2="136.6" class="grid"/><text x="50" y="139.6" class="cyt">100</text><line x1="56" y1="100.1" x2="506" y2="100.1" class="grid"/><text x="50" y="103.1" class="cyt">200</text><line x1="56" y1="52.0" x2="506" y2="52.0" class="grid"/><text x="50" y="55.0" class="cyt">500</text><line x1="76.5" y1="32" x2="76.5" y2="288" class="grid vg"/><text x="76.5" y="304" class="cxt">1K</text><line x1="178.7" y1="32" x2="178.7" y2="288" class="grid vg"/><text x="178.7" y="304" class="cxt">4K</text><line x1="281.0" y1="32" x2="281.0" y2="288" class="grid vg"/><text x="281.0" y="304" class="cxt">16K</text><line x1="383.3" y1="32" x2="383.3" y2="288" class="grid vg"/><text x="383.3" y="304" class="cxt">64K</text><line x1="485.5" y1="32" x2="485.5" y2="288" class="grid vg"/><text x="485.5" y="304" class="cxt">262K</text><path d="M76.5,143.6 L178.7,204.2 L281.0,250.7 L383.3,264.9 L485.5,276.3" fill="none" stroke="#6366f1" stroke-width="2.4"/><circle cx="76.5" cy="143.6" r="3" fill="#6366f1"/><circle cx="178.7" cy="204.2" r="3" fill="#6366f1"/><circle cx="281.0" cy="250.7" r="3" fill="#6366f1"/><circle cx="383.3" cy="264.9" r="3" fill="#6366f1"/><circle cx="485.5" cy="276.3" r="3" fill="#6366f1"/><circle cx="485.5" cy="276.3" r="6" fill="none" stroke="#6366f1" stroke-width="2"/><path d="M76.5,43.7 L178.7,116.6 L281.0,175.1 L383.3,196.9 L485.5,207.3" fill="none" stroke="#e11d48" stroke-width="2.4"/><circle cx="76.5" cy="43.7" r="3" fill="#e11d48"/><circle cx="178.7" cy="116.6" r="3" fill="#e11d48"/><circle cx="281.0" cy="175.1" r="3" fill="#e11d48"/><circle cx="383.3" cy="196.9" r="3" fill="#e11d48"/><circle cx="485.5" cy="207.3" r="3" fill="#e11d48"/><circle cx="485.5" cy="207.3" r="6" fill="none" stroke="#e11d48" stroke-width="2"/><path d="M76.5,87.2 L178.7,160.6 L281.0,187.0 L383.3,191.1 L485.5,198.8" fill="none" stroke="#0d9488" stroke-width="2.4"/><circle cx="76.5" cy="87.2" r="3" fill="#0d9488"/><circle cx="178.7" cy="160.6" r="3" fill="#0d9488"/><circle cx="281.0" cy="187.0" r="3" fill="#0d9488"/><circle cx="383.3" cy="191.1" r="3" fill="#0d9488"/><circle cx="485.5" cy="198.8" r="3" fill="#0d9488"/><circle cx="485.5" cy="198.8" r="6" fill="none" stroke="#0d9488" stroke-width="2"/></svg></figure></div>
-  <div class="card"><table><thead><tr><th>@ 262K</th><th>time→quality</th><th>iters</th><th>reached</th></tr></thead><tbody><tr><td><span class="dot" style="background:#6366f1"></span>jamica</td><td class="num">7s</td><td class="num">362</td><td class="num">20/20</td></tr><tr><td><span class="dot" style="background:#e11d48"></span>amica-python</td><td class="num">26s</td><td class="num">314</td><td class="num">23/25</td></tr><tr><td><span class="dot" style="background:#0d9488"></span>pyamica</td><td class="num">31s</td><td class="num">316</td><td class="num">25/25</td></tr><tr><td><span class="dot" style="background:#d97706"></span>pAMICA</td><td class="num">119s</td><td class="num">1,355</td><td class="num">1/25</td></tr></tbody></table>
-  <p class="note" style="padding:0 6px">"reached" = subjects (of those run) that got within 1e-3 of the
-  best LL. jamica, amica-python and pyamica reach it on essentially all subjects; <b>pAMICA reaches it on
-  only 1/25</b> (at every chunk) — it converges to a meaningfully lower LL — so its curve is not plotted
-  (the single-subject median would mislead).</p></div></div>
-  <div class="legend"><span class="lg"><i style="background:#6366f1"></i>jamica <code>chunk_size</code> <span class="cm">@df18b5e</span></span><span class="lg"><i style="background:#e11d48"></i>amica-python <code>batch_size</code> <span class="cm">@e15e158</span></span><span class="lg"><i style="background:#0d9488"></i>pyamica <code>chunk_t</code> <span class="cm">@a8a4d7e</span></span></div>
+  <h2>Convergence vs iterations — the measured iteration ladder</h2>
+  <p class="sub">A direct, <em>measured</em> convergence view (not a post-hoc estimate): at a fixed chunk
+  (65536) with early-stops disabled, we ran every implementation to 100, 250, 500, 1000, 2000 and 3000
+  iterations and recorded the median final log-likelihood at each — all 25 subjects at every point. This
+  shows how fast each implementation's <em>solution quality</em> improves with iterations, orthogonal to
+  the per-iteration wall-time above.</p>
+  <table><thead><tr><th>Implementation</th><th class="num">LL@100</th><th class="num">@250</th><th class="num">@500</th><th class="num">@1000</th><th class="num">@2000</th><th class="num">@3000</th><th class="num">wall@3000</th></tr></thead><tbody><tr><td><span class="dot" style="background:#6366f1"></span>jamica</td><td class="num">-1.1120</td><td class="num">-1.1050</td><td class="num">-1.1013</td><td class="num">-1.1006</td><td class="num">-1.1005</td><td class="num">-1.1005</td><td class="num">71s</td></tr><tr><td><span class="dot" style="background:#0d9488"></span>pyamica</td><td class="num">-1.1152</td><td class="num">-1.1044</td><td class="num">-1.1005</td><td class="num">-1.0999</td><td class="num">-1.0996</td><td class="num">-1.0995</td><td class="num">339s</td></tr><tr><td><span class="dot" style="background:#e11d48"></span>amica-python</td><td class="num">-1.1154</td><td class="num">-1.1050</td><td class="num">-1.1028</td><td class="num">-1.1007</td><td class="num">-1.1006</td><td class="num">-1.1006</td><td class="num">303s</td></tr><tr><td><span class="dot" style="background:#d97706"></span>pAMICA</td><td class="num">-1.1293</td><td class="num">-1.1202</td><td class="num">-1.1179</td><td class="num">-1.1151</td><td class="num">-1.1122</td><td class="num">-1.1107</td><td class="num">320s</td></tr></tbody></table>
   <ul class="tk" style="margin-top:16px">
-    <li><b>jamica reaches comparable quality ~3–9× faster</b> than the next implementation at every chunk
-    (e.g. at 262K: 7&nbsp;s vs 26&nbsp;s / 31&nbsp;s), and it does so in ~360 iterations. This is the
-    firmest speed statement in the report: it is not an artifact of anyone's early-stop, and it agrees
-    with the per-iteration (s/iter) ranking.</li>
-    <li><b>amica-python and pyamica are close</b> on this metric (~26–31&nbsp;s at 262K); amica-python's
-    short <em>fixed-budget</em> wall time earlier was mostly its loose stop firing at ~1,100 iterations,
-    not a faster kernel.</li>
-    <li><b>pAMICA does not reach the shared quality</b> on 24/25 subjects — a solution-quality gap
-    (~0.007 nats paired), not a speed one; forcing it to more iterations does not close it.</li>
+    <li><b>jamica converges fastest in both iterations and wall time.</b> It is within ~0.001 nats of its
+    own final LL by ~500 iterations (−1.1013 at 500 → −1.1005 at 3000), and because it is ~4–5× cheaper
+    per iteration it gets there in ~14&nbsp;s — versus ~51–57&nbsp;s for the others to run the same 500
+    iterations.</li>
+    <li><b>pyamica reaches the best (least-negative) reported LL</b> (−1.0995) but uses most of the budget to squeeze the last
+    fraction; amica-python tracks it and plateaus around −1.1006.</li>
+    <li><b>pAMICA stays ~0.011 nats lower across the whole ladder.</b> Its LL climbs from −1.1293 (100) to
+    −1.1107 (3000) but never reaches the other three's ~−1.100. It is <em>still improving</em> at the end
+    (~0.0016 nats over the last 1000 iters, vs ≤0.0001 for the others), so this is a genuine
+    convergence-quality gap at matched iterations — not an early-stop artifact. We did not run past 3000, so
+    the honest claim is that the gap persists through 3000 and is not closing at any practical budget, not
+    that it can never close.</li>
   </ul>
 </section>
 
@@ -191,7 +188,7 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
     <li><b>One setting failed:</b> pyamica at 1024 (hundreds–thousands of eager blocks/iter) exceeded the
     12&nbsp;h wall — absent from the curve.</li>
   </ul>
-  <div class="warn-box" style="margin-top:14px"><b>On the CPU numbers.</b> Two confounds, both disclosed
+  <div class="warn-box" style="margin-top:14px"><b>On the CPU numbers.</b> Three confounds, all disclosed
   here: (1) <b>contention</b> — CPU fits ran on shared cluster nodes, AMICA is memory-bandwidth-bound,
   and the cluster was busy throughout (no quiet window), which is why the p25–p75 bands are wide;
   (2) <b>unequal subject coverage</b> — cells contain 1–5 subjects (see the <code>*n</code> marks), so a
@@ -200,7 +197,15 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   as unresolved — only the broad device flip is trustworthy. CPU memory scales with chunk (and with
   recording length). Fortran is single-threaded (<code>OMP_NUM_THREADS=1</code>); per core-second it is
   actually more efficient than the 8-thread Python impls, so it is a reference footprint, not a
-  head-to-head. Detail + per-cell data: <code>NOTES_measurement.md</code>, <code>raw/</code>.</div>
+  head-to-head. And (3) <b>these CPU fits are not iteration-matched</b> — unlike the GPU section above, they
+  used each implementation's own early-stop under a 1000-iteration cap, so CPU wall times are not directly
+  per-iteration-comparable and are read only for the coarse device flip. Detail + per-cell data:
+  <code>NOTES_measurement.md</code>, <code>raw/</code>.</div>
+  <div class="info-box"><b>A contention-free, iteration-matched CPU re-run is in progress.</b> The CPU
+  numbers above are from the earlier shared-cluster run (contended, unequal subject coverage, early-stop
+  on). A clean re-run — <b>whole-node exclusive</b> (one fit per node, so no memory-bandwidth contention),
+  <b>iteration-matched</b> (early-stops disabled), all 25 subjects — is currently executing on the Narval
+  cluster and will replace this section when complete.</div>
 </section>
 
 <section>
@@ -211,13 +216,24 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   the driver actually holds, and the two frameworks count differently, so they are <b>not comparable
   across implementations</b> and understate the real footprint by <b>~1.2–3.3×</b> across the 25
   measured impl×chunk pairs (all in <code>raw/chunk_gpumem_summary.csv</code>) — e.g. jamica chunked
-  1.94&nbsp;GiB allocator vs 5.37&nbsp;GiB NVML =
-  2.8× at the small end, pyamica@262K 1.2× at the large end (the
-  gap shrinks as live tensors grow to dominate the fixed context). The charts use
+  ~1.6&nbsp;GiB allocator vs ~5.3&nbsp;GiB NVML ≈ 3.3× at small chunks, shrinking to pyamica@262K ~1.2× at
+  the largest chunk (the gap shrinks as live tensors grow to dominate the fixed context + pool overhead). The charts use
   <b>NVML whole-GPU 'used'</b> on a dedicated GPU. Two caveats on that meter: it is a 50&nbsp;ms poll (a
   sub-interval spike could be missed), and the frameworks run under different allocator settings (JAX
   with pre-allocation off; torch with its caching allocator on), so NVML is a neutral <em>meter</em>
   over somewhat different <em>protocols</em>.</div>
+  <div class="grid2" style="margin:10px 0 6px"><div class="card"><figure class="cf"><figcaption>dark = context floor (measured, before model+data) · mid = allocator live-tensor peak · light = remaining NVML (JAX pool / resident data / overhead) · number = NVML total</figcaption><svg viewBox="0 0 520 210" class="chart" role="img" aria-label="GPU memory decomposition at chunk 262K"><text x="8" y="16" class="ct">GPU memory decomposition · chunk 262K · median</text><line x1="94.0" y1="30" x2="94.0" y2="180" class="grid vg"/><text x="94.0" y="194" class="cxt">0</text><line x1="160.6" y1="30" x2="160.6" y2="180" class="grid vg"/><text x="160.6" y="194" class="cxt">2</text><line x1="227.2" y1="30" x2="227.2" y2="180" class="grid vg"/><text x="227.2" y="194" class="cxt">4</text><line x1="293.8" y1="30" x2="293.8" y2="180" class="grid vg"/><text x="293.8" y="194" class="cxt">6</text><line x1="360.4" y1="30" x2="360.4" y2="180" class="grid vg"/><text x="360.4" y="194" class="cxt">8</text><line x1="427.0" y1="30" x2="427.0" y2="180" class="grid vg"/><text x="427.0" y="194" class="cxt">10</text><line x1="493.6" y1="30" x2="493.6" y2="180" class="grid vg"/><text x="493.6" y="194" class="cxt">12</text><text x="94" y="206" class="cx">GiB →</text><text x="86" y="53.4" class="cyt">pyamica</text><rect x="94" y="39.4" width="363.6" height="18.75" fill="#0d9488" opacity="0.14"/><rect x="94" y="39.4" width="36.0" height="18.75" fill="#0d9488" opacity="0.9"/><rect x="130.0" y="39.4" width="299.0" height="18.75" fill="#0d9488" opacity="0.45"/><text x="461.6" y="53.4" class="cxt" style="text-anchor:start">10.9</text><text x="86" y="90.9" class="cyt">pAMICA</text><rect x="94" y="76.9" width="217.8" height="18.75" fill="#d97706" opacity="0.14"/><rect x="94" y="76.9" width="36.0" height="18.75" fill="#d97706" opacity="0.9"/><rect x="130.0" y="76.9" width="164.8" height="18.75" fill="#d97706" opacity="0.45"/><text x="315.8" y="90.9" class="cxt" style="text-anchor:start">6.5</text><text x="86" y="128.4" class="cyt">amica-python</text><rect x="94" y="114.4" width="162.8" height="18.75" fill="#e11d48" opacity="0.14"/><rect x="94" y="114.4" width="36.0" height="18.75" fill="#e11d48" opacity="0.9"/><rect x="130.0" y="114.4" width="109.2" height="18.75" fill="#e11d48" opacity="0.45"/><text x="260.8" y="128.4" class="cxt" style="text-anchor:start">4.9</text><text x="86" y="165.9" class="cyt">jamica</text><rect x="94" y="151.9" width="178.8" height="18.75" fill="#6366f1" opacity="0.14"/><rect x="94" y="151.9" width="34.0" height="18.75" fill="#6366f1" opacity="0.9"/><rect x="128.0" y="151.9" width="64.3" height="18.75" fill="#6366f1" opacity="0.45"/><text x="276.8" y="165.9" class="cxt" style="text-anchor:start">5.4</text></svg></figure></div>
+  <div class="card"><table><thead><tr><th>@ 262K</th><th class="num">context</th><th class="num">live-alloc</th><th class="num">NVML total</th><th class="num">NVML÷alloc</th></tr></thead><tbody><tr><td><span class="dot" style="background:#6366f1"></span>jamica</td><td class="num">1.02</td><td class="num">1.93</td><td class="num">5.37</td><td class="num">2.8×</td></tr><tr><td><span class="dot" style="background:#0d9488"></span>pyamica</td><td class="num">1.08</td><td class="num">8.98</td><td class="num">10.92</td><td class="num">1.2×</td></tr><tr><td><span class="dot" style="background:#d97706"></span>pAMICA</td><td class="num">1.08</td><td class="num">4.95</td><td class="num">6.54</td><td class="num">1.3×</td></tr><tr><td><span class="dot" style="background:#e11d48"></span>amica-python</td><td class="num">1.08</td><td class="num">3.28</td><td class="num">4.89</td><td class="num">1.5×</td></tr></tbody></table>
+  <p class="note" style="padding:0 6px">Measured medians (GiB) across 25 subjects: <b>context</b> = whole-GPU
+  used right after the CUDA context is forced, before model/data; <b>live-alloc</b> = framework allocator
+  live-tensor peak; <b>NVML total</b> = whole-GPU peak. <b>This pre-fit baseline is ~1&nbsp;GiB for all
+  four</b> (JAX 1.02, torch 1.08) — essentially equal. It is measured before the fit, so any kernel/cuDNN
+  state loaded lazily during fitting falls into the remainder below, not this baseline; we therefore claim
+  only that the measured <em>pre-fit</em> floor does not differ across frameworks, not that the complete
+  fixed framework context is ~1&nbsp;GiB. What differs is the resident/pool memory: torch's NVML ≈ baseline
+  + its live/reserved pool (and scales with chunk), whereas jamica's allocator peak stays small (~1.9)
+  while its NVML is ~5.4 — JAX holds a larger, chunk-independent resident/pool footprint the allocator
+  counter undercounts most.</p></div></div>
   <p class="note"><b>jamica memory is two-level, and it cuts both ways.</b> On its chunked path jamica's
   median NVML is ~5.4&nbsp;GiB across chunk sizes (per-subject ~3.4–5.4&nbsp;GiB below 262K, rising to
   5.4–7.4&nbsp;GiB at 262K for the longest recordings — flat in the median
@@ -225,7 +241,8 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   (<code>chunk_size=None</code> — a different orchestrator key, and jamica's shipped default) uses
   ~13.4&nbsp;GiB NVML median (per-subject up to ~21 for
   the longest recording) for essentially the <b>same GPU speed</b> (~0.020 vs
-  ~0.021&nbsp;s/iter, same run — no chunk benefit on GPU). On CPU, chunking helps
+  ~0.020&nbsp;s/iter — no chunk benefit on GPU; the full-batch figure is from the earlier
+  memory run). On CPU, chunking helps
   <em>both</em> axes (~1,985&nbsp;s /
   ~2.2&nbsp;GiB chunked vs ~4,300&nbsp;s /
   ~20&nbsp;GiB full-batch). So under these tested conditions a wrapper should pass
@@ -235,34 +252,41 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   from H100 NVML with JAX pre-allocation off; it was not measured on such a card.)</p>
   <div class="info-box"><b>"Flat jamica memory" is not the earlier full-batch measurement bug.</b> Flat
   memory was the signature of a fixed bug where jamica was accidentally run full-batch at every chunk, so
-  we checked. Two things rule it out here: (1) jamica's <b>fit time varies ~12× with the chunk</b>
-  (763&nbsp;s→62&nbsp;s) — only possible if the chunk is actually applied; the true full-batch path is
+  we checked. Two things rule it out here: (1) jamica's <b>fit time varies ~13× with the chunk</b>
+  (775&nbsp;s→61&nbsp;s) — only possible if the chunk is actually applied; the true full-batch path is
   chunk-<em>independent</em> in time too (~61&nbsp;s at every chunk). (2) The chunked path's memory
   (~5.4&nbsp;GiB NVML / ~1.9&nbsp;GiB allocator) is less than half the full-batch path's
   (~13.4&nbsp;/&nbsp;8.2&nbsp;GiB) — different numbers, different
   code path (both in <code>raw/chunk_gpumem_summary.csv</code>). The chunked NVML is flat because of what
-  it's made of: ~3.8&nbsp;GiB is the fixed CUDA/cuDNN context (chunk-independent, on any JAX GPU job) and
-  ~1.9&nbsp;GiB is live tensors <em>dominated by chunk-independent full-width arrays</em>
-  (data, sources, per-sample buffers sized by <code>n_samples</code>); the chunk-scaled E-step block buffer
-  is small next to those until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
+  it's made of: the measured context floor is only ~1&nbsp;GiB (chunk-independent, and about the same for
+  JAX and torch — see the decomposition above), and the rest of the ~5.4&nbsp;GiB is JAX's memory pool plus
+  <em>chunk-independent resident arrays</em> (the whitened data and source outputs, sized by
+  <code>n_samples</code>); the framework allocator counter (<code>peak_bytes_in_use</code>
+  ~1.9&nbsp;GiB) undercounts that resident/pooled footprint the most for JAX, which is
+  why jamica's NVML sits far above its allocator peak. The chunk-scaled E-step block buffer is small next
+  to the resident arrays until 262K, where it begins to add (allocator 1.6→1.9&nbsp;GiB; per-subject NVML
   up to ~7.4). So chunk is a real <em>time</em> dial for jamica but not a GPU-<em>memory</em> dial — a
   genuine property of the chunked path, distinct from the full-batch key. <b>And it is by design, not a
   leak:</b> the chunked E-step accumulates small per-chunk sufficient statistics
   (<code>O(n_comp²)</code>) and never materialises the full-width <code>(n_comp, n_samples)</code>
-  per-sample tensors — those appear only on the full-batch path. So the ~1.6&nbsp;GiB of live tensors is
-  the resident whitened data + accumulators (not avoidable per-sample arrays), and the rest of the
-  ~5.4&nbsp;GiB is the fixed JAX/CUDA runtime. Chunking bounds the working set as intended; it simply
-  can't go below the data + framework-context floor.</div>
+  per-sample tensors — those appear only on the full-batch path. Of the ~5.4&nbsp;GiB whole-GPU NVML, only
+  ~1&nbsp;GiB is the measured pre-fit context floor and ~1.6&nbsp;GiB is the allocator's live-tensor peak
+  (resident whitened data + accumulators); the remaining ~2.4&nbsp;GiB is JAX pool / resident bytes the
+  allocator counter does not report / post-init runtime, which we do not separate further — it is
+  chunk-independent (see the decomposition above). Chunking bounds the chunk-scaled working set as
+  intended; it simply cannot go below that context + pool + resident-data floor (which is <em>not</em> a
+  ~3.8&nbsp;GiB context — the context alone is ~1&nbsp;GiB).</div>
 </section>
 
 <footer>
   <div class="kick" style="color:var(--mut)">Provenance &amp; reproduction</div>
   <dl class="prov">
     <dt>Dataset</dt><dd>ds004505 · 64 PCA components · 785,328–1,364,633 samples/subject</dd>
-    <dt>GPU fit @3000</dt><dd>/scratch/yorguin/iter_ladder/gpu/c&lt;chunk&gt;_i3000/ → raw/chunk_gpu3000_*.csv (Trillium H100, 20-25 subj/cell)</dd>
-    <dt>GPU memory (NVML+alloc)</dt><dd>raw/chunk_gpumem_*.csv (iteration-independent; jamica-chunked from the i3000 run, torch impls + jamica-fullbatch from i1000; nvml_min/max = per-subject range)</dd>
-    <dt>CPU @1000</dt><dd>/scratch/yorguin/iter_ladder/cpu/c&lt;chunk&gt;_i1000_r&lt;rep&gt;/ → raw/chunk_cpu1000_*.csv (fir 8 cores; by-subject median; n_subjects in the summary)</dd>
-    <dt>Budget</dt><dd>GPU 3000-iter cap · CPU 1000-iter cap (memory is iteration-independent; time is not)</dd>
+    <dt>GPU fit @3000 (matched)</dt><dd>iteration-matched, early-stops disabled → raw/nostop_gpu3000_summary.csv (Trillium H100, 25 subj/cell, all n_iter=3000)</dd>
+    <dt>GPU convergence ladder</dt><dd>raw/nostop_ladder_i(100, 250, 500, 1000, 2000, 3000)_summary.csv (chunk 65536, all 25 subj, early-stops disabled)</dd>
+    <dt>GPU memory (NVML+alloc)</dt><dd>raw/chunk_gpumem_*.csv + raw/nostop_gpumem_summary.csv (iteration-independent; per-chunk NVML also confirmed by the matched i3000 run; nvml_min/max = per-subject range; full-batch key from the prior memory run)</dd>
+    <dt>CPU @1000 (earlier)</dt><dd>raw/chunk_cpu1000_*.csv (fir 8 cores; by-subject median; n_subjects in the summary; NOT iteration-matched — superseded by the Narval re-run in progress)</dd>
+    <dt>Budget</dt><dd>GPU 3000-iter MATCHED (early-stops disabled, all impls run full 3000) · CPU 1000-iter (earlier run, each impl's early-stop on) · memory is iteration-independent</dd>
     <dt>jamica path</dt><dd>amica_python_jax_chunked (chunked); full-batch key amica_python_jax in the memory note only</dd>
     <dt>Units</dt><dd>memory in GiB (bytes / 1024³); times in seconds; GPU per-subject median, CPU by-subject median</dd>
     <dt>Commits</dt><dd>jamica df18b5e · amica-python e15e158 · pyamica a8a4d7e · pAMICA 0c4da39 · Fortran 665b577</dd>

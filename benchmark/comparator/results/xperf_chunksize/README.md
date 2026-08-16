@@ -23,11 +23,14 @@ deliverable; everything else here regenerates or backs it.
    (per-subject 3.4–5.4 GiB, rising to 5.4–7.4 at 262K for the longest recordings).
 2. **The fastest setting flips by device** — large chunks win on GPU, small/mid on CPU (a cache
    effect). A single recommended value is wrong for the other device.
-3. **Fit times are wall time to a fixed iteration budget (GPU 3000 / CPU 1000), NOT time to an
-   equivalent solution.** The implementations run very different actual iteration counts within that
-   budget (e.g. on GPU at the largest chunk: pyamica always 3000, amica-python 786–1654, pAMICA
-   151–3000) and reach final log-likelihoods in a tight but non-identical band. The report shows
-   `n_iter` and `ll_final` alongside time; read them together.
+3. **The GPU fits are iteration-matched (early-stops disabled → all run the full 3000 iterations),** so
+   GPU wall time is directly per-iteration-comparable (s/iter × 3000 = wall). Final log-likelihoods sit in
+   a tight but non-identical band (three within ~0.001 nats; pAMICA ~0.011 nats lower — a genuine
+   convergence-quality gap at matched iterations, still slowly improving at 3000, beyond which was not
+   tested). This is not proof of numerically equivalent decompositions (no component matching this pass).
+   **The CPU section is the earlier, non-iteration-matched, contended run** (1000-iter cap, each impl's
+   early-stop on) — read only for the coarse device flip; a contention-free whole-node iteration-matched
+   CPU re-run is in progress on Narval.
 
 ## Measurement corrections baked into this version
 - **NVML is the headline VRAM** (framework-neutral whole-GPU peak). Per-framework allocator counters

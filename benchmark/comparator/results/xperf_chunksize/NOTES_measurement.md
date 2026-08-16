@@ -66,27 +66,29 @@ resolved**; only the broad small/mid-vs-large device flip is trustworthy. `pyami
 Trust the **curve shapes, the device flip, and NVML memory**; do not lean on exact CPU seconds or the
 exact winning chunk.
 
-## Iteration budget ≠ equal work ≠ convergence (read the fit times with `n_iter` + `ll_final`)
-The fit-time comparison is **wall time to a fixed iteration cap** (GPU 3000 / CPU 1000), not time to an
-equivalent solution. The result JSONs record the *actual* iterations run (`n_iter`) and the final
-log-likelihood (`ll_final`); aggregated in `raw/chunk_{gpu3000,cpu1000}_summary.csv`. On GPU at the
-largest chunk (262144) the implementations use the budget very differently:
+## GPU is iteration-matched; CPU (earlier run) is not
+The GPU fit-time comparison was re-run **iteration-matched**: every implementation's early-stops were
+disabled, so all run the full 3000 iterations (`raw/nostop_gpu3000_summary.csv`, `n_iter_min = median =
+max = 3000`, 25 subj/cell). GPU wall time is therefore directly per-iteration-comparable
+(s/iter × 3000 = wall). On GPU at the largest chunk (262144):
 
-| impl | wall time | s/iter | iters run: median [min–max] | ll_final (median) |
-|------|----------:|-------:|-----------------------------|------------------:|
-| jamica  |  62 s | 0.021 | 3000 [2572–3000] | −1.1016 |
-| amica-python | 79 s | 0.076 | 1106 [786–1654] (early-converges) | −1.1004 |
-| pAMICA | 245 s | 0.089 | 3000 [151–3000] (early-stop can fire very early) | −1.1204 (lowest) |
-| pyamica | 294 s | 0.098 | 3000 [3000–3000] (always full cap) | −1.0995 (highest) |
+| impl | wall time | s/iter | iters run | ll_final (median) |
+|------|----------:|-------:|-----------|------------------:|
+| jamica  |  61 s | 0.0203 | 3000 | −1.1005 |
+| amica-python | 230 s | 0.0768 | 3000 | −1.1002 |
+| pAMICA | 262 s | 0.0875 | 3000 | −1.1107 (lowest) |
+| pyamica | 296 s | 0.0986 | 3000 | −1.0995 (highest) |
 
-So a shorter wall time can mean a faster implementation (jamica also has the lowest s/iter), an earlier
-stop, or fewer iterations — not necessarily a better or equally-finished decomposition. The final LLs
-sit in a tight band (−1.0995 to −1.1204), which is *evidence of roughly comparable* fits but not proof
-of numerically equivalent
-decompositions (component matching against the Fortran reference was not run this pass). The report now
-shows `n_iter` and `ll_final` next to the wall time and frames the table as "wall time to the budget,"
-not a speed verdict. On CPU almost every cell runs the full 1000 iterations (pAMICA@1024 sometimes
-early-stops at 491), so the CPU comparison is more iteration-matched than the GPU one.
+At matched iterations jamica is fastest per iteration by ~4–5×. Three impls land within ~0.001 nats
+(−1.0995 to −1.1005); pAMICA is ~0.011 nats lower and — per the measured iteration ladder
+(`raw/nostop_ladder_i*_summary.csv`) — is still slowly improving at 3000 (~0.0016/1000 iters) but far
+short of the others: a genuine convergence-quality gap at matched iterations, not an early-stop artifact
+(beyond 3000 was not tested). These are *reported* LLs; component matching against the Fortran reference
+was not run this pass, so this is not proof of numerically equivalent decompositions.
+
+The **CPU** section of the report is the EARLIER, non-iteration-matched run (1000-iter cap, each impl's own
+early-stop ON, contended cluster) — read only for the broad device flip. A contention-free, whole-node
+exclusive, iteration-matched CPU re-run (all 25 subjects) is in progress on Narval and will supersede it.
 
 ## "Largest tested chunk," not full-batch
 `FULL = 262144` in the generator is the **largest chunk tested**, not a single full-batch pass:
