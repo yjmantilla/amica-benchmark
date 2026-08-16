@@ -270,7 +270,7 @@ c_gv=chart(gpu_v,None,"peak VRAM · NVML (GiB)",False,"GPU · memory vs chunk","
 c_cr=chart(CPU_RSS,None,"peak RSS (GiB)",False,"CPU · memory vs chunk","real ds004505 · 8 cores · by-subject median RSS",CPU_CHART,"leanest")
 c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 8 cores · 1000-iter budget · by-subject median",CPU_CHART,"fastest observed (per-cell optimum unresolved)")
 # GPU memory decomposition, 2x2 vs chunk (context / allocator-live / NVML total / NVML÷allocator)
-c_mctx=chart(MEM_CTX,None,"context floor · pre-fit NVML (GiB)",False,"GPU · context floor vs chunk","measured before model+data · per-subj median",IMPLS,"leanest")
+c_mctx=chart(MEM_CTX,None,"context floor · pre-fit NVML (GiB)",False,"GPU · context floor vs chunk","before model+data · median · the 3 torch impls coincide at ~1.08 (one line), jamica ~1.02 — flat &amp; framework-agnostic",IMPLS,"leanest")
 c_mliv=chart(MEM_LIVE,None,"allocator live peak (GiB)",False,"GPU · allocator live-tensor vs chunk","framework peak_bytes_in_use · per-subj median",IMPLS,"leanest")
 c_mtot=chart(gpu_v,None,"NVML whole-GPU peak (GiB)",False,"GPU · NVML total vs chunk","framework-neutral whole-GPU peak · per-subj median",IMPLS,"leanest")
 MEM_RATIO={im:{c:round(gpu_v[im][c]/MEM_LIVE[im][c],2) for c in gpu_v[im]} for im in IMPLS}
