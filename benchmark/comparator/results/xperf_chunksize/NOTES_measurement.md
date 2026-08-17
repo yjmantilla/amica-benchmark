@@ -51,22 +51,21 @@ is higher than the torch impls' small-chunk footprint (~1.8–3.1 GiB NVML), so 
 impls at a small chunk fit where jamica may not; the "fits an 8–12 GiB card" reading is an extrapolation
 (H100 NVML, JAX pre-allocation off), not measured on such a card.
 
-## Corrected CPU campaign (contention, @1000, median-over-reps)
-The corrected CPU sweep ran at **1000 iterations** with **5 repetitions per cell as separate array
-tasks** and a background node-contention sampler. The cluster was **busy throughout** — the
-quiet-window filter (`node_busy_mean ≤ 25`) found essentially **no clean reps**. We therefore report the
-**by-subject median** (median within each subject over its reps, then the median across the subjects
-present) and treat absolute CPU seconds as **contention-inflated**. (This replaces the 100-iter draft's
-"best-of-5" statistic.) **Second confound: unequal subject coverage.** Cells contain 1–5 subjects
-(`n_subjects` in `raw/chunk_cpu1000_summary.csv`); in particular **Fortran is sub-01-only at 4 of 5
-chunks** (only 65536 has all five), and jamica@4096/65536 each drop one subject — so a cell missing the
-longest recording looks artificially fast. Because of both confounds the **exact per-cell optimum is not
-resolved**; only the broad small/mid-vs-large device flip is trustworthy. `pyamica@1024`
-(~767–1333 eager blocks/iter) exceeds the 12 h wall and is absent; nothing else OOMed at this budget.
-Trust the **curve shapes, the device flip, and NVML memory**; do not lean on exact CPU seconds or the
-exact winning chunk.
+## CPU campaign — whole-node exclusive, iteration-matched @250 (Narval)
+The CPU sweep was re-run on **Narval whole nodes (64-core Zen2), one fit per node (exclusive)** so there is
+**no memory-bandwidth contention**, **iteration-matched to 250** (early-stops disabled), **25 subjects**,
+all five implementations including the single-threaded Fortran reference
+(`raw/narval_nostop_i250_summary.csv`; per-subject median). Because each fit owned its node, the
+per-subject bands are tight and the **absolute seconds and per-cell optima are trustworthy** — this
+supersedes the earlier contended, unequal-coverage fir run. A few cells are at 23–24/25 while a small
+repair tops them up. Headline: **jamica is fastest on CPU too** (~756 s at the largest chunk), and **large
+chunks are fastest on CPU as well** (jamica 1269→756 s, amica-python 5027→1053 s from 1K→262K) — the same
+direction as the GPU, **overturning** the earlier "small/mid wins on CPU" flip, which was a contention
+artifact. Fortran (single-threaded) is a reference footprint, not a fair-thread comparison on a whole node.
+GPU and CPU iteration budgets differ (3000 vs 250) — do not compare GPU to CPU seconds. `pyamica@1024`,
+which timed out on the contended fir run, completes here (~3149 s).
 
-## GPU is iteration-matched; CPU (earlier run) is not
+## GPU is iteration-matched (and so is the CPU re-run)
 The GPU fit-time comparison was re-run **iteration-matched**: every implementation's early-stops were
 disabled, so all run the full 3000 iterations (`raw/nostop_gpu3000_summary.csv`, `n_iter_min = median =
 max = 3000`, 25 subj/cell). GPU wall time is therefore directly per-iteration-comparable
@@ -86,9 +85,9 @@ short of the others: a genuine convergence-quality gap at matched iterations, no
 (beyond 3000 was not tested). These are *reported* LLs; component matching against the Fortran reference
 was not run this pass, so this is not proof of numerically equivalent decompositions.
 
-The **CPU** section of the report is the EARLIER, non-iteration-matched run (1000-iter cap, each impl's own
-early-stop ON, contended cluster) — read only for the broad device flip. A contention-free, whole-node
-exclusive, iteration-matched CPU re-run (all 25 subjects) is in progress on Narval and will supersede it.
+The **CPU** section is now the whole-node exclusive, iteration-matched (250-iter) Narval run — clean
+absolutes across 25 subjects and all five implementations (see the CPU section above). It differs from the
+GPU only in iteration budget (250 vs 3000), so GPU and CPU seconds are not directly comparable.
 
 ## "Largest tested chunk," not full-batch
 `FULL = 262144` in the generator is the **largest chunk tested**, not a single full-batch pass:
