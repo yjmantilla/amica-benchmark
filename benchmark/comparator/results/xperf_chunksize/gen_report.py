@@ -36,6 +36,11 @@ import math, os, csv
 
 FULL = 262144                       # the LARGEST TESTED chunk (samples); NOT a full-batch pass.
 N_SAMP_MIN, N_SAMP_MAX = 785328, 1364633   # per-subject sample counts; 262144 = ~19-33% of a recording
+# per-subject sample counts (25 subjects, ds004505 @250 Hz) for the duration-distribution plot
+SUBJ_SAMPLES = [785328,1364633,1099796,1057036,1038926,1042909,1174503,1159910,1146679,1139466,1104857,
+                1111932,1120666,1129764,1105757,1151916,1119559,1155503,1117345,916388,1128361,1108947,
+                1053821,1146791,877574]
+SFREQ = 250.0
 IMPLS = ["jamica", "pamica", "pyamica", "amica_python"]
 LABEL = {"jamica":"jamica","pamica":"pAMICA","pyamica":"pyamica","amica_python":"amica-python"}
 KNOB  = {"jamica":"chunk_size","pamica":"block_size","pyamica":"chunk_t","amica_python":"batch_size","fortran":"block_size"}
@@ -203,6 +208,32 @@ def chart(series, band, ylab, ylog, title, sub, impls, mark, oom=None):
     s.append('</svg>')
     bandtxt = " · shaded = p25–p75" if band else ""
     cap=f'{sub}{bandtxt} · ◯ = {mark} setting'
+    return f'<figure class="cf"><figcaption>{cap}</figcaption>{"".join(s)}</figure>'
+
+def chart_durations():
+    vals=sorted(SUBJ_SAMPLES); n=len(vals); med=vals[n//2]
+    W,H=520,300; ml,mr,mt,mb=54,66,30,44; pw,ph=W-ml-mr,H-mt-mb
+    ymax=max(vals)*1.06
+    def Y(v): return mt+ph-v/ymax*ph
+    def X(i): return ml+(i+0.5)*pw/n
+    bw=pw/n*0.72
+    s=[f'<svg viewBox="0 0 {W} {H}" class="chart" role="img" aria-label="signal duration distribution">']
+    s.append(f'<text x="{ml-2}" y="16" class="ct">Signal duration per subject (25) vs chunk sizes</text>')
+    s.append(f'<text transform="translate(13,{mt+ph/2}) rotate(-90)" class="cy">samples (millions)</text>')
+    s.append(f'<text x="{ml}" y="{H-6}" class="cx">subjects, sorted by length →</text>')
+    t=0.0
+    while t<=ymax:
+        y=Y(t); s.append(f'<line x1="{ml}" y1="{y:.1f}" x2="{W-mr}" y2="{y:.1f}" class="grid"/>')
+        s.append(f'<text x="{ml-6}" y="{y+3:.1f}" class="cyt">{t/1e6:.2f}</text>'); t+=250000
+    for i,v in enumerate(vals):
+        s.append(f'<rect x="{X(i)-bw/2:.1f}" y="{Y(v):.1f}" width="{bw:.1f}" height="{mt+ph-Y(v):.1f}" fill="#6366f1" opacity="0.5"/>')
+    for c,lab in [(65536,"64K"),(262144,"262K"),(1048576,"1M")]:
+        y=Y(c)
+        s.append(f'<line x1="{ml}" y1="{y:.1f}" x2="{W-mr}" y2="{y:.1f}" stroke="#e11d48" stroke-width="1.5" stroke-dasharray="4 3"/>')
+        s.append(f'<text x="{W-mr+3}" y="{y+3:.1f}" class="cxt" style="text-anchor:start;fill:#e11d48">{lab} ({c/med*100:.0f}%)</text>')
+    s.append('</svg>')
+    cap=(f'25 subjects, {N_SAMP_MIN/SFREQ/60:.0f}–{N_SAMP_MAX/SFREQ/60:.0f} min (median {med/SFREQ/60:.0f} min '
+         f'@{SFREQ:.0f} Hz). Dashed = tested chunk sizes as % of the median recording; full-batch = the whole bar.')
     return f'<figure class="cf"><figcaption>{cap}</figcaption>{"".join(s)}</figure>'
 
 def chart_iters(series, ylab, title, sub, impls, y0zero=True):
@@ -449,6 +480,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   is the largest chunk tested, <em>not</em> a single full-batch pass. We label that axis point
   <code>262K</code>, not "full-batch." True single-pass full-batch is a separate thing, discussed only
   for jamica in the memory note.</p>
+  <div class="card" style="max-width:560px;margin:8px 0 4px">{chart_durations()}</div>
 </section>
 
 <section>
