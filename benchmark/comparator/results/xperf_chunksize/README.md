@@ -10,7 +10,9 @@ deliverable; everything else here regenerates or backs it.
 - `gen_report.py` — generator + the single source of truth for the plotted medians (cross-checked
   against `raw/`). Re-run to regenerate the HTML + `chunk_sweep_data.csv`.
 - `chunk_sweep_data.csv` — tidy medians/IQR/convergence, regenerated from `gen_report.py`.
-- `raw/nostop_{gpu3000,gpumem,gpumem_decomp,ladder_i*}_summary.csv` (GPU, iteration-matched) and
+- `raw/nostop_{gpu3000,gpumem,gpumem_decomp,ladder_i*}_summary.csv` (GPU, iteration-matched),
+  `raw/nostop_gpu_ext_summary.csv` (GPU large-chunk / full-batch extension: 512K/1M/full, fit + all three
+  memory counters incl. reserved, 1M restricted to the 22 subjects >1M) and
   `raw/narval_nostop_i250_summary.csv` (CPU, whole-node exclusive, iteration-matched) — **the
   authoritative raw aggregates** the report is built from. The older `raw/chunk_{gpu3000,gpumem,cpu1000}_*`
   are the earlier (early-stop / contended) runs, retained for provenance only.
