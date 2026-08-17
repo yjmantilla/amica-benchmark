@@ -40,7 +40,7 @@ IMPLS = ["jamica", "pamica", "pyamica", "amica_python"]
 LABEL = {"jamica":"jamica","pamica":"pAMICA","pyamica":"pyamica","amica_python":"amica-python"}
 KNOB  = {"jamica":"chunk_size","pamica":"block_size","pyamica":"chunk_t","amica_python":"batch_size","fortran":"block_size"}
 COMMIT= {"jamica":"df18b5e","pamica":"0c4da39","pyamica":"a8a4d7e","amica_python":"e15e158","fortran":"665b577"}
-COLOR = {"jamica":"#6366f1","pamica":"#d97706","pyamica":"#0d9488","amica_python":"#e11d48","fortran":"#7c3aed"}
+COLOR = {"jamica":"#6366f1","pamica":"#d97706","pyamica":"#0d9488","amica_python":"#e11d48","fortran":"#111827"}
 
 # ===== GPU @3000, per-subject median : chunk -> (fit_s, nvml_vram_gib). jamica = chunked path.
 # fit_s from the i3000 run. nvml: jamica-chunked from i3000 (logged NVML for jamica only),
