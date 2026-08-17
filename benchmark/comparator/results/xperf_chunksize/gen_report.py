@@ -52,8 +52,9 @@ REPO  = {"jamica":"https://github.com/snesmaeili/jamica","pamica":"https://githu
 def rlink(im, text):   # implementation name as a link to its repository
     return f'<a class="rl" href="{REPO[im]}" target="_blank" rel="noopener">{text}</a>' if im in REPO else text
 # Cross-links between the two reports (published artifacts). TLDR_URL is filled once the summary is deployed.
-DETAILED_URL = "https://claude.ai/code/artifact/5c1007ae-8218-4bdd-b42d-2db16a1f6102"
-TLDR_URL     = "https://claude.ai/code/artifact/212a5222-0c9e-4982-9eb1-365defe6ef0c"
+_GH = "https://htmlpreview.github.io/?https://github.com/yjmantilla/amica-benchmark/blob/iter-ladder-campaign/benchmark/comparator/results/xperf_chunksize"
+DETAILED_URL = f"{_GH}/xperf_chunk_report_standalone.html"
+TLDR_URL     = f"{_GH}/xperf_chunk_tldr_standalone.html"
 
 # ===== GPU @3000, per-subject median : chunk -> (fit_s, nvml_vram_gib). jamica = chunked path.
 # fit_s from the i3000 run. nvml: jamica-chunked from i3000 (logged NVML for jamica only),
