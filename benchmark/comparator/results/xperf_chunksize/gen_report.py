@@ -46,6 +46,11 @@ LABEL = {"jamica":"jamica","pamica":"pAMICA","pyamica":"pyamica","amica_python":
 KNOB  = {"jamica":"chunk_size","pamica":"block_size","pyamica":"chunk_t","amica_python":"batch_size","fortran":"block_size"}
 COMMIT= {"jamica":"df18b5e","pamica":"0c4da39","pyamica":"a8a4d7e","amica_python":"e15e158","fortran":"665b577"}
 COLOR = {"jamica":"#6366f1","pamica":"#d97706","pyamica":"#0d9488","amica_python":"#e11d48","fortran":"#111827"}
+REPO  = {"jamica":"https://github.com/snesmaeili/jamica","pamica":"https://github.com/sccn/pAMICA",
+         "pyamica":"https://github.com/DerAndereJohannes/pyamica","amica_python":"https://github.com/scott-huberty/amica-python",
+         "fortran":"https://github.com/sccn/amica"}
+def rlink(im, text):   # implementation name as a link to its repository
+    return f'<a class="rl" href="{REPO[im]}" target="_blank" rel="noopener">{text}</a>' if im in REPO else text
 
 # ===== GPU @3000, per-subject median : chunk -> (fit_s, nvml_vram_gib). jamica = chunked path.
 # fit_s from the i3000 run. nvml: jamica-chunked from i3000 (logged NVML for jamica only),
@@ -417,7 +422,7 @@ def memdecomp_chart(chunk):
     return f'<figure class="cf"><figcaption>{cap}</figcaption>{"".join(s)}</figure>'
 
 def legend(impls):
-    it="".join(f'<span class="lg"><i style="background:{COLOR[i]}"></i>{LABEL.get(i,"Fortran amica17 (1 thread)")} <code>{KNOB[i]}</code> <span class="cm">@{COMMIT[i]}</span></span>' for i in impls)
+    it="".join(f'<span class="lg"><i style="background:{COLOR[i]}"></i>{rlink(i, LABEL.get(i,"Fortran amica17 (1 thread)"))} <code>{KNOB[i]}</code> <span class="cm">@{COMMIT[i]}</span></span>' for i in impls)
     return f'<div class="legend">{it}</div>'
 
 def convrows():
@@ -448,7 +453,7 @@ def mainrows():
     for im in MAIN_ORDER:
         g_t,g_m,c_t,c_m = MAIN[im]
         lab = LABEL.get(im, "Fortran (reference)")
-        r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{lab}</td>'
+        r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{rlink(im, lab)}</td>'
             f'<td class="num">{g_t}</td><td class="num">{g_m}</td>'
             f'<td class="num">{c_t}</td><td class="num">{c_m}</td></tr>')
     return r
@@ -498,6 +503,7 @@ HTML=f"""<title>AMICA implementations — fit time, convergence and peak memory 
 *{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}}
 .wrap{{max-width:1080px;margin:0 auto;padding:0 24px 96px}}
 code{{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:var(--code);padding:.06em .4em;border-radius:5px}}
+a.rl{{color:inherit;text-decoration:underline;text-decoration-color:var(--mut);text-underline-offset:2px}}a.rl:hover{{color:var(--accent);text-decoration-color:var(--accent)}}
 .num{{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}}.mut{{color:var(--mut);font-size:.85em}}.st{{color:var(--warn);font-size:.7em}}
 header.hero{{padding:60px 0 28px;border-bottom:1px solid var(--line)}}
 .kick{{font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-weight:700}}
@@ -550,7 +556,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <b>GPU memory climbs steeply toward the card's limit</b> (pyamica ~30&nbsp;GiB at full-batch); and
   <b>small chunks are fastest on neither device</b>. Fit times are wall time to a fixed iteration budget,
   not time to an equivalent solution — read them with the convergence section.</p>
-  <div class="stamp"><span><b>Builds (main):</b></span><span>jamica <code>df18b5e</code></span><span>amica-python <code>e15e158</code></span><span>pyamica <code>a8a4d7e</code></span><span>pAMICA <code>0c4da39</code></span><span>Fortran ref <code>665b577</code></span><span>· 64 components · GPU: 3000 iterations · CPU: 250 iterations · NVIDIA H100 GPU + 64-core CPU</span></div>
+  <div class="stamp"><span><b>Builds (main):</b></span><span>{rlink("jamica","jamica")} <code>df18b5e</code></span><span>{rlink("amica_python","amica-python")} <code>e15e158</code></span><span>{rlink("pyamica","pyamica")} <code>a8a4d7e</code></span><span>{rlink("pamica","pAMICA")} <code>0c4da39</code></span><span>{rlink("fortran","Fortran ref")} <code>665b577</code></span><span>· 64 components · GPU: 3000 iterations · CPU: 250 iterations · NVIDIA H100 GPU + 64-core CPU</span></div>
 </header>
 
 <section>
@@ -771,7 +777,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
     <dt>CPU</dt><dd>64-core machine, one fit per machine · fixed 250 iterations · fit time and memory, measured per subject</dd>
     <dt>Memory</dt><dd>reported as the actual GPU memory used (measured at the card) and, on the CPU, peak system memory · does not depend on the number of iterations</dd>
     <dt>Note</dt><dd>fit times are wall time at a fixed number of iterations, not time to a solution · the GPU and CPU use different iteration counts, so their seconds are not comparable</dd>
-    <dt>Builds</dt><dd>jamica df18b5e · amica-python e15e158 · pyamica a8a4d7e · pAMICA 0c4da39 · Fortran 665b577</dd>
+    <dt>Builds</dt><dd>{rlink("jamica","jamica")} df18b5e · {rlink("amica_python","amica-python")} e15e158 · {rlink("pyamica","pyamica")} a8a4d7e · {rlink("pamica","pAMICA")} 0c4da39 · {rlink("fortran","Fortran")} 665b577</dd>
   </dl>
   <p class="note" style="margin-top:16px"><b>What to trust:</b> the curve shapes, the actual GPU-memory
   figures, the per-iteration speeds, and the convergence columns read together. <b>Takeaways:</b> the GPU speed-up
