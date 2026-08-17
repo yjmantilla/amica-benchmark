@@ -166,7 +166,7 @@ MEMDECOMP = {
 FB = 4194304                                     # x-axis sentinel for the full-batch point (label "full")
 C512, C1M = 524288, 1048576
 GEXT = {
- "jamica":       {C512:(59.9,13.37,5.75,None,25), C1M:(58.8,13.37,5.76,None,20), FB:(61.7,13.37,8.18,None,24)},
+ "jamica":       {C512:(59.9,13.37,5.75,12.00,25), C1M:(58.8,13.37,5.76,12.00,20), FB:(61.7,13.37,8.18,12.00,24)},
  "amica_python": {C512:(211.3,7.57,5.77,6.33,20), C1M:(209.0,13.32,10.78,12.09,20), FB:(197.9,14.10,11.46,12.87,25)},
  "pyamica":      {C512:(287.0,19.06,16.86,17.82,20), C1M:(283.7,28.06,26.63,26.82,20), FB:(278.5,29.56,28.16,28.33,21)},
  "pamica":       {C512:(248.8,10.57,9.32,10.09,19), C1M:(247.9,19.33,18.09,18.09,17), FB:(242.5,20.50,19.25,19.26,22)},
@@ -177,10 +177,12 @@ GEXT_BAND = {  # fit p25,p75 at the extension chunks (iteration-matched @3000)
  "pyamica":      {C512:(267.4,293.2), C1M:(280.1,289.3), FB:(262.7,285.2)},
  "pamica":       {C512:(236.5,254.0), C1M:(243.7,252.8), FB:(237.3,247.6)},
 }
-# reserved (torch caching-pool high-water, max_memory_reserved) — the OOM-relevant counter; JAX/jamica
-# has no reserved concept. 262K from the i3000 run; 512K/1M from GEXT (full-batch is in the table, not charted).
+# allocator reserved-pool high-water — the OOM-relevant counter. torch: max_memory_reserved; JAX/jamica:
+# peak_pool_bytes (the XLA BFC pool — the JAX analog). 262K from the i3000 run; 512K/1M from the extension
+# (full-batch is in the table, not charted). jamica pool steps 4->12 GiB at 512K, mirroring its NVML step.
 MEM_RESV = {
- "amica_python": {262144:3.66, C512:6.33, C1M:12.09},
+ "jamica":       {262144:4.00, C512:12.00, C1M:12.00},
+ "amica_python": {262144:3.66, C512:6.33,  C1M:12.09},
  "pyamica":      {262144:9.68, C512:17.82, C1M:26.82},
  "pamica":       {262144:5.34, C512:10.09, C1M:18.09},
 }
@@ -363,7 +365,7 @@ c_cr=chart(CPU_RSS,None,"peak RSS (GiB)",False,"CPU · memory vs chunk","real ds
 c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · Narval whole-node exclusive · 250-iter matched · per-subject median",CPU_CHART,"fastest")
 # GPU memory decomposition, 2x2 vs chunk (allocator-live ⊆ reserved ⊆ NVML total; + understatement factor)
 c_mliv=chart(MEM_LIVE,None,"allocator live peak (GiB)",False,"GPU · allocator live-tensor vs chunk","framework counter (peak_bytes_in_use / max_allocated) · per-subj median",IMPLS,"leanest",xt=GXT)
-c_mresv=chart(MEM_RESV,None,"reserved pool peak (GiB)",False,"GPU · torch reserved vs chunk","max_memory_reserved — the OOM-relevant counter (torch impls; JAX has none)",TORCH,"leanest",xt=GXT)
+c_mresv=chart(MEM_RESV,None,"reserved / pool peak (GiB)",False,"GPU · reserved allocator pool vs chunk","OOM-relevant: torch max_memory_reserved · JAX peak_pool_bytes (XLA BFC pool)",IMPLS,"leanest",xt=GXT)
 c_mtot=chart(gpu_v,None,"NVML whole-GPU peak (GiB)",False,"GPU · NVML total vs chunk","framework-neutral whole-GPU peak · per-subj median",IMPLS,"leanest",xt=GXT)
 MEM_RATIO={im:{c:round(gpu_v[im][c]/MEM_LIVE[im][c],2) for c in gpu_v[im]} for im in IMPLS}
 c_mrat=chart(MEM_RATIO,None,"NVML ÷ allocator (×)",False,"GPU · allocator understatement vs chunk","NVML total ÷ allocator peak · per-subj median",IMPLS,"lowest",xt=GXT)
@@ -618,11 +620,11 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   OOM?"</b> Each framework's own counter (JAX <code>peak_bytes_in_use</code>, torch
   <code>max_memory_allocated</code>) measures only live-tensor bytes — it omits the CUDA context and the
   pool the driver holds, counts differently across frameworks, and understates the real footprint by
-  <b>~1.2–3.3×</b> — so it is not comparable across implementations. Crucially, <b>for torch the
-  OOM-relevant counter is the <em>reserved</em> pool</b> (<code>max_memory_reserved</code>): the driver
-  OOMs when it cannot grow reserved, <em>not</em> on live-tensor bytes. So the allocated line you'd
-  naively plot is not what hits the ceiling — reserved (plus out-of-allocator cuSOLVER/XLA workspace,
-  visible only to NVML) is. The charts use <b>NVML whole-GPU 'used'</b> on a dedicated GPU; caveat: it is a
+  <b>~1.2–3.3×</b> — so it is not comparable across implementations. Crucially, <b>the OOM-relevant counter is
+  the allocator's <em>reserved pool</em></b> (torch <code>max_memory_reserved</code>, JAX
+  <code>peak_pool_bytes</code> — the XLA BFC pool): the driver OOMs when it cannot grow that pool,
+  <em>not</em> on live-tensor bytes. So the allocated line you'd naively plot is not what hits the ceiling
+  — the reserved pool (plus a little out-of-pool cuSOLVER workspace, visible only to NVML) is. The charts use <b>NVML whole-GPU 'used'</b> on a dedicated GPU; caveat: it is a
   50&nbsp;ms poll, so a sub-interval spike can be missed.</div>
   <div class="grid2" style="margin:10px 0 6px"><div class="card">{c_mliv}</div><div class="card">{c_mresv}</div></div>
   <div class="grid2" style="margin:8px 0 6px"><div class="card">{c_mtot}</div><div class="card">{c_mrat}</div></div>
@@ -631,8 +633,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   chunk axis through 1M (full-batch is in the table above): the three counters nest as
   <b>allocator-live ⊆ reserved ⊆ NVML total</b>.
   <b>Allocator-live</b> is each framework's own live-tensor counter (understates the footprint).
-  <b>Reserved</b> (torch <code>max_memory_reserved</code>; JAX has none) is the caching pool the driver
-  actually holds — the OOM-relevant number — and tracks just above allocated. <b>NVML total</b> is the
+  <b>Reserved / pool</b> (torch <code>max_memory_reserved</code>, JAX <code>peak_pool_bytes</code>) is the
+  allocator pool the driver actually holds — the OOM-relevant number — and tracks between allocated and NVML
+  for all four impls. <b>NVML total</b> is the
   whole-GPU peak (the GPU-section chart adds card-capacity lines); it climbs steeply for the torch impls and
   for jamica once the chunk passes 262K. <b>NVML ÷ allocator</b> shows how much each framework's own counter
   understates the whole-GPU footprint (~1.2–3.3×): largest for jamica at small chunks (~3.3×, ~5.4&nbsp;GiB
@@ -648,10 +651,10 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   design, not the old full-batch-at-every-chunk bug (ruled out: jamica's fit time varies ~13× with the
   chunk, 775→61&nbsp;s, impossible unless the chunk is applied): the chunked E-step accumulates
   <code>O(n_comp²)</code> sufficient statistics and never materialises the full-width
-  <code>(n_comp, n_samples)</code> tensors. Of the ~5.4&nbsp;GiB, ~1&nbsp;GiB is the measured context floor,
-  ~1.6&nbsp;GiB the allocator's live peak (resident whitened data + accumulators), and the rest is JAX pool
-  / resident bytes the counter doesn't report — all chunk-independent until the block buffer grows past
-  262K. It cuts both ways: jamica's ~5.4&nbsp;GiB floor is <em>higher</em> than the torch impls'
+  <code>(n_comp, n_samples)</code> tensors. Of the ~5.4&nbsp;GiB NVML, the XLA BFC pool holds ~4&nbsp;GiB
+  (measured — <code>peak_pool_bytes</code>), of which ~1.6&nbsp;GiB is live tensors (resident whitened data +
+  accumulators); the remaining ~1.4&nbsp;GiB is context + scratch outside the pool — all chunk-independent
+  until the block buffer grows past 262K, where the pool steps to ~12&nbsp;GiB. It cuts both ways: jamica's ~5.4&nbsp;GiB floor is <em>higher</em> than the torch impls'
   ~1.8–3.1&nbsp;GiB at small chunks (they fit a small card where jamica may not), but jamica never climbs
   the way pyamica does. (On CPU jamica's full-batch key is likewise far heavier —
   ~{J_FULLBATCH_CPU_RSS:.0f}&nbsp;GiB RSS vs a few GiB chunked, earlier fir measurement — so a wrapper
