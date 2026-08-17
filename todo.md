@@ -7,6 +7,33 @@ test-merge of all five. Cluster: `fir` (Alliance), clone at
 
 ---
 
+## PENDING (2026-08-17) — CPU large-chunk fold-in to xperf_chunksize report
+
+GPU large-chunk / full-batch extension is **done, deployed, pushed** (branch
+`iter-ladder-campaign`, commit `e75f307`; artifact 5c1007ae…). The CPU half is
+**running on Narval but fairshare-throttled** (def-kjerbi_cpu EffectvUsage ~0.998
+→ ~1–2+ days). User decision: **let it run; user will say when it's ready** (CPU
+monitor stopped on purpose).
+
+- [ ] When user says CPU is ready: verify jobs **1146546** (1M+full, 250),
+      **1147196** (524K, 125), **1149409** (scott per-subject full-batch, 25) are
+      COMPLETED on Narval.
+- [ ] Aggregate CPU results from `/scratch/yorguin/iter_ladder/cpu_nostop/c<chunk>_i250_r1/`
+      (and scott full-batch from per-subject `c<n_samples>_i250_r1/`), same script
+      pattern as `scratchpad/agg_gpu2.py` but for CPU fit_s + RSS (peak_rss_gb).
+- [ ] Fold into `gen_report.py` CPU charts (c_ct/c_cr): extend to log axis 1K→1M,
+      add a **CPU full-batch table** (mirror `fullbatchrows()`); apply the same
+      short-subject methodology — **1M restricted to the 22 subjects >1M**; scott
+      full-batch uses per-subject batch = n_samples (its `BatchLoader` guard is
+      device-independent). Remove the "GPU-only in this version" CPU note.
+- [ ] Pull a CPU-ext raw CSV into `raw/`, update README/NOTES provenance, regen,
+      redeploy to the SAME artifact URL, `git push fork iter-ladder-campaign`,
+      refresh the htmlpreview link.
+- Full context (paths, job IDs, the batch-guard finding, GPU memory table):
+      memory file `narval-cpu-campaign.md`.
+
+---
+
 ## DONE — reproducibility infrastructure
 
 - [x] PR1 provenance stamping at the `write_result` choke point
