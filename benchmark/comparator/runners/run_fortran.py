@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import os
 import re
+import resource
 import subprocess
 import sys
 import tempfile
@@ -86,17 +87,22 @@ def main() -> None:
         use_min_dll=0, use_grad_norm=0,   # run full max_iter (no early stop)
     )
 
-    cmd = [gnu_time, "-v", mpirun, "-np", "1", amica_bin, str(workdir / "amica.param")]
+    use_gnu_time = os.path.exists(gnu_time)
+    cmd = ([gnu_time, "-v"] if use_gnu_time else []) + [mpirun, "-np", "1", amica_bin, str(workdir / "amica.param")]
     run_env = dict(os.environ, OMP_NUM_THREADS="1")  # match parity recipe (param max_threads=1)
     t0 = time.perf_counter()
     cp = subprocess.run(cmd, capture_output=True, text=True, env=run_env)
     elapsed = time.perf_counter() - t0
 
-    maxrss_kb = _parse_maxrss_kb(cp.stderr)
-    if maxrss_kb is None:
+    if use_gnu_time:
+        maxrss_kb = _parse_maxrss_kb(cp.stderr)
+    else:
+        # No GNU /usr/bin/time (e.g. Narval): peak RSS of the child tree via getrusage (KiB on Linux).
+        maxrss_kb = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss or None
+    if cp.returncode != 0 or maxrss_kb is None:
         write_result(args.output, {
             "implementation": "fortran_amica17",
-            "error": "no_maxrss (GNU /usr/bin/time -v unavailable or run failed)",
+            "error": "nonzero_exit" if cp.returncode != 0 else "no_maxrss",
             "returncode": cp.returncode,
             "cmd": " ".join(cmd),
             "stderr": (cp.stderr or "")[-2000:],
