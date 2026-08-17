@@ -10,20 +10,23 @@ deliverable; everything else here regenerates or backs it.
 - `gen_report.py` — generator + the single source of truth for the plotted medians (cross-checked
   against `raw/`). Re-run to regenerate the HTML + `chunk_sweep_data.csv`.
 - `chunk_sweep_data.csv` — tidy medians/IQR/convergence, regenerated from `gen_report.py`.
-- `raw/chunk_{gpu3000,gpumem,cpu1000}_{summary,percell}.csv` — **authoritative raw aggregate**, computed
-  straight from the per-cell result JSONs (one row per cell in `*_percell.csv`; per-(impl,chunk)
-  median/IQR/ll_final/n_iter/n_samples in `*_summary.csv`).
-- `NOTES_measurement.md` — caveats: iteration-budget ≠ convergence, CPU contention, NVML vs allocator,
-  the two jamica keys.
+- `raw/nostop_{gpu3000,gpumem,gpumem_decomp,ladder_i*}_summary.csv` (GPU, iteration-matched) and
+  `raw/narval_nostop_i250_summary.csv` (CPU, whole-node exclusive, iteration-matched) — **the
+  authoritative raw aggregates** the report is built from. The older `raw/chunk_{gpu3000,gpumem,cpu1000}_*`
+  are the earlier (early-stop / contended) runs, retained for provenance only.
+- `NOTES_measurement.md` — caveats: iteration-budget ≠ convergence, GPU vs CPU budgets differ, NVML vs
+  allocator, the two jamica keys.
 
 ## What this answers
 1. **Each implementation's batch/chunk knob is a real dial for fit *time*** — up to ~25× within one
    implementation (amica-python, GPU; others 8–17×). For the torch implementations it also moves peak
    VRAM (~2.7–3.6× NVML); jamica's GPU memory is flat in the median (~5.4 GiB) on its chunked path
    (per-subject 3.4–5.4 GiB, rising to 5.4–7.4 at 262K for the longest recordings).
-2. **Large chunks are fastest on both devices** (contention-free) — on the GPU and on whole CPU nodes the
-   largest chunk wins for the Python/JAX impls; the earlier "small/mid wins on CPU" flip was a contention
-   artifact. (The single-threaded Fortran reference is roughly flat.)
+2. **Small chunks win on neither device; the CPU optimum is implementation-specific.** On the GPU large
+   chunks win; on whole (contention-free) CPU nodes jamica and amica-python minimize at the largest chunk,
+   but pAMICA and pyamica minimize at a mid chunk (16K) — so "bigger is always better" is wrong on CPU.
+   The earlier "small/mid wins on CPU" flip did not replicate under whole-node isolation (contention a
+   likely confound). (The single-threaded Fortran reference is roughly flat, best at the smallest chunk.)
 3. **The GPU fits are iteration-matched (early-stops disabled → all run the full 3000 iterations),** so
    GPU wall time is directly per-iteration-comparable (s/iter × 3000 = wall). Final log-likelihoods sit in
    a tight but non-identical band (three within ~0.001 nats; pAMICA ~0.011 nats lower — a genuine
@@ -44,9 +47,10 @@ deliverable; everything else here regenerates or backs it.
   262144 is ~19–33% of the data.
 
 ## Provenance
-- GPU fit @3000: `/scratch/yorguin/iter_ladder/gpu/c<chunk>_i3000/` (Trillium H100, 20–25 subj/cell).
-- GPU memory (NVML+alloc): `raw/chunk_gpumem_*.csv` — iteration-independent; jamica-chunked from the
-  i3000 run (logged NVML for jamica only), torch impls + jamica-fullbatch from the i1000 run.
+- GPU fit @3000 (matched): `raw/nostop_gpu3000_summary.csv` (Trillium H100, iteration-matched, 25 subj/cell).
+- GPU convergence ladder: `raw/nostop_ladder_i{100,250,500,1000,2000,3000}_summary.csv` (chunk 65536, 25 subj).
+- GPU memory: `raw/nostop_gpumem_summary.csv` + `raw/nostop_gpumem_decomp.csv` — iteration-independent;
+  full-batch key from the earlier `raw/chunk_gpumem_*.csv` memory run.
 - CPU @250 (matched): `raw/narval_nostop_i250_summary.csv` (Narval 64-core Zen2, whole-node exclusive;
   iteration-matched; per-subject median over 25 subj; all 5 impls incl Fortran).
 - Builds (main): jamica `df18b5e` · amica-python `e15e158` · pyamica `a8a4d7e` · pAMICA `0c4da39` ·

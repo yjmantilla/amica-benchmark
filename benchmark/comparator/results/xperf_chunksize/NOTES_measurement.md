@@ -1,7 +1,7 @@
 # Measurement note — AMICA chunk-sweep campaign
 
 > **Update (2026-08 — corrected campaign supersedes the numbers below).** The published report now
-> uses a **realistic iteration budget** (GPU @3000, CPU @1000, not 100), **NVML** whole-GPU memory as
+> uses a **realistic iteration budget** (GPU @3000 matched, CPU @250 matched whole-node, not 100), **NVML** whole-GPU memory as
 > the headline VRAM, and the **corrected jamica chunked path**. Two measurement bugs from the earlier
 > 100-iter draft were found and fixed — see *The two jamica keys* and *NVML vs the allocator counters*
 > below. The §"node contention" / best-of-5 / 100-iter material further down is the **origin story**,
@@ -19,8 +19,9 @@ memory point). That was a harness-key artifact, **not** a property of jamica. Al
 in the corrected report come from **`amica_python_jax_chunked`**. Competitor keys
 (`scott_huberty_torch` / `pyamica_torch` / `pamica_torch` / `fortran_amica17`) were always correct —
 only jamica had the two-key trap. Corrected result: **jamica is a normal, device-dependent
-time/memory dial** like the others (GPU: big chunk faster, 763 s→62 s @3000; CPU: small chunk faster
-*and* leaner, ~1985 s/2.2 GiB @1024 → ~2793 s/7.2 GiB @262K — a device flip).
+time/memory dial** like the others (GPU: big chunk faster, 775 s→61 s @3000 matched; on the whole-node CPU
+re-run big chunk is fastest for jamica too — 1269 s→753 s @250, see the CPU-campaign section below — the
+old "small chunk wins on CPU" reading was from the contended fir run and did not replicate).
 
 ## NVML vs the allocator counters (the ~1.2–3.3× memory gap)
 Peak-VRAM was reported three inconsistent ways in the 100-iter draft because each framework's
@@ -101,7 +102,8 @@ recording. The competitors at 262144 still process 3–6 blocks per iteration. O
 
 **Status:** origin-story analysis of the earlier 100-iter draft (superseded by the corrected campaign
 above, which it motivated). The *ordering* and *optima* it found are trustworthy; its *absolute* CPU
-times carry a contention bias (see estimate). A clean rerun with `--exclusive` remains future work.
+times carry a contention bias (see estimate). A clean rerun with `--exclusive` was subsequently done on
+Narval (whole nodes, one fit each) — see the CPU-campaign section above — and supersedes this.
 
 ## The design tradeoff that causes it
 The real-data sweep fans out **atomic `(impl, chunk)` cells** (one job fits one implementation at
@@ -168,14 +170,15 @@ Throttling helped only **modestly**: the per-cell **median stayed non-monotonic*
 100-iter draft* the **min across subjects** (best observed ≈ least-contended) recovered a clean chunk
 trend and was what that draft plotted. (The current corrected report does NOT use best-of-5 — it plots
 the median over subjects × reps at the realistic budget, with p25–p75 bands; see the corrected campaign
-section at the top.) The directional finding that survived into the corrected report: **CPU is fastest
-at small/mid chunks** — the opposite of the GPU, a cache effect. The exact 100-iter optima quoted here
+section at the top.) NOTE: the "small/mid wins on CPU" direction claimed here **did NOT survive** the
+whole-node exclusive re-run (see the CPU-campaign section) — small chunks are best for none of the Python
+impls; it was a contention artifact of the shared-cluster runs. The exact 100-iter optima quoted here
 (jamica 1024, amica-python/Fortran ~4096, pyamica 16384) and the "~155 s best" figure are that old draft's;
 the corrected @1000 numbers differ and carry wide contention bands. pyamica@1024 exceeded the runner
 wall in both campaigns; amica-python full-batch did not OOM in the corrected GPU/CPU runs.
 
 For truly clean CPU *absolutes* (not just the trend) the remaining lever is `--exclusive`/`bynode`
-allocation — rejected here as fair-share-hostile (reserves a 192-core node for an ~8-core job that only
+allocation — deprioritised at the time as fair-share-hostile, though later used on Narval for the clean CPU re-run above (reserves a full node for an ~8-core job that only
 uses ~4). The best-of-5 (least-contended) figure is the honest compromise — the tightest of these
 approximate, contention-inflated absolutes. Consistent with the "treat CPU absolutes as upper bounds"
 caveat above: all CPU seconds here are contention-inflated; best-of-5 is simply the tightest such
