@@ -826,12 +826,12 @@ TLDR=f"""<title>AMICA implementations — summary (ds004505)</title>
   single-threaded Fortran build is a reference point (it does not run on the GPU here).</p>
 </section>
 <section>
-  <h2>Where memory becomes the limit</h2>
-  <p class="sub">Actual GPU memory used as the chunk grows, with common card capacities marked. Memory
-  keeps rising with the chunk; one implementation reaches about 30&nbsp;GiB at a full-batch pass — more than
-  a smaller card can hold — so the setting matters for what hardware a run needs.</p>
-  <div class="card" style="max-width:640px">{c_gv}</div>
-  {legend(IMPLS)}
+  <h2>Speed and memory, at a glance</h2>
+  <p class="sub">Fit time and peak memory versus the chunk setting — GPU on top, CPU below. A bigger chunk
+  is faster but uses more memory; the GPU memory panel marks common card capacities.</p>
+  <div class="grid2"><div class="card">{c_gt}</div><div class="card">{c_gv}</div></div>
+  <div class="grid2" style="margin-top:16px"><div class="card">{c_ct}</div><div class="card">{c_cr}</div></div>
+  {legend(CPU_CHART)}
 </section>
 <footer>
   <p class="note"><b>How this was measured:</b> real EEG (ds004505), 64 components, 25 subjects · GPU:
