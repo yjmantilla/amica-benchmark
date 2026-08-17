@@ -29,8 +29,8 @@ CAVEATS baked into the report (see NOTES_measurement.md):
    3000), so it is directly per-iteration-comparable (s/iter x 3000 = wall). CPU is a separate MATCHED run
    at 250 iters, whole-node exclusive (no contention) -> CPU absolute seconds and per-cell optima ARE
    trustworthy; only GPU-vs-CPU comparison is off-limits (different iteration budgets).
- - A few CPU cells are at 23-24/25 subjects while a small repair tops them up; Fortran (single-threaded)
-   is a reference footprint, not a fair-thread comparison on a whole node.
+ - All CPU cells cover 25 subjects; Fortran (single-threaded) is a reference footprint, not a fair-thread
+   comparison on a whole node.
 """
 import math, os, csv
 
@@ -96,35 +96,35 @@ MEM_LIVE = {
 }
 # ===== CPU @250, WHOLE-NODE exclusive (one fit per node -> no memory-bandwidth contention),
 # iteration-matched (early-stops disabled), per-subject median. Narval 64-core Zen2. All 5 impls incl
-# Fortran, 25 subjects (a few cells 23-24 while the repair tops them up). raw/narval_nostop_i250_summary.csv
+# Fortran, 25 subjects (all cells, after the repair). raw/narval_nostop_i250_summary.csv
 CPU_FIT = {
- "jamica":  {1024:1269,4096:976,16384:1277,65536:938,FULL:756},
- "pamica":  {1024:7272,4096:2806,16384:1527,65536:2064,FULL:1536},
- "pyamica": {1024:3149,4096:1921,16384:1207,65536:2409,FULL:1328},
- "amica_python":   {1024:5027,4096:1709,16384:1295,65536:1088,FULL:1053},
+ "jamica":  {1024:1269,4096:976,16384:1277,65536:938,FULL:753},
+ "pamica":  {1024:7400,4096:2806,16384:1527,65536:2064,FULL:1536},
+ "pyamica": {1024:3099,4096:1921,16384:1211,65536:2409,FULL:1328},
+ "amica_python":   {1024:5027,4096:1710,16384:1295,65536:1084,FULL:1053},
  "fortran": {1024:3676,4096:3679,16384:4577,65536:4004,FULL:4118},
 }
 CPU_BAND = {  # CPU per-subject p25,p75 (whole-node exclusive -> tight, no contention)
- "jamica":  {1024:(1168,1326),4096:(946,1009),16384:(1099,1438),65536:(877,1206),FULL:(730,800)},
- "pamica":  {1024:(6883,7780),4096:(2718,3015),16384:(1309,1815),65536:(1917,2158),FULL:(1402,1684)},
- "pyamica": {1024:(2396,3668),4096:(1850,2072),16384:(1153,1266),65536:(2223,2510),FULL:(1272,1464)},
- "amica_python":   {1024:(4351,6011),4096:(1506,1771),16384:(1204,1394),65536:(1039,1152),FULL:(982,1074)},
+ "jamica":  {1024:(1168,1326),4096:(946,1009),16384:(1099,1438),65536:(877,1206),FULL:(730,792)},
+ "pamica":  {1024:(6892,8042),4096:(2718,3015),16384:(1309,1815),65536:(1917,2158),FULL:(1402,1684)},
+ "pyamica": {1024:(2408,3622),4096:(1850,2072),16384:(1153,1278),65536:(2223,2510),FULL:(1272,1464)},
+ "amica_python":   {1024:(4351,6011),4096:(1522,1779),16384:(1204,1394),65536:(1040,1150),FULL:(982,1074)},
 }
-CPU_NSUB = {  # subjects per cell (out of 25); a few 23-24 while the repair tops them up
- "jamica":  {1024:25,4096:25,16384:25,65536:25,FULL:24},
- "pamica":  {1024:24,4096:25,16384:25,65536:25,FULL:25},
- "pyamica": {1024:24,4096:25,16384:24,65536:25,FULL:25},
- "amica_python":   {1024:25,4096:23,16384:25,65536:24,FULL:25},
+CPU_NSUB = {  # subjects per cell -- all 25 after the repair
+ "jamica":  {1024:25,4096:25,16384:25,65536:25,FULL:25},
+ "pamica":  {1024:25,4096:25,16384:25,65536:25,FULL:25},
+ "pyamica": {1024:25,4096:25,16384:25,65536:25,FULL:25},
+ "amica_python":   {1024:25,4096:25,16384:25,65536:25,FULL:25},
  "fortran": {1024:25,4096:25,16384:25,65536:25,FULL:25},
 }
 CPU_RSS = {  # peak RSS (GiB) per-subject median (whole-node; iteration-independent)
- "jamica":  {1024:2.35,4096:2.34,16384:2.85,65536:6.26,FULL:10.36},
+ "jamica":  {1024:2.35,4096:2.34,16384:2.85,65536:6.26,FULL:10.34},
  "pamica":  {1024:1.63,4096:1.74,16384:2.25,65536:2.76,FULL:6.08},
  "pyamica": {1024:2.05,4096:2.05,16384:2.80,65536:3.84,FULL:9.59},
- "amica_python":   {1024:2.13,4096:2.14,16384:2.13,65536:2.37,FULL:4.25},
+ "amica_python":   {1024:2.13,4096:2.14,16384:2.13,65536:2.36,FULL:4.25},
  "fortran": {1024:0.84,4096:0.84,16384:0.85,65536:1.31,FULL:3.09},
 }
-CPU_FIT_MISS = {}  # no timeouts on the whole-node run (pyamica@1024 completed: ~3149 s)
+CPU_FIT_MISS = {}  # no timeouts on the whole-node run (pyamica@1024 completed: ~3099 s)
 # jamica two orchestrator keys (all traceable to raw/chunk_gpumem_summary.csv):
 J_CHUNKED_GPU_NVML, J_FULLBATCH_GPU_NVML = 5.37, 13.37   # GiB NVML median (full-batch key from the prior memory run)
 J_CHUNKED_GPU_NVML_MAX, J_FULLBATCH_GPU_NVML_MAX = 7.37, 21.37  # per-subject max (longest recording)
@@ -598,20 +598,18 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <p class="sub">Real ds004505 on <b>Narval whole nodes (64-core Zen2), one fit per node (exclusive) — no
   memory-bandwidth contention</b>, <b>iteration-matched to 250</b> (early-stops disabled), per-subject
   median over 25 subjects. All five implementations — including the single-threaded Fortran reference —
-  now have full 25-subject coverage (a few cells are 23–24 while a small repair tops them up; see the
-  <code>*n</code> marks). Because each fit owned its node, these are clean absolute times, not the
-  contention-blurred numbers of the earlier shared-cluster run.</p>
+  now have full 25-subject coverage. Because each fit owned its node, these are clean absolute times, not
+  the contention-blurred numbers of the earlier shared-cluster run.</p>
   <div class="grid2"><div class="card">{c_ct}</div><div class="card">{c_cr}</div></div>
   {legend(CPU_CHART)}
   <table style="margin-top:16px"><thead><tr><th>fit time (s) · per-subject median · 250 iters</th><th class="num">1K</th><th class="num">4K</th><th class="num">16K</th><th class="num">64K</th><th class="num">262K</th></tr></thead><tbody>{cpufitrows()}</tbody></table>
-  <p class="note"><code>*n</code> = fewer than 25 subjects in that cell (n shown); a small repair job is
-  topping these up to 25.</p>
+  <p class="note">All cells cover all 25 subjects (5 implementations × 5 chunks).</p>
   <ul class="tk" style="margin-top:8px">
-    <li><b>jamica is fastest on CPU too</b> (~760–1280&nbsp;s across chunks, ~756&nbsp;s at the largest
-    chunk), ahead of amica-python (~1050&nbsp;s best), pyamica (~1200&nbsp;s best), pAMICA (~1500&nbsp;s
+    <li><b>jamica is fastest on CPU too</b> (~750–1280&nbsp;s across chunks, ~753&nbsp;s at the largest
+    chunk), ahead of amica-python (~1050&nbsp;s best), pyamica (~1210&nbsp;s best), pAMICA (~1500&nbsp;s
     best) and the single-threaded Fortran reference (~3700&nbsp;s).</li>
     <li><b>Large chunks are generally fastest on CPU too — not a device flip.</b> With no contention, the
-    Python/JAX impls are fastest at the <em>largest</em> chunks (jamica 1269→756&nbsp;s, amica-python
+    Python/JAX impls are fastest at the <em>largest</em> chunks (jamica 1269→753&nbsp;s, amica-python
     5027→1053&nbsp;s from 1K→262K) — the same direction as the GPU. This <b>overturns the earlier
     shared-cluster result</b> that suggested small/mid chunks win on CPU; that "flip" was a contention
     artifact. The exception is the single-threaded Fortran reference (roughly flat, ~3.7–4.6&nbsp;k&nbsp;s,

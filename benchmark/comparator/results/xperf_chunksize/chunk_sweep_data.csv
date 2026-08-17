@@ -103,12 +103,12 @@ cpu_rss_gib_median,jamica,chunk_size,1024,2.35,GiB,"Narval whole-node 250-iter, 
 cpu_rss_gib_median,jamica,chunk_size,4096,2.34,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,jamica,chunk_size,16384,2.85,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,jamica,chunk_size,65536,6.26,GiB,"Narval whole-node 250-iter, per-subject median"
-cpu_rss_gib_median,jamica,chunk_size,262144,10.36,GiB,"Narval whole-node 250-iter, per-subject median"
+cpu_rss_gib_median,jamica,chunk_size,262144,10.34,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_fit_s_bysubj_median,jamica,chunk_size,1024,1269,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,jamica,chunk_size,4096,976,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,jamica,chunk_size,16384,1277,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,jamica,chunk_size,65536,938,s,"by-subject median, n_subjects=25"
-cpu_fit_s_bysubj_median,jamica,chunk_size,262144,756,s,"by-subject median, n_subjects=24"
+cpu_fit_s_bysubj_median,jamica,chunk_size,262144,753,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_p25,jamica,chunk_size,1024,1168,s,
 cpu_fit_s_bysubj_p75,jamica,chunk_size,1024,1326,s,
 cpu_fit_s_bysubj_p25,jamica,chunk_size,4096,946,s,
@@ -118,19 +118,19 @@ cpu_fit_s_bysubj_p75,jamica,chunk_size,16384,1438,s,
 cpu_fit_s_bysubj_p25,jamica,chunk_size,65536,877,s,
 cpu_fit_s_bysubj_p75,jamica,chunk_size,65536,1206,s,
 cpu_fit_s_bysubj_p25,jamica,chunk_size,262144,730,s,
-cpu_fit_s_bysubj_p75,jamica,chunk_size,262144,800,s,
+cpu_fit_s_bysubj_p75,jamica,chunk_size,262144,792,s,
 cpu_rss_gib_median,pamica,block_size,1024,1.63,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,pamica,block_size,4096,1.74,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,pamica,block_size,16384,2.25,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,pamica,block_size,65536,2.76,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,pamica,block_size,262144,6.08,GiB,"Narval whole-node 250-iter, per-subject median"
-cpu_fit_s_bysubj_median,pamica,block_size,1024,7272,s,"by-subject median, n_subjects=24"
+cpu_fit_s_bysubj_median,pamica,block_size,1024,7400,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,pamica,block_size,4096,2806,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,pamica,block_size,16384,1527,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,pamica,block_size,65536,2064,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,pamica,block_size,262144,1536,s,"by-subject median, n_subjects=25"
-cpu_fit_s_bysubj_p25,pamica,block_size,1024,6883,s,
-cpu_fit_s_bysubj_p75,pamica,block_size,1024,7780,s,
+cpu_fit_s_bysubj_p25,pamica,block_size,1024,6892,s,
+cpu_fit_s_bysubj_p75,pamica,block_size,1024,8042,s,
 cpu_fit_s_bysubj_p25,pamica,block_size,4096,2718,s,
 cpu_fit_s_bysubj_p75,pamica,block_size,4096,3015,s,
 cpu_fit_s_bysubj_p25,pamica,block_size,16384,1309,s,
@@ -144,17 +144,17 @@ cpu_rss_gib_median,pyamica,chunk_t,4096,2.05,GiB,"Narval whole-node 250-iter, pe
 cpu_rss_gib_median,pyamica,chunk_t,16384,2.8,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,pyamica,chunk_t,65536,3.84,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,pyamica,chunk_t,262144,9.59,GiB,"Narval whole-node 250-iter, per-subject median"
-cpu_fit_s_bysubj_median,pyamica,chunk_t,1024,3149,s,"by-subject median, n_subjects=24"
+cpu_fit_s_bysubj_median,pyamica,chunk_t,1024,3099,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,pyamica,chunk_t,4096,1921,s,"by-subject median, n_subjects=25"
-cpu_fit_s_bysubj_median,pyamica,chunk_t,16384,1207,s,"by-subject median, n_subjects=24"
+cpu_fit_s_bysubj_median,pyamica,chunk_t,16384,1211,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,pyamica,chunk_t,65536,2409,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,pyamica,chunk_t,262144,1328,s,"by-subject median, n_subjects=25"
-cpu_fit_s_bysubj_p25,pyamica,chunk_t,1024,2396,s,
-cpu_fit_s_bysubj_p75,pyamica,chunk_t,1024,3668,s,
+cpu_fit_s_bysubj_p25,pyamica,chunk_t,1024,2408,s,
+cpu_fit_s_bysubj_p75,pyamica,chunk_t,1024,3622,s,
 cpu_fit_s_bysubj_p25,pyamica,chunk_t,4096,1850,s,
 cpu_fit_s_bysubj_p75,pyamica,chunk_t,4096,2072,s,
 cpu_fit_s_bysubj_p25,pyamica,chunk_t,16384,1153,s,
-cpu_fit_s_bysubj_p75,pyamica,chunk_t,16384,1266,s,
+cpu_fit_s_bysubj_p75,pyamica,chunk_t,16384,1278,s,
 cpu_fit_s_bysubj_p25,pyamica,chunk_t,65536,2223,s,
 cpu_fit_s_bysubj_p75,pyamica,chunk_t,65536,2510,s,
 cpu_fit_s_bysubj_p25,pyamica,chunk_t,262144,1272,s,
@@ -162,21 +162,21 @@ cpu_fit_s_bysubj_p75,pyamica,chunk_t,262144,1464,s,
 cpu_rss_gib_median,amica_python,batch_size,1024,2.13,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,amica_python,batch_size,4096,2.14,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,amica_python,batch_size,16384,2.13,GiB,"Narval whole-node 250-iter, per-subject median"
-cpu_rss_gib_median,amica_python,batch_size,65536,2.37,GiB,"Narval whole-node 250-iter, per-subject median"
+cpu_rss_gib_median,amica_python,batch_size,65536,2.36,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_rss_gib_median,amica_python,batch_size,262144,4.25,GiB,"Narval whole-node 250-iter, per-subject median"
 cpu_fit_s_bysubj_median,amica_python,batch_size,1024,5027,s,"by-subject median, n_subjects=25"
-cpu_fit_s_bysubj_median,amica_python,batch_size,4096,1709,s,"by-subject median, n_subjects=23"
+cpu_fit_s_bysubj_median,amica_python,batch_size,4096,1710,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,amica_python,batch_size,16384,1295,s,"by-subject median, n_subjects=25"
-cpu_fit_s_bysubj_median,amica_python,batch_size,65536,1088,s,"by-subject median, n_subjects=24"
+cpu_fit_s_bysubj_median,amica_python,batch_size,65536,1084,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_median,amica_python,batch_size,262144,1053,s,"by-subject median, n_subjects=25"
 cpu_fit_s_bysubj_p25,amica_python,batch_size,1024,4351,s,
 cpu_fit_s_bysubj_p75,amica_python,batch_size,1024,6011,s,
-cpu_fit_s_bysubj_p25,amica_python,batch_size,4096,1506,s,
-cpu_fit_s_bysubj_p75,amica_python,batch_size,4096,1771,s,
+cpu_fit_s_bysubj_p25,amica_python,batch_size,4096,1522,s,
+cpu_fit_s_bysubj_p75,amica_python,batch_size,4096,1779,s,
 cpu_fit_s_bysubj_p25,amica_python,batch_size,16384,1204,s,
 cpu_fit_s_bysubj_p75,amica_python,batch_size,16384,1394,s,
-cpu_fit_s_bysubj_p25,amica_python,batch_size,65536,1039,s,
-cpu_fit_s_bysubj_p75,amica_python,batch_size,65536,1152,s,
+cpu_fit_s_bysubj_p25,amica_python,batch_size,65536,1040,s,
+cpu_fit_s_bysubj_p75,amica_python,batch_size,65536,1150,s,
 cpu_fit_s_bysubj_p25,amica_python,batch_size,262144,982,s,
 cpu_fit_s_bysubj_p75,amica_python,batch_size,262144,1074,s,
 cpu_rss_gib_median,fortran,block_size,1024,0.84,GiB,"Narval whole-node 250-iter, per-subject median"

@@ -57,13 +57,13 @@ The CPU sweep was re-run on **Narval whole nodes (64-core Zen2), one fit per nod
 all five implementations including the single-threaded Fortran reference
 (`raw/narval_nostop_i250_summary.csv`; per-subject median). Because each fit owned its node, the
 per-subject bands are tight and the **absolute seconds and per-cell optima are trustworthy** — this
-supersedes the earlier contended, unequal-coverage fir run. A few cells are at 23–24/25 while a small
-repair tops them up. Headline: **jamica is fastest on CPU too** (~756 s at the largest chunk), and **large
-chunks are fastest on CPU as well** (jamica 1269→756 s, amica-python 5027→1053 s from 1K→262K) — the same
+supersedes the earlier contended, unequal-coverage fir run (all 25 subjects). Headline: **jamica is
+fastest on CPU too** (~753 s at the largest chunk), and **large chunks are fastest on CPU as well**
+(jamica 1269→753 s, amica-python 5027→1053 s from 1K→262K) — the same
 direction as the GPU, **overturning** the earlier "small/mid wins on CPU" flip, which was a contention
 artifact. Fortran (single-threaded) is a reference footprint, not a fair-thread comparison on a whole node.
 GPU and CPU iteration budgets differ (3000 vs 250) — do not compare GPU to CPU seconds. `pyamica@1024`,
-which timed out on the contended fir run, completes here (~3149 s).
+which timed out on the contended fir run, completes here (~3099 s).
 
 ## GPU is iteration-matched (and so is the CPU re-run)
 The GPU fit-time comparison was re-run **iteration-matched**: every implementation's early-stops were
