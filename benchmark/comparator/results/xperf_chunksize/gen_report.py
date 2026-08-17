@@ -433,6 +433,26 @@ def convrows():
 def pamrows():
     bd={"artifact":'<span class="badge bad">near default</span>',"tuned":'<span class="badge ok">tuned</span>',"best":'<span class="badge best">largest tested</span>'}
     return "".join(f'<tr><td><code>{cfg}</code></td><td class="num">{t:.0f}s</td><td class="num">{v:.2f} GiB</td><td>{bd[tag]}</td></tr>' for cfg,t,v,tag in REAL_PAM)
+# Neutral big-picture summary (plain rounded values, drawn from the sections below). Each implementation's
+# best fit time and its memory range (smallest chunk -> full-batch/largest). Alphabetical order.
+MAIN = {
+ "amica_python": ("~200 s", "5–14 GiB", "~18 min", "2–4 GiB"),
+ "jamica":       ("~60 s",  "5–13 GiB", "~13 min", "2–10 GiB"),
+ "pamica":       ("~245 s", "7–20 GiB", "~25 min", "2–6 GiB"),
+ "pyamica":      ("~280 s", "11–30 GiB","~20 min", "2–10 GiB"),
+ "fortran":      ("—",      "—",        "~60 min", "1–3 GiB"),
+}
+MAIN_ORDER = ["amica_python", "jamica", "pamica", "pyamica", "fortran"]
+def mainrows():
+    r=""
+    for im in MAIN_ORDER:
+        g_t,g_m,c_t,c_m = MAIN[im]
+        lab = LABEL.get(im, "Fortran (reference)")
+        r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{lab}</td>'
+            f'<td class="num">{g_t}</td><td class="num">{g_m}</td>'
+            f'<td class="num">{c_t}</td><td class="num">{c_m}</td></tr>')
+    return r
+
 def covrows():
     # subjects contributing to each on-axis GPU large-chunk point (262K & below = all 25).
     order=["jamica","amica_python","pyamica","pamica"]; r=""
@@ -535,36 +555,15 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 
 <section>
   <h2>Main findings</h2>
-  <p class="sub">The big picture, before the detailed charts: how the four implementations compare on speed
-  and memory, on the GPU and on the CPU.</p>
-  <div class="grid2">
-    <div class="card" style="padding:16px 18px 6px">
-      <b>On the GPU</b>
-      <ul style="margin:8px 0 6px;padding-left:20px">
-        <li><b>Speed:</b> jamica is the fastest by a wide margin — about a minute per fit, roughly 4–5× less
-        work per step than the others (about 3–5 minutes each). All four get faster with a bigger chunk,
-        but the gain flattens once the chunk is reasonably large.</li>
-        <li><b>Memory:</b> jamica and amica-python are the leanest (~13–14&nbsp;GiB at the largest settings);
-        pyamica is the heaviest (~30&nbsp;GiB), enough to run out of memory on a smaller card. A bigger
-        chunk means more memory.</li>
-      </ul>
-    </div>
-    <div class="card" style="padding:16px 18px 6px">
-      <b>On the CPU</b>
-      <ul style="margin:8px 0 6px;padding-left:20px">
-        <li><b>Speed:</b> jamica is fastest (~13&nbsp;min at its best), ahead of the others (~18–25&nbsp;min);
-        the single-threaded reference implementation takes about an hour. AMICA is a heavy method on the CPU
-        — a GPU is far preferable.</li>
-        <li><b>Memory:</b> modest on a large-memory machine — a few GiB, growing with the chunk to
-        ~10&nbsp;GiB for the heaviest; the reference implementation is the leanest.</li>
-      </ul>
-    </div>
-  </div>
-  <p class="note" style="margin-top:12px">The common thread: the batch/chunk setting trades memory for
-  speed. The best setting is a mid-to-large chunk — large enough to be fast, not so large that memory
-  balloons; small chunks are fastest on neither device. Times are for a fixed number of iterations (not
-  time-to-a-solution), and the GPU and CPU runs use different iteration counts, so their raw seconds are
-  not directly comparable.</p>
+  <p class="sub">The big picture at each implementation's best setting, before the detailed charts. Fit
+  time is for a fixed number of iterations (3000 on the GPU, 250 on the CPU), and memory is the peak used.
+  GPU and CPU times are measured at different iteration counts, so they are not directly comparable.</p>
+  <table style="max-width:780px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
+  <p class="note">GPU fit is the fastest chunk setting; memory columns give the range from the smallest
+  chunk to a full-batch pass. Patterns shared by all implementations: on the GPU a bigger chunk is faster
+  but the gain flattens at large chunks, while memory keeps rising; on the CPU the best chunk depends on
+  the implementation. Small chunks are fastest on neither device. The single-threaded Fortran build is a
+  reference point (it does not run on the GPU here), not a like-for-like comparison.</p>
 </section>
 
 <section>
