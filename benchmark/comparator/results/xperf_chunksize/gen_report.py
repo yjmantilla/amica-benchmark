@@ -519,6 +519,12 @@ section{{padding:44px 0 6px;border-bottom:1px solid var(--line)}}
 h2{{font-size:1.5rem;letter-spacing:-.01em;margin:0 0 4px;font-weight:750}}
 .sub{{color:var(--mut);margin:.1em 0 1.3em;max-width:68ch}}
 .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:20px}}@media(max-width:760px){{.grid2{{grid-template-columns:1fr}}}}
+.pg{{display:grid;grid-template-columns:46px 1fr 1fr;gap:12px 14px;margin:6px 0 2px}}
+.pg .ch{{font:700 .74rem/1 ui-sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);text-align:center;align-self:end;padding-bottom:4px}}
+.pg .rh{{display:flex;align-items:center;justify-content:center;border-radius:12px;color:#fff}}
+.pg .rh span{{writing-mode:vertical-rl;transform:rotate(180deg);font:800 1.05rem ui-sans-serif;letter-spacing:.12em}}
+.pg .rh.gpu{{background:var(--accent)}}.pg .rh.cpu{{background:var(--ink)}}
+@media(max-width:760px){{.pg{{grid-template-columns:1fr}}.pg .ch{{display:none}}.pg .rh{{padding:8px 0;margin-top:8px}}.pg .rh span{{writing-mode:horizontal-tb;transform:none}}}}
 .card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px 12px 4px}}
 .cf{{margin:0}}.cf figcaption{{font-size:.82rem;color:var(--mut);padding:3px 5px 8px}}
 svg.chart{{width:100%;height:auto;display:block;overflow:visible}}
@@ -827,10 +833,13 @@ TLDR=f"""<title>AMICA implementations — summary (ds004505)</title>
 </section>
 <section>
   <h2>Speed and memory, at a glance</h2>
-  <p class="sub">Fit time and peak memory versus the chunk setting — GPU on top, CPU below. A bigger chunk
-  is faster but uses more memory; the GPU memory panel marks common card capacities.</p>
-  <div class="grid2"><div class="card">{c_gt}</div><div class="card">{c_gv}</div></div>
-  <div class="grid2" style="margin-top:16px"><div class="card">{c_ct}</div><div class="card">{c_cr}</div></div>
+  <p class="sub">Fit time and peak memory versus the chunk setting, split by device. A bigger chunk is
+  faster but uses more memory; the GPU memory panel marks common card capacities.</p>
+  <div class="pg">
+    <div class="ch"></div><div class="ch">Fit time</div><div class="ch">Peak memory</div>
+    <div class="rh gpu"><span>GPU</span></div><div class="card">{c_gt}</div><div class="card">{c_gv}</div>
+    <div class="rh cpu"><span>CPU</span></div><div class="card">{c_ct}</div><div class="card">{c_cr}</div>
+  </div>
   {legend(CPU_CHART)}
 </section>
 <footer>
