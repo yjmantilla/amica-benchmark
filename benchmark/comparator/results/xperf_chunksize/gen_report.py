@@ -51,6 +51,9 @@ REPO  = {"jamica":"https://github.com/snesmaeili/jamica","pamica":"https://githu
          "fortran":"https://github.com/sccn/amica"}
 def rlink(im, text):   # implementation name as a link to its repository
     return f'<a class="rl" href="{REPO[im]}" target="_blank" rel="noopener">{text}</a>' if im in REPO else text
+# Cross-links between the two reports (published artifacts). TLDR_URL is filled once the summary is deployed.
+DETAILED_URL = "https://claude.ai/code/artifact/5c1007ae-8218-4bdd-b42d-2db16a1f6102"
+TLDR_URL     = "https://claude.ai/code/artifact/212a5222-0c9e-4982-9eb1-365defe6ef0c"
 
 # ===== GPU @3000, per-subject median : chunk -> (fit_s, nvml_vram_gib). jamica = chunked path.
 # fit_s from the i3000 run. nvml: jamica-chunked from i3000 (logged NVML for jamica only),
@@ -557,6 +560,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <b>small chunks are fastest on neither device</b>. Fit times are wall time to a fixed iteration budget,
   not time to an equivalent solution — read them with the convergence section.</p>
   <div class="stamp"><span><b>Builds (main):</b></span><span>{rlink("jamica","jamica")} <code>df18b5e</code></span><span>{rlink("amica_python","amica-python")} <code>e15e158</code></span><span>{rlink("pyamica","pyamica")} <code>a8a4d7e</code></span><span>{rlink("pamica","pAMICA")} <code>0c4da39</code></span><span>{rlink("fortran","Fortran ref")} <code>665b577</code></span><span>· 64 components · GPU: 3000 iterations · CPU: 250 iterations · NVIDIA H100 GPU + 64-core CPU</span></div>
+  {f'<p class="note" style="margin:14px 0 0">Short on time? Read the <a class="rl" href="{TLDR_URL}">one-page summary →</a></p>' if TLDR_URL else ''}
 </header>
 
 <section>
@@ -796,6 +800,52 @@ STANDALONE = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
               '<meta name="viewport" content="width=device-width, initial-scale=1">'
               f'<title>{_title}</title></head><body>\n{HTML}\n</body></html>\n')
 open(os.path.join(HERE,"xperf_chunk_report_standalone.html"),"w").write(STANDALONE)
+
+# ===== TL;DR (one-page summary) — reuses the detailed report's stylesheet + the Main-findings table and
+# the GPU memory/OOM chart. Links to the detailed report for the full method and analysis.
+_style = HTML[HTML.index("<style>"):HTML.index("</style>")+len("</style>")]
+TLDR=f"""<title>AMICA implementations — summary (ds004505)</title>
+{_style}
+<div class="wrap">
+<header class="hero">
+  <div class="kick">Cross-implementation AMICA · ds004505 · real EEG · summary</div>
+  <h1>AMICA implementations: speed and memory at a glance</h1>
+  <p class="lede">A one-page summary of how five implementations of AMICA compare on fit time and memory,
+  on GPU and CPU, on a real EEG dataset. Each exposes one batch/chunk-size knob that trades memory for
+  speed: small chunks are fastest on neither device, and on the GPU the speed gain flattens once the chunk
+  is reasonably large. Full charts, analysis and method are in the
+  <a class="rl" href="{DETAILED_URL}">detailed report →</a>.</p>
+</header>
+<section>
+  <h2>Main findings</h2>
+  <p class="sub">Each implementation at its best setting. Fit time is for a fixed number of iterations
+  (3000 on the GPU, 250 on the CPU — measured at different counts, so not directly comparable between
+  devices); memory is the peak used. Each name links to its repository.</p>
+  <table style="max-width:820px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
+  <p class="note">Memory columns give the range from the smallest chunk to a full-batch pass. The
+  single-threaded Fortran build is a reference point (it does not run on the GPU here).</p>
+</section>
+<section>
+  <h2>Where memory becomes the limit</h2>
+  <p class="sub">Actual GPU memory used as the chunk grows, with common card capacities marked. Memory
+  keeps rising with the chunk; one implementation reaches about 30&nbsp;GiB at a full-batch pass — more than
+  a smaller card can hold — so the setting matters for what hardware a run needs.</p>
+  <div class="card" style="max-width:640px">{c_gv}</div>
+  {legend(IMPLS)}
+</section>
+<footer>
+  <p class="note"><b>How this was measured:</b> real EEG (ds004505), 64 components, 25 subjects · GPU:
+  NVIDIA H100 · CPU: 64-core machine, one fit per machine · fit time is wall time at a fixed number of
+  iterations, not time to a solution. Full method and per-implementation analysis:
+  <a class="rl" href="{DETAILED_URL}">detailed report →</a>.</p>
+</footer>
+</div>"""
+open(os.path.join(HERE,"xperf_chunk_tldr.html"),"w").write(TLDR)
+_ttitle = TLDR.split("<title>",1)[1].split("</title>",1)[0]
+TLDR_STANDALONE = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+                   '<meta name="viewport" content="width=device-width, initial-scale=1">'
+                   f'<title>{_ttitle}</title></head><body>\n{TLDR}\n</body></html>\n')
+open(os.path.join(HERE,"xperf_chunk_tldr_standalone.html"),"w").write(TLDR_STANDALONE)
 
 # tidy dataset — regenerated from the report dicts; authoritative raw per-cell data lives in raw/.
 def _cn(c): return str(c)
