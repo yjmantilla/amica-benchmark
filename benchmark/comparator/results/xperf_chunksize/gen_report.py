@@ -178,26 +178,27 @@ GEXT_BAND = {  # fit p25,p75 at the extension chunks (iteration-matched @3000)
  "pamica":       {C512:(236.5,254.0), C1M:(243.7,252.8), FB:(237.3,247.6)},
 }
 # reserved (torch caching-pool high-water, max_memory_reserved) — the OOM-relevant counter; JAX/jamica
-# has no reserved concept. 262K from the i3000 run; 512K/1M/full from GEXT.
+# has no reserved concept. 262K from the i3000 run; 512K/1M from GEXT (full-batch is in the table, not charted).
 MEM_RESV = {
- "amica_python": {262144:3.66, C512:6.33, C1M:12.09, FB:12.87},
- "pyamica":      {262144:9.68, C512:17.82, C1M:26.82, FB:28.33},
- "pamica":       {262144:5.34, C512:10.09, C1M:18.09, FB:19.26},
+ "amica_python": {262144:3.66, C512:6.33, C1M:12.09},
+ "pyamica":      {262144:9.68, C512:17.82, C1M:26.82},
+ "pamica":       {262144:5.34, C512:10.09, C1M:18.09},
 }
-# fold the extension into the working chunk dicts (GPU fit/nvml/bands/allocator/context)
+# fold ONLY the on-axis chunks (512K, 1M) into the charted dicts. Full-batch (FB) is a regime, not a chunk
+# size, so it is kept OUT of the vs-chunk charts and shown in its own table (fullbatchrows) — GEXT[im][FB].
 for _im in IMPLS:
-    for _c in (C512, C1M, FB):
+    for _c in (C512, C1M):
         _fit,_nvml,_alloc,_resv,_n = GEXT[_im][_c]
         GPU[_im][_c] = (_fit, _nvml)
         GPU_BAND[_im][_c] = GEXT_BAND[_im][_c]
         MEM_LIVE[_im][_c] = _alloc
         MEM_CTX[_im][_c]  = MEM_CTX[_im][FULL]      # context floor ~1 GiB, chunk-independent
-GX_N = {_im:{_c:GEXT[_im][_c][4] for _c in (C512, C1M, FB)} for _im in IMPLS}   # subjects per large-chunk point
+GX_N = {_im:{_c:GEXT[_im][_c][4] for _c in (C512, C1M)} for _im in IMPLS}   # subjects per on-axis large-chunk point
 GPU_CEILINGS = [(24,"24"),(40,"40"),(80,"80")]   # GiB card capacities (labels kept short; devices in caption)
 
 def xlog(c): return math.log2(c)
 XT=[1024,4096,16384,65536,FULL]                                  # original CPU / ladder axis (1K–262K)
-GXT=[1024,4096,16384,65536,FULL,C512,C1M,FB]                     # extended GPU axis (adds 512K/1M/full)
+GXT=[1024,4096,16384,65536,FULL,C512,C1M]                        # extended GPU chunk axis (log; 1K–1M, no full-batch)
 CLAB={1024:"1K",4096:"4K",16384:"16K",65536:"64K",FULL:"262K",C512:"512K",C1M:"1M",FB:"full"}
 XMIN,XMAX=math.log2(1024)-0.4,xlog(FULL)+0.4
 
@@ -431,12 +432,24 @@ def pamrows():
     bd={"artifact":'<span class="badge bad">near default</span>',"tuned":'<span class="badge ok">tuned</span>',"best":'<span class="badge best">largest tested</span>'}
     return "".join(f'<tr><td><code>{cfg}</code></td><td class="num">{t:.0f}s</td><td class="num">{v:.2f} GiB</td><td>{bd[tag]}</td></tr>' for cfg,t,v,tag in REAL_PAM)
 def covrows():
-    # subjects contributing to each GPU large-chunk point (262K & below = all 25).
+    # subjects contributing to each on-axis GPU large-chunk point (262K & below = all 25).
     order=["jamica","amica_python","pyamica","pamica"]; r=""
     for im in order:
-        cells="".join(f'<td class="num">{GX_N[im][c]}</td>' for c in (C512,C1M,FB))
+        cells="".join(f'<td class="num">{GX_N[im][c]}</td>' for c in (C512,C1M))
         r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{LABEL[im]}</td>'
             f'<td class="num">25</td>{cells}</tr>')
+    return r
+
+def fullbatchrows():
+    # full-batch (one pass over the whole recording) — its own table, not on the chunk axis.
+    order=["jamica","amica_python","pamica","pyamica"]; r=""
+    for im in order:
+        fit,nvml,alloc,resv,n = GEXT[im][FB]
+        resv_s = f'{resv:.1f}' if resv is not None else '—'
+        note = ' <span class="mut">· per-subject batch</span>' if im=="amica_python" else ''
+        r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{LABEL[im]}{note}</td>'
+            f'<td class="num">{fit:.0f}s</td><td class="num">{alloc:.1f}</td>'
+            f'<td class="num">{resv_s}</td><td class="num">{nvml:.1f}</td><td class="num">{n}</td></tr>')
     return r
 
 def cpufitrows():
@@ -543,9 +556,10 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   </div>
   <div class="warn-box"><b>Reading the large end of the chunk axis (512K · 1M · full-batch).</b> Each
   recording is {N_SAMP_MIN:,}–{N_SAMP_MAX:,} samples, so 262K is only ~19–33% of the data. We extended the
-  GPU sweep past it — <code>512K</code> (262K×2), <code>1M</code> (262K×4), and <b>full-batch</b> (one pass
-  over the whole recording) — to trace the memory curve toward the device ceiling. Two things to know above
-  ~785K samples (the shortest recording), where a chunk can exceed a subject's data:
+  GPU sweep past it — <code>512K</code> (262K×2) and <code>1M</code> (262K×4) on the log chunk axis, plus
+  <b>full-batch</b> (one pass over the whole recording) in a separate table, since full-batch is a regime,
+  not a chunk size. Two things to know above ~785K samples (the shortest recording), where a chunk can
+  exceed a subject's data:
   <ul style="margin:6px 0 0">
     <li><b>Implementations diverge on an over-long chunk.</b> jamica / pyamica / pAMICA silently
     <em>clamp</em> the chunk to the recording (that subject runs full-batch); <b>amica-python instead
@@ -571,14 +585,14 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <ul class="tk" style="margin-top:20px">
     <li><b>Larger chunks are faster on the GPU — but the win saturates by ~262K.</b> Fit time falls
     steeply over the small chunks (jamica 775&nbsp;s → 61&nbsp;s; amica-python 5646&nbsp;s → 230&nbsp;s
-    from 1024 to 262K), then is essentially flat from 262K to full-batch (jamica 61→62&nbsp;s, amica-python
-    230→198, pyamica 296→278, pAMICA 262→243&nbsp;s). So 262K already captures almost all of the GPU speedup;
-    going bigger buys little time and costs a lot of memory.</li>
-    <li><b>Memory climbs steeply toward the device ceiling.</b> NVML rises with chunk for every impl:
-    pyamica 10.9→<b>29.6</b>, pAMICA 6.5→20.5, amica-python 4.9→14.1, jamica 5.4→13.4&nbsp;GiB from 262K to
-    full-batch. Everything fits the 80&nbsp;GiB H100, but the capacity lines tell the portable story:
-    <b>pyamica crosses 24&nbsp;GiB by ~1M</b> (would OOM an RTX/A10-class card), and its full-batch 29.6&nbsp;GiB
-    needs a ≥32&nbsp;GiB card. <b>jamica is memory-flat (~5.4&nbsp;GiB) only through 262K</b>, then jumps to
+    from 1024 to 262K), then is essentially flat from 262K on (across 262K→1M: jamica ~61→59&nbsp;s,
+    amica-python 230→209, pyamica 296→284, pAMICA 262→248&nbsp;s; full-batch in the table below). So 262K
+    already captures almost all of the GPU speedup; going bigger buys little time and costs a lot of memory.</li>
+    <li><b>Memory climbs steeply toward the device ceiling.</b> NVML rises with chunk for every impl (262K→1M:
+    pyamica 10.9→<b>28.1</b>, pAMICA 6.5→19.3, amica-python 4.9→13.3, jamica 5.4→13.4&nbsp;GiB; full-batch in
+    the table). Everything fits the 80&nbsp;GiB H100, but the capacity lines tell the portable story:
+    <b>pyamica crosses 24&nbsp;GiB by ~1M</b> (would OOM an RTX/A10-class card) and needs a ≥32&nbsp;GiB card at
+    full-batch (29.6&nbsp;GiB). <b>jamica is memory-flat (~5.4&nbsp;GiB) only through 262K</b>, then jumps to
     ~13.4&nbsp;GiB at 512K and holds — its chunked path converges to the full-batch footprint once the chunk
     is large, so "chunk isn't a memory dial for jamica" holds at small/mid chunks only.</li>
     <li><b>amica-python cannot run a single-chunk / full-batch pass with an oversized batch.</b> Its
@@ -590,10 +604,19 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
     large-chunk cells lost subjects to preemption and the 1M point is restricted to the 22 subjects longer
     than 1M — contributing <em>n</em> per point:</li>
   </ul>
-  <table style="margin-top:6px;max-width:560px"><thead><tr><th>subjects per point</th><th class="num">≤262K</th><th class="num">512K</th><th class="num">1M *</th><th class="num">full</th></tr></thead><tbody>{covrows()}</tbody></table>
+  <table style="margin-top:6px;max-width:480px"><thead><tr><th>subjects per point</th><th class="num">≤262K</th><th class="num">512K</th><th class="num">1M *</th></tr></thead><tbody>{covrows()}</tbody></table>
   <p class="note">* 1M restricted to the 22 subjects with &gt;1M samples (all impls), so the comparison is
-  on genuinely-chunked data; the 3 shorter subjects appear only at full-batch. Other shortfalls are
-  preemption on the shared GPU partition.</p>
+  on genuinely-chunked data; the 3 shorter subjects appear only at full-batch (table below). Other
+  shortfalls are preemption on the shared GPU partition.</p>
+  <p style="margin-top:22px"><b>Full-batch — one pass over the whole recording.</b> Full-batch is a
+  <em>regime</em>, not a chunk size, so it is tabulated here rather than placed on the log chunk axis
+  above. Per-subject median @3000 iters. amica-python uses a per-subject batch = recording length (its
+  <code>BatchLoader</code> rejects an oversized fixed value); the others clamp their chunk to the recording.</p>
+  <table style="max-width:620px"><thead><tr><th>full-batch</th><th class="num">fit</th><th class="num">alloc (GiB)</th><th class="num">reserved</th><th class="num">NVML</th><th class="num">n</th></tr></thead><tbody>{fullbatchrows()}</tbody></table>
+  <p class="note">Full-batch NVML: jamica 13.4 · amica-python 14.1 · pAMICA 20.5 · <b>pyamica 29.6</b> GiB —
+  pyamica needs a ≥32&nbsp;GiB card; the other three fit 24&nbsp;GiB. Fit time is within a few percent of the
+  1M point for all four (the GPU time win already saturated by 262K), so full-batch buys no speed and only
+  costs memory.</p>
 </section>
 
 <section>
@@ -618,8 +641,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <div class="grid2" style="margin:10px 0 6px"><div class="card">{c_mliv}</div><div class="card">{c_mresv}</div></div>
   <div class="grid2" style="margin:8px 0 6px"><div class="card">{c_mtot}</div><div class="card">{c_mrat}</div></div>
   {legend(IMPLS)}
-  <p class="note" style="margin-top:12px">Four measured views vs chunk (per-subject median), extended to
-  full-batch: the three counters nest as <b>allocator-live ⊆ reserved ⊆ NVML total</b>.
+  <p class="note" style="margin-top:12px">Four measured views vs chunk (per-subject median), on the log
+  chunk axis through 1M (full-batch is in the table above): the three counters nest as
+  <b>allocator-live ⊆ reserved ⊆ NVML total</b>.
   <b>Allocator-live</b> is each framework's own live-tensor counter (understates the footprint).
   <b>Reserved</b> (torch <code>max_memory_reserved</code>; JAX has none) is the caching pool the driver
   actually holds — the OOM-relevant number — and tracks just above allocated. <b>NVML total</b> is the

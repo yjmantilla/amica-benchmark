@@ -13,8 +13,6 @@ gpu_fit_s_median,jamica,chunk_size,524288,59.9,s,"GPU H100 3000-iter MATCHED (ea
 gpu_vram_gib_nvml,jamica,chunk_size,524288,13.37,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_median,jamica,chunk_size,1048576,58.8,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
 gpu_vram_gib_nvml,jamica,chunk_size,1048576,13.37,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
-gpu_fit_s_median,jamica,chunk_size,4194304,61.7,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
-gpu_vram_gib_nvml,jamica,chunk_size,4194304,13.37,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_p25,jamica,chunk_size,1024,743,s,
 gpu_fit_s_p75,jamica,chunk_size,1024,788,s,
 gpu_fit_s_p25,jamica,chunk_size,4096,221,s,
@@ -29,8 +27,6 @@ gpu_fit_s_p25,jamica,chunk_size,524288,59.0,s,
 gpu_fit_s_p75,jamica,chunk_size,524288,61.3,s,
 gpu_fit_s_p25,jamica,chunk_size,1048576,58.0,s,
 gpu_fit_s_p75,jamica,chunk_size,1048576,59.9,s,
-gpu_fit_s_p25,jamica,chunk_size,4194304,58.7,s,
-gpu_fit_s_p75,jamica,chunk_size,4194304,69.7,s,
 gpu_fit_s_median,pamica,block_size,1024,4155.5,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
 gpu_vram_gib_nvml,pamica,block_size,1024,1.82,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_median,pamica,block_size,4096,1058.0,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
@@ -45,8 +41,6 @@ gpu_fit_s_median,pamica,block_size,524288,248.8,s,"GPU H100 3000-iter MATCHED (e
 gpu_vram_gib_nvml,pamica,block_size,524288,10.57,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_median,pamica,block_size,1048576,247.9,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
 gpu_vram_gib_nvml,pamica,block_size,1048576,19.33,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
-gpu_fit_s_median,pamica,block_size,4194304,242.5,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
-gpu_vram_gib_nvml,pamica,block_size,4194304,20.5,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_p25,pamica,block_size,1024,3902,s,
 gpu_fit_s_p75,pamica,block_size,1024,4250,s,
 gpu_fit_s_p25,pamica,block_size,4096,1008,s,
@@ -61,8 +55,6 @@ gpu_fit_s_p25,pamica,block_size,524288,236.5,s,
 gpu_fit_s_p75,pamica,block_size,524288,254.0,s,
 gpu_fit_s_p25,pamica,block_size,1048576,243.7,s,
 gpu_fit_s_p75,pamica,block_size,1048576,252.8,s,
-gpu_fit_s_p25,pamica,block_size,4194304,237.3,s,
-gpu_fit_s_p75,pamica,block_size,4194304,247.6,s,
 gpu_fit_s_median,pyamica,chunk_t,1024,2417.7,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
 gpu_vram_gib_nvml,pyamica,chunk_t,1024,3.05,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_median,pyamica,chunk_t,4096,615.3,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
@@ -77,8 +69,6 @@ gpu_fit_s_median,pyamica,chunk_t,524288,287.0,s,"GPU H100 3000-iter MATCHED (ear
 gpu_vram_gib_nvml,pyamica,chunk_t,524288,19.06,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_median,pyamica,chunk_t,1048576,283.7,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
 gpu_vram_gib_nvml,pyamica,chunk_t,1048576,28.06,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
-gpu_fit_s_median,pyamica,chunk_t,4194304,278.5,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
-gpu_vram_gib_nvml,pyamica,chunk_t,4194304,29.56,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_p25,pyamica,chunk_t,1024,2308,s,
 gpu_fit_s_p75,pyamica,chunk_t,1024,2450,s,
 gpu_fit_s_p25,pyamica,chunk_t,4096,576,s,
@@ -93,8 +83,6 @@ gpu_fit_s_p25,pyamica,chunk_t,524288,267.4,s,
 gpu_fit_s_p75,pyamica,chunk_t,524288,293.2,s,
 gpu_fit_s_p25,pyamica,chunk_t,1048576,280.1,s,
 gpu_fit_s_p75,pyamica,chunk_t,1048576,289.3,s,
-gpu_fit_s_p25,pyamica,chunk_t,4194304,262.7,s,
-gpu_fit_s_p75,pyamica,chunk_t,4194304,285.2,s,
 gpu_fit_s_median,amica_python,batch_size,1024,5646.0,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
 gpu_vram_gib_nvml,amica_python,batch_size,1024,1.82,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_median,amica_python,batch_size,4096,1410.0,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
@@ -109,8 +97,6 @@ gpu_fit_s_median,amica_python,batch_size,524288,211.3,s,"GPU H100 3000-iter MATC
 gpu_vram_gib_nvml,amica_python,batch_size,524288,7.57,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_median,amica_python,batch_size,1048576,209.0,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
 gpu_vram_gib_nvml,amica_python,batch_size,1048576,13.32,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
-gpu_fit_s_median,amica_python,batch_size,4194304,197.9,s,"GPU H100 3000-iter MATCHED (early-stops disabled), per-subj median"
-gpu_vram_gib_nvml,amica_python,batch_size,4194304,14.1,GiB,"NVML whole-GPU median, iteration-matched i3000 run (raw/nostop_gpu3000_summary.csv)"
 gpu_fit_s_p25,amica_python,batch_size,1024,5443,s,
 gpu_fit_s_p75,amica_python,batch_size,1024,5832,s,
 gpu_fit_s_p25,amica_python,batch_size,4096,1365,s,
@@ -125,8 +111,6 @@ gpu_fit_s_p25,amica_python,batch_size,524288,202.0,s,
 gpu_fit_s_p75,amica_python,batch_size,524288,215.9,s,
 gpu_fit_s_p25,amica_python,batch_size,1048576,204.6,s,
 gpu_fit_s_p75,amica_python,batch_size,1048576,211.6,s,
-gpu_fit_s_p25,amica_python,batch_size,4194304,193.2,s,
-gpu_fit_s_p75,amica_python,batch_size,4194304,202.7,s,
 gpu_ll_final_median,jamica,chunk_size,262144,-1.1005,nats,at chunk 262144
 gpu_s_per_iter_median,jamica,chunk_size,262144,0.0203,s/iter,at chunk 262144
 gpu_n_iter_min,jamica,chunk_size,262144,3000,iters,at chunk 262144
