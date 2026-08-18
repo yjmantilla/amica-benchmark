@@ -576,8 +576,8 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <p class="lede">Every Python AMICA implementation exposes one batch/chunk-size knob. We swept it on
   real EEG (ds004505), GPU and CPU, at matched iterations. It turns out to be a big dial. Three takeaways: on the
   GPU <b>most of the speed-up is in by a ~262K chunk</b> (a little more out to 1M, paid for in memory);
-  <b>GPU memory climbs steeply with the chunk</b> (pyamica reaches ~30&nbsp;GiB at full-batch, enough to matter on smaller cards); and
-  <b>for the four parallel implementations, small chunks are fastest on neither device</b>. Fit times are wall time to a fixed iteration budget,
+  <b>GPU memory climbs steeply with the chunk</b> (pyamica reaches ~30&nbsp;GiB at full-batch); and
+  <b>for the four parallel implementations, small chunks are not the fastest setting on either device</b>. Fit times are wall time to a fixed iteration budget,
   not time to an equivalent solution, so read them alongside the convergence section.</p>
   <div class="stamp"><span><b>Builds:</b></span><span>{rlink("jamica","jamica")} <code>df18b5e</code></span><span>{rlink("amica_python","amica-python")} <code>e15e158</code></span><span>{rlink("pyamica","pyamica")} <code>a8a4d7e</code></span><span>{rlink("pamica","pAMICA")} <code>0c4da39</code></span><span>{rlink("fortran","Fortran ref")} <code>665b577</code></span><span>· 64 components · GPU: 3000 iterations · CPU: 250 iterations · NVIDIA H100 GPU + 64-core CPU</span></div>
   {f'<p class="note" style="margin:14px 0 0">Short on time? Read the <a class="rl" href="{TLDR_URL}">one-page summary →</a></p>' if TLDR_URL else ''}
