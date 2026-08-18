@@ -1,0 +1,21 @@
+# CPU large-chunk extension (Narval whole-node, 250-iter early-stops-disabled, per-subject median).
+# Aggregated from /scratch/yorguin/iter_ladder/cpu_nostop/c{524288,1048576,4194304}_i250_r1 and, for
+# amica_python full-batch, the per-subject c<n_samples>_i250_r1 dirs. peak_rss_gb = process RSS peak.
+# 1M point restricted to the 20 recordings longer than 1,048,576 samples. Validated against
+# narval_nostop_i250_summary.csv at 65536 (reproduces it exactly).
+impl,chunk,n_subjects,fit_s_median,fit_s_p25,fit_s_p75,peak_rss_gib_median
+jamica,524288,24,588.2,573.8,603.3,21.42
+jamica,1048576,20,784.5,777.7,796.0,24.29
+jamica,fullbatch,25,836.1,805.4,850.4,24.41
+amica_python,524288,25,895.3,857.4,953.8,6.83
+amica_python,1048576,20,655.2,613.8,682.7,11.92
+amica_python,fullbatch,25,717.6,637.6,761.0,12.47
+pyamica,524288,24,828.6,783.0,880.0,17.44
+pyamica,1048576,19,667.0,649.3,701.2,27.15
+pyamica,fullbatch,24,613.1,596.4,634.5,28.80
+pamica,524288,23,964.0,873.9,1063.7,10.43
+pamica,1048576,20,648.8,636.1,679.1,19.18
+pamica,fullbatch,24,553.6,536.2,577.7,20.30
+fortran,524288,25,4192.1,4121.4,4362.4,5.41
+fortran,1048576,20,4205.2,4143.9,4345.7,10.04
+fortran,fullbatch,25,4186.6,4013.6,4240.3,10.57

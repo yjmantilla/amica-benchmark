@@ -47,7 +47,7 @@ deliverable; everything else here regenerates or backs it.
   (`amica_python_jax`, `chunk_size=None`) is a separate program: ~13.4 GiB NVML median (per-subject up
   to ~21) at the same GPU speed, much slower + ~19.8 GiB on CPU — discussed only in the memory note.
 - **`262144` is the largest chunk of the core sweep** — recordings are 785k–1.36M samples, so 262144 is
-  ~19–33% of the data. The GPU extension adds 512K, 1M and a full-batch pass on top (CPU stops at 262K).
+  ~19–33% of the data. Both the GPU and CPU sweeps add 512K, 1M and a full-batch pass on top of that range.
 
 ## Provenance
 - GPU fit @3000 (matched): `raw/nostop_gpu3000_summary.csv` (Trillium H100, iteration-matched, 25 subj/cell).

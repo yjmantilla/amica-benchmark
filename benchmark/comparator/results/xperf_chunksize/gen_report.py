@@ -35,6 +35,7 @@ CAVEATS baked into the report (see NOTES_measurement.md):
 import math, os, csv
 
 FULL = 262144                       # largest chunk of the core axis (samples); the extension adds 512K/1M/full-batch.
+C512, C1M = 524288, 1048576         # extension chunk sizes (now on the CPU axis too; also redefined below near GEXT)
 N_SAMP_MIN, N_SAMP_MAX = 785328, 1364633   # per-subject sample counts; 262144 = ~19-33% of a recording
 # per-subject sample counts (25 subjects, ds004505 @250 Hz) for the duration-distribution plot
 SUBJ_SAMPLES = [785328,1364633,1099796,1057036,1038926,1042909,1174503,1159910,1146679,1139466,1104857,
@@ -112,34 +113,41 @@ MEM_LIVE = {
 # iteration-matched (early-stops disabled), per-subject median. Narval 64-core Zen2. All 5 impls incl
 # Fortran, 25 subjects (all cells, after the repair). raw/narval_nostop_i250_summary.csv
 CPU_FIT = {
- "jamica":  {1024:1269,4096:976,16384:1277,65536:938,FULL:753},
- "pamica":  {1024:7400,4096:2806,16384:1527,65536:2064,FULL:1536},
- "pyamica": {1024:3099,4096:1921,16384:1211,65536:2409,FULL:1328},
- "amica_python":   {1024:5027,4096:1710,16384:1295,65536:1084,FULL:1053},
- "fortran": {1024:3676,4096:3679,16384:4577,65536:4004,FULL:4118},
+ "jamica":  {1024:1269,4096:976,16384:1277,65536:938,FULL:753,C512:588,C1M:785},
+ "pamica":  {1024:7400,4096:2806,16384:1527,65536:2064,FULL:1536,C512:964,C1M:649},
+ "pyamica": {1024:3099,4096:1921,16384:1211,65536:2409,FULL:1328,C512:829,C1M:667},
+ "amica_python":   {1024:5027,4096:1710,16384:1295,65536:1084,FULL:1053,C512:895,C1M:655},
+ "fortran": {1024:3676,4096:3679,16384:4577,65536:4004,FULL:4118,C512:4192,C1M:4205},
 }
 CPU_BAND = {  # CPU per-subject p25,p75 (whole-node exclusive -> tight, no contention)
- "jamica":  {1024:(1168,1326),4096:(946,1009),16384:(1099,1438),65536:(877,1206),FULL:(730,792)},
- "pamica":  {1024:(6892,8042),4096:(2718,3015),16384:(1309,1815),65536:(1917,2158),FULL:(1402,1684)},
- "pyamica": {1024:(2408,3622),4096:(1850,2072),16384:(1153,1278),65536:(2223,2510),FULL:(1272,1464)},
- "amica_python":   {1024:(4351,6011),4096:(1522,1779),16384:(1204,1394),65536:(1040,1150),FULL:(982,1074)},
- "fortran": {1024:(3466,3752),4096:(3451,3794),16384:(4415,4735),65536:(3814,4239),FULL:(3988,4264)},
+ "jamica":  {1024:(1168,1326),4096:(946,1009),16384:(1099,1438),65536:(877,1206),FULL:(730,792),C512:(574,603),C1M:(778,796)},
+ "pamica":  {1024:(6892,8042),4096:(2718,3015),16384:(1309,1815),65536:(1917,2158),FULL:(1402,1684),C512:(874,1064),C1M:(636,679)},
+ "pyamica": {1024:(2408,3622),4096:(1850,2072),16384:(1153,1278),65536:(2223,2510),FULL:(1272,1464),C512:(783,880),C1M:(649,701)},
+ "amica_python":   {1024:(4351,6011),4096:(1522,1779),16384:(1204,1394),65536:(1040,1150),FULL:(982,1074),C512:(857,954),C1M:(614,683)},
+ "fortran": {1024:(3466,3752),4096:(3451,3794),16384:(4415,4735),65536:(3814,4239),FULL:(3988,4264),C512:(4121,4362),C1M:(4144,4346)},
 }
 CPU_NSUB = {  # subjects per cell -- all 25 after the repair
- "jamica":  {1024:25,4096:25,16384:25,65536:25,FULL:25},
- "pamica":  {1024:25,4096:25,16384:25,65536:25,FULL:25},
- "pyamica": {1024:25,4096:25,16384:25,65536:25,FULL:25},
- "amica_python":   {1024:25,4096:25,16384:25,65536:25,FULL:25},
- "fortran": {1024:25,4096:25,16384:25,65536:25,FULL:25},
+ "jamica":  {1024:25,4096:25,16384:25,65536:25,FULL:25,C512:24,C1M:20},
+ "pamica":  {1024:25,4096:25,16384:25,65536:25,FULL:25,C512:23,C1M:20},
+ "pyamica": {1024:25,4096:25,16384:25,65536:25,FULL:25,C512:24,C1M:19},
+ "amica_python":   {1024:25,4096:25,16384:25,65536:25,FULL:25,C512:25,C1M:20},
+ "fortran": {1024:25,4096:25,16384:25,65536:25,FULL:25,C512:25,C1M:20},
 }
 CPU_RSS = {  # peak RSS (GiB) per-subject median (whole-node; iteration-independent)
- "jamica":  {1024:2.35,4096:2.34,16384:2.85,65536:6.26,FULL:10.34},
- "pamica":  {1024:1.63,4096:1.74,16384:2.25,65536:2.76,FULL:6.08},
- "pyamica": {1024:2.05,4096:2.05,16384:2.80,65536:3.84,FULL:9.59},
- "amica_python":   {1024:2.13,4096:2.14,16384:2.13,65536:2.36,FULL:4.25},
- "fortran": {1024:0.84,4096:0.84,16384:0.85,65536:1.31,FULL:3.09},
+ "jamica":  {1024:2.35,4096:2.34,16384:2.85,65536:6.26,FULL:10.34,C512:21.42,C1M:24.29},
+ "pamica":  {1024:1.63,4096:1.74,16384:2.25,65536:2.76,FULL:6.08,C512:10.43,C1M:19.18},
+ "pyamica": {1024:2.05,4096:2.05,16384:2.80,65536:3.84,FULL:9.59,C512:17.44,C1M:27.15},
+ "amica_python":   {1024:2.13,4096:2.14,16384:2.13,65536:2.36,FULL:4.25,C512:6.83,C1M:11.92},
+ "fortran": {1024:0.84,4096:0.84,16384:0.85,65536:1.31,FULL:3.09,C512:5.41,C1M:10.04},
 }
 CPU_FIT_MISS = {}  # no timeouts on the whole-node run (pyamica@1024 completed: ~3099 s)
+CPU_FB = {  # CPU full-batch (one pass): fit median (s), peak RSS (GiB), n subjects. amica_python via per-subject batch.
+ "jamica":       (836, 24.41, 25),
+ "amica_python": (718, 12.47, 25),
+ "pyamica":      (613, 28.80, 24),
+ "pamica":       (554, 20.30, 24),
+ "fortran":      (4187, 10.57, 25),
+}
 # jamica two orchestrator keys (all traceable to raw/chunk_gpumem_summary.csv):
 J_CHUNKED_GPU_NVML, J_FULLBATCH_GPU_NVML = 5.37, 13.37   # GiB NVML median (full-batch key from the prior memory run)
 J_CHUNKED_GPU_NVML_MAX, J_FULLBATCH_GPU_NVML_MAX = 7.37, 21.37  # per-subject max (longest recording)
@@ -274,7 +282,7 @@ def chart(series, band, ylab, ylog, title, sub, impls, mark, oom=None, xt=None, 
             s.append(f'<text x="{X(FULL):.1f}" y="{mt+13}" class="oom">{im} ✕ OOM</text>')
     s.append('</svg>')
     bandtxt = " · shaded = middle 50% of subjects" if band else ""
-    cap=f'{sub}{bandtxt} · ◯ = {mark} setting'
+    cap=f'{sub}{bandtxt} · ◯ = {mark} charted setting'
     return f'<figure class="cf"><figcaption>{cap}</figcaption>{"".join(s)}</figure>'
 
 def chart_durations():
@@ -370,14 +378,14 @@ TORCH=["amica_python","pyamica","pamica"]   # impls with a torch reserved counte
 c_gt=chart(gpu_t,GPU_BAND,"fit time (s, log)",True,"GPU · fit time vs chunk","real ds004505 · H100 · 3000-iter matched · per-subject median",IMPLS,"fastest",xt=GXT)
 # GPU section memory chart = NVML (true whole-GPU ceiling), log-y, with real GPU-capacity reference lines
 c_gv=chart(gpu_v,None,"GPU memory used (GiB, log)",True,"GPU · memory vs chunk (with reference lines)","actual GPU memory used · dashed reference lines at 24, 40, 80 GiB",IMPLS,"lowest",xt=GXT,hlines=GPU_CEILINGS)
-c_cr=chart(CPU_RSS,None,"memory used (GiB)",False,"CPU · memory vs chunk","real ds004505 · 64-core machine · per-subject median",CPU_CHART,"lowest")
-c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 64-core machine, one fit per machine · 250 iterations · per-subject median",CPU_CHART,"fastest")
+c_cr=chart(CPU_RSS,None,"memory used (GiB)",False,"CPU · memory vs chunk","real ds004505 · 64-core machine · per-subject median",CPU_CHART,"lowest",xt=GXT)
+c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 64-core machine, one fit per machine · 250 iterations · per-subject median",CPU_CHART,"fastest",xt=GXT)
 # CPU iteration ladder (chunk 65536; iters 50/100/250/500) from raw/narval_nostop_i*_summary.csv.
 CPU_LAD_ITERS=[50,100,250,500]
 CPU_LAD={
  "jamica":       {50:(222.7,-1.2320),100:(419.2,-1.1145),250:(937.8,-1.1050),500:(2235.9,-1.1020)},
  "amica_python": {50:(183.0,-1.2280),100:(409.9,-1.1152),250:(1084.2,-1.1040),500:(2278.4,-1.1027)},
- "pyamica":      {50:(478.5,-1.2238),100:(980.0,-1.1152),250:(2408.5,-1.1045),500:(4769.9,-1.1012)},
+ "pyamica":      {50:(475.5,-1.2272),100:(980.0,-1.1152),250:(2408.5,-1.1045),500:(4769.9,-1.1012)},
  "pamica":       {50:(412.4,-1.1754),100:(814.2,-1.1293),250:(2063.7,-1.1202),500:(4148.3,-1.1179)},
  "fortran":      {50:(847.8,-1.2233),100:(1665.6,-1.1151),250:(4004.4,-1.1048),500:(8230.1,-1.1013)},
 }
@@ -458,11 +466,11 @@ def pamrows():
 # Neutral big-picture summary (plain rounded values, drawn from the sections below). Each implementation's
 # best fit time and its memory range (smallest chunk -> full-batch/largest). Alphabetical order.
 MAIN = {   # GPU memory / CPU memory = range from smallest chunk to a full-batch pass (GPU mem floors are the 1K NVML values)
- "amica_python": ("~200 s", "2–14 GiB", "~18 min", "2–4 GiB"),
- "jamica":       ("~60 s",  "5–13 GiB", "~13 min", "2–10 GiB"),
- "pamica":       ("~245 s", "2–20 GiB", "~25 min", "2–6 GiB"),
- "pyamica":      ("~280 s", "3–30 GiB", "~20 min", "2–10 GiB"),
- "fortran":      ("—",      "—",        "~60 min", "1–3 GiB"),
+ "amica_python": ("~200 s", "2–14 GiB", "~11 min", "2–12 GiB"),
+ "jamica":       ("~60 s",  "5–13 GiB", "~10 min", "2–24 GiB"),
+ "pamica":       ("~245 s", "2–20 GiB", "~9 min",  "2–20 GiB"),
+ "pyamica":      ("~280 s", "3–30 GiB", "~10 min", "2–29 GiB"),
+ "fortran":      ("—",      "—",        "~60 min", "1–11 GiB"),
 }
 MAIN_ORDER = ["jamica", "amica_python", "pamica", "pyamica", "fortran"]   # by GPU fit time (fastest first; Fortran has no GPU run → last)
 def mainrows():
@@ -496,11 +504,21 @@ def fullbatchrows():
             f'<td class="num">{resv_s}</td><td class="num">{nvml:.1f}</td><td class="num">{n}</td></tr>')
     return r
 
+def cpu_fullbatchrows():
+    # CPU full-batch (one pass over the whole recording) -- its own table, not on the chunk axis.
+    order=["jamica","amica_python","pamica","pyamica","fortran"]; r=""
+    for im in order:
+        fit,rss,n = CPU_FB[im]
+        note = ' <span class="mut">· per-subject batch</span>' if im=="amica_python" else (' <span class="mut">· 1 thread</span>' if im=="fortran" else '')
+        r+=(f'<tr><td><span class="dot" style="background:{COLOR[im]}"></span>{LABEL.get(im,"Fortran amica17 (1 thread)")}{note}</td>'
+            f'<td class="num">{fit:.0f}s</td><td class="num">{rss:.1f}</td><td class="num">{n}</td></tr>')
+    return r
+
 def cpufitrows():
     r=""
     for im in ["jamica","pamica","pyamica","amica_python","fortran"]:
         cells=""
-        for c in XT:
+        for c in GXT:
             ns=CPU_NSUB.get(im,{}).get(c)
             star="" if (ns is None or ns==25) else f'<sup class="st">*{ns}</sup>'
             if c in CPU_FIT[im]:
@@ -585,15 +603,16 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 
 <section>
   <h2>Main findings</h2>
-  <p class="sub">The big picture at each implementation's best setting, before the detailed charts. Fit
+  <p class="sub">The big picture at each implementation's fastest setting, before the detailed charts. Fit
   time is for a fixed number of iterations (3000 on the GPU, 250 on the CPU), and memory is the peak used.
   GPU and CPU times are measured at different iteration counts, so they are not directly comparable.</p>
   <table style="max-width:780px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
   <p class="note">GPU fit is each implementation's fastest setting (a large chunk or a full-batch pass);
-  the GPU memory column spans the smallest chunk to a full-batch pass, the CPU memory column the smallest
-  to the largest tested chunk (262K). Patterns shared by all implementations: on the GPU a bigger chunk is faster
-  but the gain flattens at large chunks, while memory keeps rising; on the CPU the best chunk depends on
-  the implementation. None of the four parallel implementations is fastest at a small chunk, on either device. The single-threaded Fortran build is a
+  the GPU memory column spans the smallest chunk to a full-batch pass, and the CPU memory column does the
+  same. Patterns shared by all implementations: on the GPU a bigger chunk is faster
+  but the gain flattens at large chunks, while memory keeps rising; on the CPU the fastest setting is a
+  large chunk (512K, 1M, or full-batch) for all four parallel implementations, and memory rises the same
+  way. None of the four parallel implementations is fastest at a small chunk, on either device. The single-threaded Fortran build is a
   reference point (it does not run on the GPU here), not a fair comparison against the 64-core runs.</p>
 </section>
 
@@ -611,7 +630,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <div class="callout">
     <div class="stat warn"><div class="big">~25×</div><div class="lab">GPU fit-time range from the smallest chunk to 262K within a single implementation (amica-python); the others span 8–16× over that range (larger still out to full-batch).</div></div>
     <div class="stat"><div class="big">grows</div><div class="lab">GPU memory grows with the chunk for three of the four. pyamica reaches ~29.6 GiB at full-batch on the 80 GiB H100 used here. jamica stays flat (~5.4 GiB) through a 262K chunk, then steps up to ~13.4 GiB.</div></div>
-    <div class="stat"><div class="big">not small</div><div class="lab">The smallest tested chunk is fastest for none of the four parallel implementations. On the GPU the largest chunks are fastest; on the CPU it depends on the implementation (the largest for two of them, a mid-size chunk for the other two). The GPU and CPU runs use different iteration counts, so don't compare their raw seconds.</div></div>
+    <div class="stat"><div class="big">not small</div><div class="lab">The smallest tested chunk is fastest for none of the four parallel implementations. On the GPU the largest chunks are fastest; on the CPU the fastest setting is also a large chunk for all four (512K, 1M, or full-batch). The GPU and CPU runs use different iteration counts, so don't compare their raw seconds.</div></div>
   </div>
   <div class="warn-box"><b>Reading the large end of the chunk axis (512K, 1M, full-batch).</b> Each
   recording is {N_SAMP_MIN:,}–{N_SAMP_MAX:,} samples, so a 262K chunk is only about a fifth to a third of
@@ -755,31 +774,34 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 <section>
   <h2>CPU fit time and memory</h2>
   <p class="sub">Real EEG (ds004505) on a 64-core machine, one fit per machine so nothing else competes for
-  memory. Every implementation was run for the same 250 iterations; values are the median across 25
-  subjects. All five, including the single-threaded reference, cover all 25 subjects, so these are clean
-  absolute times.</p>
+  memory. Every implementation was run for the same 250 iterations; values are the per-subject median (25 subjects through 262K). All five, including the single-threaded reference, cover all 25 subjects through 262K (19–25 at
+  the larger chunks), so these are clean absolute times.</p>
   <div class="grid2"><div class="card">{c_ct}</div><div class="card">{c_cr}</div></div>
   {legend(CPU_CHART)}
-  <p class="note" style="margin-top:8px">The CPU sweep here covers chunks through 262K; the larger points
-  (512K, 1M, full-batch) were measured on the GPU only.</p>
-  <table style="margin-top:16px"><thead><tr><th>fit time (s) · per-subject median · 250 iters</th><th class="num">1K</th><th class="num">4K</th><th class="num">16K</th><th class="num">64K</th><th class="num">262K</th></tr></thead><tbody>{cpufitrows()}</tbody></table>
-  <p class="note">All cells cover all 25 subjects (5 implementations × 5 chunks).</p>
+  <table style="margin-top:16px"><thead><tr><th>fit time (s) · per-subject median · 250 iters</th><th class="num">1K</th><th class="num">4K</th><th class="num">16K</th><th class="num">64K</th><th class="num">262K</th><th class="num">512K</th><th class="num">1M</th></tr></thead><tbody>{cpufitrows()}</tbody></table>
+  <p class="note">Chunks through 262K cover all 25 subjects; the 512K and 1M columns cover 19–25 (a superscript shows the count where it is under 25, and the 1M point is limited to the 20 recordings longer than 1M). Full-batch is in the table below.</p>
+  <p style="margin-top:16px"><b>Full-batch on the CPU: one pass over the whole recording.</b> Kept off the
+  chunk axis because it scales with each recording's length rather than a fixed chunk. amica-python uses a
+  chunk equal to each recording's own length; the reference is single-threaded.</p>
+  <table><thead><tr><th>full-batch · per-subject median · 250 iters</th><th class="num">fit time (s)</th><th class="num">peak RSS (GiB)</th><th class="num">subjects</th></tr></thead><tbody>{cpu_fullbatchrows()}</tbody></table>
   <ul class="tk" style="margin-top:8px">
-    <li><b>Lowest measured CPU medians</b>: jamica ~753&nbsp;s @262K, amica-python ~1053&nbsp;s @262K,
-    pyamica ~1211&nbsp;s @16K, pAMICA ~1527&nbsp;s @16K, and the single-threaded Fortran reference
-    ~3676&nbsp;s @1K. Bands overlap between adjacent chunks, so read these as lowest measured medians, not
-    certified optima.</li>
-    <li><b>The smallest chunk is fastest for none of the four parallel implementations, and the best setting
-    depends on the implementation.</b> jamica and amica-python are fastest at the largest chunk; pAMICA and pyamica are
-    fastest at a mid-size chunk (pyamica is ~10% slower at the largest and about 2× slower at a 64K chunk).
-    So the curves are not a smooth "bigger is better". The single-threaded reference is roughly flat,
-    marginally best at the smallest chunk.</li>
-    <li><b>CPU fits are long.</b> At 250 iterations, the lowest-median CPU wall times are ~13–25&nbsp;min for
-    the four main implementations and about an hour for the single-threaded reference. The CPU ladder was
-    measured only to 500 iterations, so a 3000-iteration CPU time is not in the data.</li>
-    <li><b>Memory grows with the chunk on the CPU too</b> (jamica ~2.3→10.4, pyamica ~2.1→9.6, pAMICA
-    ~1.6→6.1&nbsp;GiB from the smallest to the largest chunk); the single-threaded reference has the lowest
-    measured RSS (0.8→3.1&nbsp;GiB). Like on the GPU, memory changed little across the tested iteration counts.</li>
+    <li><b>Lowest measured CPU medians</b>: jamica ~588&nbsp;s @512K, amica-python ~655&nbsp;s @1M,
+    pyamica ~613&nbsp;s @full-batch, pAMICA ~554&nbsp;s @full-batch, and the single-threaded Fortran
+    reference ~3676&nbsp;s @1K. Bands overlap between adjacent chunks, so read these as lowest measured
+    medians, not certified optima.</li>
+    <li><b>The smallest chunk is fastest for none of the four parallel implementations; the fastest CPU
+    setting is a large chunk for all four.</b> jamica is fastest at 512K, amica-python at 1M, and pyamica and
+    pAMICA at full-batch. The curves are not perfectly monotonic (pyamica and pAMICA dip, rise at 64K, then
+    fall again), but the minimum sits at a large chunk in every case. The single-threaded reference is
+    roughly flat, marginally fastest at the smallest chunk.</li>
+    <li><b>CPU fits are long.</b> At 250 iterations, the lowest-median CPU wall times are ~9–11&nbsp;min for
+    the four main implementations (at their fastest large-chunk setting) and about an hour for the
+    single-threaded reference. The CPU ladder was measured only to 500 iterations, so a 3000-iteration CPU
+    time is not in the data.</li>
+    <li><b>Memory grows with the chunk on the CPU too</b>, and the large chunks push it well past the
+    earlier 262K range (jamica ~2.3→24.4, pyamica ~2.1→28.8, pAMICA ~1.6→20.3, amica-python ~2.1→12.5&nbsp;GiB
+    from the smallest chunk to a full-batch pass); the single-threaded reference has the lowest measured RSS
+    (0.8→10.6&nbsp;GiB). Like on the GPU, memory changed little across the tested iteration counts.</li>
   </ul>
   <div class="info-box" style="margin-top:14px"><b>How to read the CPU numbers.</b> Each fit had a whole
   machine to itself, so the absolute times are meaningful. The spread across subjects varies (from small to
@@ -792,7 +814,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   the number of iterations grows (chunk 65536), measured at 50, 100, 250 and 500 iterations. Wall time rises
   about linearly across these counts; the median log-likelihood rises quickly and its steps shrink by 500,
   with pAMICA's below the other three. The ladder stops at 500, so behaviour beyond that was not measured.
-  All points cover 25 subjects except pyamica at 50 iterations (24).</p>
+  All points cover 25 subjects.</p>
   <div class="grid2"><div class="card">{c_clt}</div><div class="card">{c_cll}</div></div>
   {legend(CPU_CHART)}
 </section>
@@ -810,8 +832,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   </dl>
   <p class="note" style="margin-top:16px"><b>What to trust:</b> the curve shapes, the actual GPU-memory
   figures, the per-iteration speeds, and the convergence columns read together. The fastest measured CPU setting is
-  implementation-specific (262K for jamica/amica-python, 16K for pAMICA/pyamica), and amica-python cannot
-  run a single-chunk pass with an oversized batch (a setting limit, not running out of memory). Fit times are wall time to a fixed iteration budget, <b>not</b> time to an
+  implementation-specific and is a large chunk in every case (512K for jamica, 1M for amica-python,
+  full-batch for pAMICA and pyamica); amica-python reaches full-batch with a per-subject batch equal to
+  each recording's length. Fit times are wall time to a fixed iteration budget, <b>not</b> time to an
   equivalent solution, and GPU and CPU budgets differ, so don't compare their seconds.</p>
 </footer>
 </div>"""
@@ -840,19 +863,19 @@ TLDR=f"""<title>AMICA implementations: summary (ds004505)</title>
 </header>
 <section>
   <h2>Main findings</h2>
-  <p class="sub">Each implementation at its fastest setting (a large chunk or a full-batch pass). Fit time
+  <p class="sub">Each implementation at its fastest setting (for the four parallel implementations, a large chunk or a full-batch pass; for the single-threaded Fortran reference, the smallest chunk). Fit time
   is for a fixed number of iterations (3000 on the GPU, 250 on the CPU; measured at different counts, the two are
   not directly comparable); memory is the peak used. Each name links to its repository.</p>
   <table style="max-width:820px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
-  <p class="note">The GPU memory column spans the smallest chunk to a full-batch pass; the CPU memory
-  column spans the smallest to the largest tested chunk (262K). Small and mid chunks cover all 25 subjects;
-  the large-chunk and full-batch GPU points cover 20–25 (the 1M point uses the 20 recordings longer than
-  1M). The single-threaded Fortran build is a reference point (it does not run on the GPU here).</p>
+  <p class="note">Both memory columns span the smallest chunk to a full-batch pass. Small and mid chunks
+  cover all 25 subjects; the large-chunk and full-batch points cover 19–25 (the 1M point is limited to the 20
+  recordings longer than 1M). The single-threaded Fortran build is a reference point (it does not run on
+  the GPU here).</p>
 </section>
 <section>
   <h2>Chunk size</h2>
   <p class="sub">Fit time and peak memory versus the batch/chunk-size setting, by device. On the GPU a
-  bigger chunk is faster but uses more memory; on the CPU the best chunk depends on the implementation. The
+  bigger chunk is faster but uses more memory; on the CPU the fastest setting is a large chunk for all four parallel implementations. The
   GPU memory panel shows reference lines at 24, 40 and 80 GiB for scale.</p>
   <div class="pg">
     <div class="ch"></div><div class="ch">Fit time</div><div class="ch">Peak memory</div>
