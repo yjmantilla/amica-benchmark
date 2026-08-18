@@ -464,7 +464,7 @@ MAIN = {
  "pyamica":      ("~280 s", "11–30 GiB","~20 min", "2–10 GiB"),
  "fortran":      ("—",      "—",        "~60 min", "1–3 GiB"),
 }
-MAIN_ORDER = ["amica_python", "jamica", "pamica", "pyamica", "fortran"]
+MAIN_ORDER = ["jamica", "amica_python", "pamica", "pyamica", "fortran"]   # by GPU fit time (fastest first; Fortran has no GPU run → last)
 def mainrows():
     r=""
     for im in MAIN_ORDER:
@@ -852,13 +852,25 @@ TLDR=f"""<title>AMICA implementations — summary (ds004505)</title>
   single-threaded Fortran build is a reference point (it does not run on the GPU here).</p>
 </section>
 <section>
-  <h2>Speed and memory, at a glance</h2>
-  <p class="sub">Fit time and peak memory versus the chunk setting, split by device. A bigger chunk is
+  <h2>Chunk size</h2>
+  <p class="sub">Fit time and peak memory versus the batch/chunk-size setting, by device. A bigger chunk is
   faster but uses more memory; the GPU memory panel marks common card capacities.</p>
   <div class="pg">
     <div class="ch"></div><div class="ch">Fit time</div><div class="ch">Peak memory</div>
     <div class="rh gpu"><span>GPU</span></div><div class="card">{c_gt}</div><div class="card">{c_gv}</div>
     <div class="rh cpu"><span>CPU</span></div><div class="card">{c_ct}</div><div class="card">{c_cr}</div>
+  </div>
+  {legend(CPU_CHART)}
+</section>
+<section>
+  <h2>Iterations</h2>
+  <p class="sub">Fit time and fit quality (log-likelihood, higher is better) versus the number of
+  iterations, by device, at a fixed chunk. Fit time grows in a straight line with iterations; quality
+  improves quickly and then levels off.</p>
+  <div class="pg">
+    <div class="ch"></div><div class="ch">Fit time</div><div class="ch">Log-likelihood</div>
+    <div class="rh gpu"><span>GPU</span></div><div class="card">{c_lt}</div><div class="card">{c_ll}</div>
+    <div class="rh cpu"><span>CPU</span></div><div class="card">{c_clt}</div><div class="card">{c_cll}</div>
   </div>
   {legend(CPU_CHART)}
 </section>
