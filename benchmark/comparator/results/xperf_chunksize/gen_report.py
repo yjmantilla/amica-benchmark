@@ -361,7 +361,7 @@ LAD_TIME={im:{n:LADDER[im][n][0] for n in LADDER[im]} for im in IMPLS}
 LAD_LL  ={im:{n:LADDER[im][n][1] for n in LADDER[im]} for im in IMPLS}
 c_lt=chart_iters(LAD_TIME,"fit time (s)","GPU · fit time vs iterations","chunk 65536 · per-subject median · slope = seconds per iteration",IMPLS,y0zero=True)
 c_ll=chart_iters(LAD_LL,"final log-likelihood","GPU · convergence vs iterations","chunk 65536 · median final LL (higher = better)",IMPLS,y0zero=False)
-c_lm=chart_iters(LADDER_MEM,"GPU memory used (GiB)","GPU · memory vs iterations","chunk 65536 · total GPU memory · essentially the same regardless of the number of iterations",IMPLS,y0zero=True)
+c_lm=chart_iters(LADDER_MEM,"GPU memory used (GiB)","GPU · memory vs iterations","chunk 65536 · total GPU memory · about the same across the tested iteration counts",IMPLS,y0zero=True)
 
 gpu_t={im:{c:v[0] for c,v in GPU[im].items()} for im in IMPLS}
 gpu_v={im:{c:v[1] for c,v in GPU[im].items()} for im in IMPLS}
@@ -603,8 +603,8 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   run the full 3000 iterations and GPU wall time is directly comparable per iteration
   (<b>seconds/iteration × 3000 = wall</b>, exactly). At matched iterations three of the four land within
   ~0.001 nats in final log-likelihood (jamica −1.1005, amica-python −1.1002, pyamica −1.0995);
-  <b>pAMICA sits ~0.011 nats lower (−1.1107)</b>, a small but real gap in convergence quality (detailed in
-  the iteration ladder), not just an effect of stopping at different points. Equal iterations is not proof of equal solutions; we
+  <b>pAMICA's median final log-likelihood is ~0.011 nats lower (−1.1107)</b> than the other three (detailed in
+  the iteration ladder), and this is not an effect of stopping at different points. Equal iterations is not proof of equal solutions; we
   did not check that the results are identical decompositions. <b>The CPU section is a separate run on a
   64-core machine at 250 iterations</b>: clean absolute times, but the iteration count differs from the
   GPU's, so the two sets of seconds aren't comparable.</div>
@@ -656,7 +656,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
     (14.1&nbsp;GiB of GPU memory on the 80&nbsp;GiB H100; this was a setting limit, not running out of
     memory). The other three simply fall back to a single pass in that case.</li>
     <li><b>The spread across subjects is small.</b> With every subject run for the same number of
-    iterations, the shaded band mainly reflects how long each recording is. The 1M point covers only the 20
+    iterations, the shaded band shows the middle 50% of subjects, whose recording lengths vary. The 1M point covers only the 20
     recordings longer than 1M (so every implementation is compared on the same real chunking); the count of
     subjects behind each point:</li>
   </ul>
@@ -728,9 +728,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <h2>Convergence vs iterations: the measured ladder</h2>
   <p class="sub">A directly measured ladder: at a fixed chunk (65536), we ran every implementation to 100,
   250, 500, 1000, 2000 and 3000 iterations and recorded wall time, final log-likelihood, and memory at each,
-  with all 25 subjects at every point. Fit time grows in a straight line with iterations; memory is essentially flat
-  (it doesn't depend on iterations); convergence (how good the fit is) is the interesting part: pAMICA is
-  the outlier.</p>
+  with all 25 subjects at every point. Fit time grows in a straight line with iterations; measured memory changes
+  little across the tested counts; the log-likelihood (how good the fit is) is where the implementations
+  differ, with pAMICA's the lowest.</p>
   <div class="grid2"><div class="card">{c_lt}</div><div class="card">{c_ll}</div></div>
   <div class="grid2" style="margin-top:16px"><div class="card">{c_lm}</div>
   <div class="card"><table><thead><tr><th>Impl</th><th class="num">LL@100</th><th class="num">@250</th><th class="num">@500</th><th class="num">@1000</th><th class="num">@2000</th><th class="num">@3000</th><th class="num">wall@3000</th></tr></thead><tbody>{ladderrows()}</tbody></table></div></div>
@@ -788,11 +788,11 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   cores; the reference implementation is single-threaded, so treat it as a footprint rather than a
   like-for-like speed comparison. The GPU and CPU runs use different iteration counts, so don't compare
   their seconds.</div>
-  <p style="margin-top:22px"><b>Convergence vs iterations (CPU).</b> Fit time and how good the fit is as the
-  number of iterations grows (chunk 65536), measured at 50, 100, 250 and 500 iterations. Fit time grows in
-  a straight line with iterations; the fit quality improves quickly and then levels off, with pAMICA the
-  outlier, the same pattern as on the GPU. All points cover 25 subjects except pyamica at 50 iterations
-  (24).</p>
+  <p style="margin-top:22px"><b>Convergence vs iterations (CPU).</b> Fit time and final log-likelihood as
+  the number of iterations grows (chunk 65536), measured at 50, 100, 250 and 500 iterations. Wall time rises
+  about linearly across these counts; the median log-likelihood rises quickly and its steps shrink by 500,
+  with pAMICA's below the other three. The ladder stops at 500, so behaviour beyond that was not measured.
+  All points cover 25 subjects except pyamica at 50 iterations (24).</p>
   <div class="grid2"><div class="card">{c_clt}</div><div class="card">{c_cll}</div></div>
   {legend(CPU_CHART)}
 </section>
@@ -865,8 +865,8 @@ TLDR=f"""<title>AMICA implementations: summary (ds004505)</title>
   <h2>Iterations</h2>
   <p class="sub">Fit time and fit quality (log-likelihood, higher is better) versus the number of
   iterations, by device, at a fixed chunk. Fit time grows in a straight line with iterations; quality
-  improves quickly and then levels off. The exception is pAMICA, which stays a little below the others and is
-  still improving at the end.</p>
+  rises quickly and then changes little by the last tested count. pAMICA's stays below the others and is
+  still rising at the end.</p>
   <div class="pg">
     <div class="ch"></div><div class="ch">Fit time</div><div class="ch">Log-likelihood</div>
     <div class="rh gpu"><span>GPU</span></div><div class="card">{c_lt}</div><div class="card">{c_ll}</div>
