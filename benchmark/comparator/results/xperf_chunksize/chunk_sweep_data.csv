@@ -233,4 +233,4 @@ cpu_fit_s_bysubj_p25,fortran,block_size,262144,3988,s,
 cpu_fit_s_bysubj_p75,fortran,block_size,262144,4264,s,
 gpu_pamica_sensitivity,pamica,block_size,1024 (near 512 default),4155.5,s,artifact
 gpu_pamica_sensitivity,pamica,block_size,16384 (tuned),392.7,s,tuned
-gpu_pamica_sensitivity,pamica,block_size,262144 = largest tested,262.4,s,best
+gpu_pamica_sensitivity,pamica,block_size,262144 (large chunk),262.4,s,best

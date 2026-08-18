@@ -1,0 +1,5 @@
+impl,chunk,peak_pool_gib,n_subjects,note
+amica_python_jax_chunked,262144,4.00,25,JAX XLA BFC pool high-water (peak_pool_bytes) median; the JAX analog of torch max_memory_reserved
+amica_python_jax_chunked,524288,12.00,25,JAX peak_pool_bytes median
+amica_python_jax_chunked,1048576,12.00,20,JAX peak_pool_bytes median (1M restricted to the 20 recordings > 1048576)
+amica_python_jax_chunked,4194304,12.00,24,JAX peak_pool_bytes median at full-batch
