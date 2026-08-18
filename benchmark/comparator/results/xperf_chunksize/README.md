@@ -22,7 +22,7 @@ deliverable; everything else here regenerates or backs it.
 
 ## What this answers
 1. **Each implementation's batch/chunk knob is a real dial for fit *time*** — up to ~25× within one
-   implementation (amica-python, GPU; others 8–17×). For the torch implementations it also moves peak
+   implementation over 1K–262K (amica-python, GPU; others 8–16×, and larger still out to full-batch). For the torch implementations it also moves peak
    VRAM (~2.7–3.6× NVML); jamica's GPU memory is flat in the median (~5.4 GiB) on its chunked path
    (per-subject 3.4–5.4 GiB, rising to 5.4–7.4 at 262K for the longest recordings).
 2. **Small chunks win on neither device; the CPU optimum is implementation-specific.** On the GPU large
@@ -46,8 +46,8 @@ deliverable; everything else here regenerates or backs it.
 - **jamica is measured on its chunked path** (`amica_python_jax_chunked`). Its full-batch key
   (`amica_python_jax`, `chunk_size=None`) is a separate program: ~13.4 GiB NVML median (per-subject up
   to ~21) at the same GPU speed, much slower + ~19.8 GiB on CPU — discussed only in the memory note.
-- **`262144` is the largest tested chunk, not "full-batch"** — recordings are 785k–1.36M samples, so
-  262144 is ~19–33% of the data.
+- **`262144` is the largest chunk of the core sweep** — recordings are 785k–1.36M samples, so 262144 is
+  ~19–33% of the data. The GPU extension adds 512K, 1M and a full-batch pass on top (CPU stops at 262K).
 
 ## Provenance
 - GPU fit @3000 (matched): `raw/nostop_gpu3000_summary.csv` (Trillium H100, iteration-matched, 25 subj/cell).

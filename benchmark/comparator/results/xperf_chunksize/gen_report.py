@@ -34,7 +34,7 @@ CAVEATS baked into the report (see NOTES_measurement.md):
 """
 import math, os, csv
 
-FULL = 262144                       # the LARGEST TESTED chunk (samples); NOT a full-batch pass.
+FULL = 262144                       # largest chunk of the core axis (samples); the extension adds 512K/1M/full-batch.
 N_SAMP_MIN, N_SAMP_MAX = 785328, 1364633   # per-subject sample counts; 262144 = ~19-33% of a recording
 # per-subject sample counts (25 subjects, ds004505 @250 Hz) for the duration-distribution plot
 SUBJ_SAMPLES = [785328,1364633,1099796,1057036,1038926,1042909,1174503,1159910,1146679,1139466,1104857,
@@ -167,10 +167,10 @@ MEMDECOMP = {
 #    pAMICA silently CLAMP the chunk to full-batch for that subject; amica-python REJECTS it
 #    (BatchLoader raises: "batch_size N exceeds data size M"), i.e. it cannot run a single-chunk pass with
 #    an oversized batch. So the 1M point is restricted to the 20 subjects longer than 1,048,576 for ALL impls
-#    (apples-to-apples on genuinely-chunked data); the short subjects appear only at the full-batch point.
+#    (apples-to-apples on genuinely-chunked data); the short subjects are excluded from the 1M point only.
 #  * Full-batch = one pass over the whole recording (per-subject batch = n_samples for amica-python; the
 #    others clamp their chunk to n_samples). n contributing subjects is carried per point (preemption +
-#    the n22 restriction => some n<25) and shown in the coverage table.
+#    the n20 restriction at 1M => some n<25) and shown in the coverage table.
 # chunk -> (fit_s, nvml_gib, alloc_gib, reserved_gib|None, n_subjects)
 FB = 4194304                                     # x-axis sentinel for the full-batch point (label "full")
 C512, C1M = 524288, 1048576
@@ -361,7 +361,7 @@ LAD_TIME={im:{n:LADDER[im][n][0] for n in LADDER[im]} for im in IMPLS}
 LAD_LL  ={im:{n:LADDER[im][n][1] for n in LADDER[im]} for im in IMPLS}
 c_lt=chart_iters(LAD_TIME,"fit time (s)","GPU · fit time vs iterations","chunk 65536 · per-subject median · slope = seconds per iteration",IMPLS,y0zero=True)
 c_ll=chart_iters(LAD_LL,"final log-likelihood","GPU · convergence vs iterations","chunk 65536 · median final LL (higher = better)",IMPLS,y0zero=False)
-c_lm=chart_iters(LADDER_MEM,"GPU memory used (GiB)","GPU · memory vs iterations","chunk 65536 · total GPU memory · the same regardless of the number of iterations",IMPLS,y0zero=True)
+c_lm=chart_iters(LADDER_MEM,"GPU memory used (GiB)","GPU · memory vs iterations","chunk 65536 · total GPU memory · essentially the same regardless of the number of iterations",IMPLS,y0zero=True)
 
 gpu_t={im:{c:v[0] for c,v in GPU[im].items()} for im in IMPLS}
 gpu_v={im:{c:v[1] for c,v in GPU[im].items()} for im in IMPLS}
@@ -575,7 +575,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <h1>Fit time, convergence, and peak memory across AMICA implementations</h1>
   <p class="lede">Every Python AMICA implementation exposes one batch/chunk-size knob. We swept it on
   real EEG (ds004505), GPU and CPU, at matched iterations — and it is a big dial. Three takeaways: on the
-  GPU the speed-up <b>saturates by a ~262K chunk</b> (bigger buys almost no time and a lot of memory);
+  GPU <b>most of the speed-up is in by a ~262K chunk</b> (a little more out to 1M, paid for in memory);
   <b>GPU memory climbs steeply with the chunk</b> (pyamica reaches ~30&nbsp;GiB at full-batch — enough to matter on smaller cards); and
   <b>for the four parallel implementations, small chunks are fastest on neither device</b>. Fit times are wall time to a fixed iteration budget,
   not time to an equivalent solution — read them with the convergence section.</p>
@@ -589,8 +589,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   time is for a fixed number of iterations (3000 on the GPU, 250 on the CPU), and memory is the peak used.
   GPU and CPU times are measured at different iteration counts, so they are not directly comparable.</p>
   <table style="max-width:780px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
-  <p class="note">GPU fit is each implementation's fastest setting (a large chunk or a full-batch pass); memory columns give the range from the smallest
-  chunk to a full-batch pass. Patterns shared by all implementations: on the GPU a bigger chunk is faster
+  <p class="note">GPU fit is each implementation's fastest setting (a large chunk or a full-batch pass);
+  the GPU memory column spans the smallest chunk to a full-batch pass, the CPU memory column the smallest
+  to the largest tested chunk (262K). Patterns shared by all implementations: on the GPU a bigger chunk is faster
   but the gain flattens at large chunks, while memory keeps rising; on the CPU the best chunk depends on
   the implementation. For the four parallel implementations, small chunks are fastest on neither device. The single-threaded Fortran build is a
   reference point (it does not run on the GPU here), not a like-for-like comparison.</p>
@@ -609,7 +610,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   GPU's — don't compare GPU and CPU seconds.</div>
   <div class="callout">
     <div class="stat warn"><div class="big">~25×</div><div class="lab">GPU fit-time range from the smallest chunk to 262K within a single implementation (amica-python); the others span 8–16× over that range (larger still out to full-batch). Every implementation is chunk-sensitive on time.</div></div>
-    <div class="stat"><div class="big">grows</div><div class="lab">GPU memory grows with the chunk for three of the four — pyamica reaches ~29.6 GiB at full-batch — more than a 24 GiB card holds. jamica stays flat (~5.4 GiB) up to a mid-size chunk, then steps up to ~13.4 GiB.</div></div>
+    <div class="stat"><div class="big">grows</div><div class="lab">GPU memory grows with the chunk for three of the four — pyamica reaches ~29.6 GiB at full-batch — more than a 24 GiB card holds. jamica stays flat (~5.4 GiB) through a 262K chunk, then steps up to ~13.4 GiB.</div></div>
     <div class="stat"><div class="big">not small</div><div class="lab">For the four parallel implementations, small chunks are fastest on neither device. On the GPU the largest chunks win; on the CPU the best chunk depends on the implementation (the largest for two of them, a mid-size chunk for the other two). The GPU and CPU runs use different iteration counts, so don't compare their raw seconds.</div></div>
   </div>
   <div class="warn-box"><b>Reading the large end of the chunk axis (512K, 1M, full-batch).</b> Each
@@ -633,9 +634,9 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 <section>
   <h2>GPU — fit time &amp; memory</h2>
   <p class="sub">Each implementation swept across its setting on real ds004505 (per-subject median,
-  3000-iter matched, H100), now extended to <b>512K, 1M and full-batch</b>. Shaded band = p25–p75 across
+  3000-iter matched, H100), now extended to <b>512K, 1M and full-batch</b>. Shaded band = the middle 50% of
   subjects. Memory is the <b>total GPU memory actually used</b> (see the memory note), on a <b>log</b> axis
-  with real card-capacity lines so you can read where each one would run out of memory.</p>
+  with real card-capacity lines so you can compare each footprint to common card sizes.</p>
   <div class="grid2"><div class="card">{c_gt}</div><div class="card">{c_gv}</div></div>
   {legend(IMPLS)}
   <ul class="tk" style="margin-top:20px">
@@ -698,7 +699,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   and <b>how much the "active" number understates the total</b> (largest for jamica at small chunks, about
   3×, shrinking as the working memory grows). All climb with the chunk for the three torch implementations;
   jamica stays flat until the chunk passes a mid size, then steps up.</p>
-  <p class="note"><b>jamica's memory comes in two levels.</b> Up to a mid-size chunk it holds a flat floor
+  <p class="note"><b>jamica's memory comes in two levels.</b> Through a 262K chunk it holds a flat floor
   of about 5&nbsp;GiB, then steps up to about 13&nbsp;GiB for large chunks and stays there. This is real,
   not a measurement quirk: jamica's fit time changes about 13× across the chunk range (roughly 775&nbsp;s
   down to 61&nbsp;s), which only happens if the chunk setting is genuinely being applied. The floor exists
@@ -848,14 +849,14 @@ TLDR=f"""<title>AMICA implementations — summary (ds004505)</title>
 </header>
 <section>
   <h2>Main findings</h2>
-  <p class="sub">Each implementation at its best setting. Fit time is for a fixed number of iterations
-  (3000 on the GPU, 250 on the CPU — measured at different counts, so not directly comparable between
-  devices); memory is the peak used. Each name links to its repository.</p>
+  <p class="sub">Each implementation at its fastest setting (a large chunk or a full-batch pass). Fit time
+  is for a fixed number of iterations (3000 on the GPU, 250 on the CPU — measured at different counts, so
+  not directly comparable between devices); memory is the peak used. Each name links to its repository.</p>
   <table style="max-width:820px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
-  <p class="note">Memory columns give the range from the smallest chunk to a full-batch pass. Small and
-  mid chunks cover all 25 subjects; the large-chunk and full-batch points cover 17–25 (the 1M point uses
-  the 20 recordings longer than 1M). The single-threaded Fortran build is a reference point (it does not
-  run on the GPU here).</p>
+  <p class="note">The GPU memory column spans the smallest chunk to a full-batch pass; the CPU memory
+  column spans the smallest to the largest tested chunk (262K). Small and mid chunks cover all 25 subjects;
+  the large-chunk and full-batch GPU points cover 17–25 (the 1M point uses the 20 recordings longer than
+  1M). The single-threaded Fortran build is a reference point (it does not run on the GPU here).</p>
 </section>
 <section>
   <h2>Chunk size</h2>
@@ -873,7 +874,8 @@ TLDR=f"""<title>AMICA implementations — summary (ds004505)</title>
   <h2>Iterations</h2>
   <p class="sub">Fit time and fit quality (log-likelihood, higher is better) versus the number of
   iterations, by device, at a fixed chunk. Fit time grows in a straight line with iterations; quality
-  improves quickly and then levels off.</p>
+  improves quickly and then levels off — except pAMICA, which stays a little below the others and is still
+  improving at the end.</p>
   <div class="pg">
     <div class="ch"></div><div class="ch">Fit time</div><div class="ch">Log-likelihood</div>
     <div class="rh gpu"><span>GPU</span></div><div class="card">{c_lt}</div><div class="card">{c_ll}</div>
