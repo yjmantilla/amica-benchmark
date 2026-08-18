@@ -774,7 +774,7 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
 <section>
   <h2>CPU fit time and memory</h2>
   <p class="sub">Real EEG (ds004505) on a 64-core machine, one fit per machine so nothing else competes for
-  memory. Every implementation was run for the same 250 iterations; values are the per-subject median (25 subjects through 262K). All five, including the single-threaded reference, cover all 25 subjects through 262K (19–25 at
+  memory. Every implementation was run for the same 250 iterations; values are the per-subject median. All five, including the single-threaded reference, cover all 25 subjects through 262K (19–25 at
   the larger chunks), so these are clean absolute times.</p>
   <div class="grid2"><div class="card">{c_ct}</div><div class="card">{c_cr}</div></div>
   {legend(CPU_CHART)}
@@ -863,7 +863,7 @@ TLDR=f"""<title>AMICA implementations: summary (ds004505)</title>
 </header>
 <section>
   <h2>Main findings</h2>
-  <p class="sub">Each implementation at its fastest setting (for the four parallel implementations, a large chunk or a full-batch pass; for the single-threaded Fortran reference, the smallest chunk). Fit time
+  <p class="sub">Each implementation at its fastest measured setting. Fit time
   is for a fixed number of iterations (3000 on the GPU, 250 on the CPU; measured at different counts, the two are
   not directly comparable); memory is the peak used. Each name links to its repository.</p>
   <table style="max-width:820px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
