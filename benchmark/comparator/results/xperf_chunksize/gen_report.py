@@ -303,10 +303,10 @@ def chart_durations():
          f'@{SFREQ:.0f} Hz). Dashed = tested chunk sizes as % of the median recording; full-batch = the whole bar.')
     return f'<figure class="cf"><figcaption>{cap}</figcaption>{"".join(s)}</figure>'
 
-def chart_iters(series, ylab, title, sub, impls, y0zero=True):
+def chart_iters(series, ylab, title, sub, impls, y0zero=True, xmaxi=3120.0, xticks=(0,1000,2000,3000)):
     # x-axis = iterations (linear), for the chunk-65536 ladder.
     W,H=520,320; ml,mr,mt,mb=64,14,30,48; pw,ph=W-ml-mr,H-mt-mb
-    XMAXI=3120.0
+    XMAXI=float(xmaxi)
     def X(n): return ml+n/XMAXI*pw
     allv=[v for im in impls for v in series[im].values()]
     vmx=max(allv); vmn=min(allv)
@@ -325,7 +325,7 @@ def chart_iters(series, ylab, title, sub, impls, y0zero=True):
     while t0<=hi+1e-9:
         y=Y(t0); s.append(f'<line x1="{ml}" y1="{y:.1f}" x2="{W-mr}" y2="{y:.1f}" class="grid"/>')
         s.append(f'<text x="{ml-6}" y="{y+3:.1f}" class="cyt">{fmt%t0}</text>'); t0+=step
-    for n in (0,1000,2000,3000):
+    for n in xticks:
         x=X(n); s.append(f'<line x1="{x:.1f}" y1="{mt}" x2="{x:.1f}" y2="{mt+ph}" class="grid vg"/>')
         s.append(f'<text x="{x:.1f}" y="{mt+ph+16}" class="cxt">{n}</text>')
     for im in impls:
@@ -372,6 +372,19 @@ c_gt=chart(gpu_t,GPU_BAND,"fit time (s, log)",True,"GPU · fit time vs chunk","r
 c_gv=chart(gpu_v,None,"GPU memory used (GiB, log)",True,"GPU · memory vs chunk (with card capacities)","actual GPU memory used · dashed lines = card capacity (24, 40, 80 GiB)",IMPLS,"leanest",xt=GXT,hlines=GPU_CEILINGS)
 c_cr=chart(CPU_RSS,None,"memory used (GiB)",False,"CPU · memory vs chunk","real ds004505 · 64-core machine · per-subject median",CPU_CHART,"leanest")
 c_ct=chart(CPU_FIT,CPU_BAND,"fit time (s, log)",True,"CPU · fit time vs chunk","real ds004505 · 64-core machine, one fit per machine · 250 iterations · per-subject median",CPU_CHART,"fastest")
+# CPU iteration ladder (chunk 65536; iters 50/100/250/500) from raw/narval_nostop_i*_summary.csv.
+CPU_LAD_ITERS=[50,100,250,500]
+CPU_LAD={
+ "jamica":       {50:(222.7,-1.2320),100:(419.2,-1.1145),250:(937.8,-1.1050),500:(2235.9,-1.1020)},
+ "amica_python": {50:(183.0,-1.2280),100:(409.9,-1.1152),250:(1084.2,-1.1040),500:(2278.4,-1.1027)},
+ "pyamica":      {50:(478.5,-1.2238),100:(980.0,-1.1152),250:(2408.5,-1.1045),500:(4769.9,-1.1012)},
+ "pamica":       {50:(412.4,-1.1754),100:(814.2,-1.1293),250:(2063.7,-1.1202),500:(4148.3,-1.1179)},
+ "fortran":      {50:(847.8,-1.2233),100:(1665.6,-1.1151),250:(4004.4,-1.1048),500:(8230.1,-1.1013)},
+}
+CPU_LAD_TIME={im:{n:CPU_LAD[im][n][0] for n in CPU_LAD[im]} for im in CPU_CHART}
+CPU_LAD_LL  ={im:{n:CPU_LAD[im][n][1] for n in CPU_LAD[im]} for im in CPU_CHART}
+c_clt=chart_iters(CPU_LAD_TIME,"fit time (s)","CPU · fit time vs iterations","chunk 65536 · 64-core machine · per-subject median",CPU_CHART,y0zero=True,xmaxi=520,xticks=(0,100,250,500))
+c_cll=chart_iters(CPU_LAD_LL,"final log-likelihood","CPU · convergence vs iterations","chunk 65536 · median (higher = better)",CPU_CHART,y0zero=False,xmaxi=520,xticks=(0,100,250,500))
 # GPU memory decomposition, 2x2 vs chunk (allocator-live ⊆ reserved ⊆ NVML total; + understatement factor)
 c_mliv=chart(MEM_LIVE,None,"in active use (GiB)",False,"GPU · memory in active use vs chunk","what each framework reports as actively used · per-subject median",IMPLS,"leanest",xt=GXT)
 c_mresv=chart(MEM_RESV,None,"reserved (GiB)",False,"GPU · reserved memory vs chunk","the memory the software holds in reserve — what runs out first · per-subject median",IMPLS,"leanest",xt=GXT)
@@ -777,6 +790,12 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   cores; the reference implementation is single-threaded, so treat it as a footprint rather than a
   like-for-like speed comparison. The GPU and CPU runs use different iteration counts, so don't compare
   their seconds.</div>
+  <p style="margin-top:22px"><b>Convergence vs iterations (CPU).</b> Fit time and how good the fit is as the
+  number of iterations grows (chunk 65536), measured at 50, 100, 250 and 500 iterations. Fit time grows in
+  a straight line with iterations; the fit quality improves quickly and then levels off, with pAMICA the
+  outlier — the same pattern seen on the GPU.</p>
+  <div class="grid2"><div class="card">{c_clt}</div><div class="card">{c_cll}</div></div>
+  {legend(CPU_CHART)}
 </section>
 
 
