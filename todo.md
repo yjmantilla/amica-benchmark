@@ -34,6 +34,15 @@ monitor stopped on purpose).
 
 ---
 
+## PENDING (2026-08-17) — coverage backfills for the xperf_chunksize reports
+
+- [x] **GPU backfill (job 798466, Trillium)** — DONE 2026-08-17 (commit b103183). 19 preempted cells
+      re-ran; coverage table now uniform 25/25/20; GEXT/GEXT_BAND/MEM_RESV + raw refreshed; redeployed.
+- [ ] **CPU pyamica@50 rerun (job 1160526, Narval, THROTTLED)** — sub-07 missing at chunk 65536 / 50 iters
+      (CPU ladder was 24). When done: update CPU_LAD['pyamica'][50] to the 25-subject median from
+      `narval_nostop_i50` (re-aggregate), remove the "except pyamica at 50 iterations (24)" footnote,
+      regenerate + redeploy. May sit in the Narval queue a while behind the large-chunk leg.
+
 ## DONE — reproducibility infrastructure
 
 - [x] PR1 provenance stamping at the `write_result` choke point
