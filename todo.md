@@ -7,7 +7,7 @@ test-merge of all five. Cluster: `fir` (Alliance), clone at
 
 ---
 
-## PENDING (2026-08-17) — CPU large-chunk fold-in to xperf_chunksize report
+## DONE (2026-08-18) — CPU large-chunk fold-in to xperf_chunksize report
 
 GPU large-chunk / full-batch extension is **done, deployed, pushed** (branch
 `iter-ladder-campaign`, commit `e75f307`; artifact 5c1007ae…). The CPU half is
@@ -15,22 +15,24 @@ GPU large-chunk / full-batch extension is **done, deployed, pushed** (branch
 → ~1–2+ days). User decision: **let it run; user will say when it's ready** (CPU
 monitor stopped on purpose).
 
-- [ ] When user says CPU is ready: verify jobs **1146546** (1M+full, 250),
+- [x] When user says CPU is ready: verify jobs **1146546** (1M+full, 250),
       **1147196** (524K, 125), **1149409** (scott per-subject full-batch, 25) are
       COMPLETED on Narval.
-- [ ] Aggregate CPU results from `/scratch/yorguin/iter_ladder/cpu_nostop/c<chunk>_i250_r1/`
+- [x] Aggregate CPU results from `/scratch/yorguin/iter_ladder/cpu_nostop/c<chunk>_i250_r1/`
       (and scott full-batch from per-subject `c<n_samples>_i250_r1/`), same script
       pattern as `scratchpad/agg_gpu2.py` but for CPU fit_s + RSS (peak_rss_gb).
-- [ ] Fold into `gen_report.py` CPU charts (c_ct/c_cr): extend to log axis 1K→1M,
+- [x] Fold into `gen_report.py` CPU charts (c_ct/c_cr): extend to log axis 1K→1M,
       add a **CPU full-batch table** (mirror `fullbatchrows()`); apply the same
       short-subject methodology — **1M restricted to the 22 subjects >1M**; scott
       full-batch uses per-subject batch = n_samples (its `BatchLoader` guard is
       device-independent). Remove the "GPU-only in this version" CPU note.
-- [ ] Pull a CPU-ext raw CSV into `raw/`, update README/NOTES provenance, regen,
+- [x] Pull a CPU-ext raw CSV into `raw/`, update README/NOTES provenance, regen,
       redeploy to the SAME artifact URL, `git push fork iter-ladder-campaign`,
       refresh the htmlpreview link.
 - Full context (paths, job IDs, the batch-guard finding, GPU memory table):
       memory file `narval-cpu-campaign.md`.
+
+**DONE 2026-08-18** (Sina main `1e775bc`; fork `a4b89ae`). All jobs COMPLETED (401). Aggregated via `scratchpad/agg_cpu_ext.py` (reproduces the 65536 cell exactly); raw/narval_nostop_cpu_ext_summary.csv added. CPU charts extended 1K→1M + CPU full-batch table; 1M restricted to the **20** recordings >1,048,576 (not 22); scott full-batch = per-subject batch. Fastest CPU setting is a large chunk for all four parallel impls. 3-model consistency/neutrality panel (reviews/report-panel12-cpu-foldin) applied — caught the stale 'What to trust' 262K/16K line.
 
 ---
 
@@ -38,10 +40,9 @@ monitor stopped on purpose).
 
 - [x] **GPU backfill (job 798466, Trillium)** — DONE 2026-08-17 (commit b103183). 19 preempted cells
       re-ran; coverage table now uniform 25/25/20; GEXT/GEXT_BAND/MEM_RESV + raw refreshed; redeployed.
-- [ ] **CPU pyamica@50 rerun (job 1160526, Narval, THROTTLED)** — sub-07 missing at chunk 65536 / 50 iters
-      (CPU ladder was 24). When done: update CPU_LAD['pyamica'][50] to the 25-subject median from
-      `narval_nostop_i50` (re-aggregate), remove the "except pyamica at 50 iterations (24)" footnote,
-      regenerate + redeploy. May sit in the Narval queue a while behind the large-chunk leg.
+- [x] **CPU pyamica@50 rerun (job 1160526, Narval)** — DONE 2026-08-18. sub-07 landed; CPU ladder is 25/25.
+      CPU_LAD['pyamica'][50] → (475.5, -1.2272); "except pyamica at 50 iterations (24)" footnote removed.
+      Folded in with the large-chunk leg (Sina main `1e775bc`).
 
 ## DONE — reproducibility infrastructure
 
