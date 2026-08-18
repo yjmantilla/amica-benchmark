@@ -176,15 +176,15 @@ FB = 4194304                                     # x-axis sentinel for the full-
 C512, C1M = 524288, 1048576
 GEXT = {
  "jamica":       {C512:(59.9,13.37,5.75,12.00,25), C1M:(58.8,13.37,5.76,12.00,20), FB:(61.7,13.37,8.18,12.00,24)},
- "amica_python": {C512:(211.3,7.57,5.77,6.33,20), C1M:(209.0,13.32,10.78,12.09,20), FB:(197.9,14.10,11.46,12.87,25)},
- "pyamica":      {C512:(287.0,19.06,16.86,17.82,20), C1M:(283.7,28.06,26.63,26.82,20), FB:(278.5,29.56,28.16,28.33,21)},
- "pamica":       {C512:(248.8,10.57,9.32,10.09,19), C1M:(247.9,19.33,18.09,18.09,17), FB:(242.5,20.50,19.25,19.26,22)},
+ "amica_python": {C512:(211.5,7.57,5.77,6.33,25), C1M:(209.0,13.32,10.78,12.09,20), FB:(197.9,14.10,11.46,12.87,25)},
+ "pyamica":      {C512:(286.2,19.05,16.86,17.81,25), C1M:(283.7,28.06,26.63,26.82,20), FB:(278.5,29.56,28.16,28.33,21)},
+ "pamica":       {C512:(250.2,10.59,9.33,10.09,25), C1M:(247.7,19.33,18.08,18.09,20), FB:(242.5,20.50,19.25,19.26,22)},
 }
 GEXT_BAND = {  # fit p25,p75 at the extension chunks (iteration-matched @3000)
  "jamica":       {C512:(59.0,61.3), C1M:(58.0,59.9), FB:(58.7,69.7)},
- "amica_python": {C512:(202.0,215.9), C1M:(204.6,211.6), FB:(193.2,202.7)},
- "pyamica":      {C512:(267.4,293.2), C1M:(280.1,289.3), FB:(262.7,285.2)},
- "pamica":       {C512:(236.5,254.0), C1M:(243.7,252.8), FB:(237.3,247.6)},
+ "amica_python": {C512:(203.9,217.2), C1M:(204.6,211.6), FB:(193.2,202.7)},
+ "pyamica":      {C512:(268.4,293.2), C1M:(280.1,289.3), FB:(262.7,285.2)},
+ "pamica":       {C512:(237.5,258.3), C1M:(243.5,252.9), FB:(237.3,247.6)},
 }
 # allocator reserved-pool high-water — the OOM-relevant counter. torch: max_memory_reserved; JAX/jamica:
 # peak_pool_bytes (the XLA BFC pool — the JAX analog). 262K from the i3000 run; 512K/1M from the extension
@@ -192,7 +192,7 @@ GEXT_BAND = {  # fit p25,p75 at the extension chunks (iteration-matched @3000)
 MEM_RESV = {
  "jamica":       {262144:4.00, C512:12.00, C1M:12.00},
  "amica_python": {262144:3.66, C512:6.33,  C1M:12.09},
- "pyamica":      {262144:9.68, C512:17.82, C1M:26.82},
+ "pyamica":      {262144:9.68, C512:17.81, C1M:26.82},
  "pamica":       {262144:5.34, C512:10.09, C1M:18.09},
 }
 # fold ONLY the on-axis chunks (512K, 1M) into the charted dicts. Full-batch (FB) is a regime, not a chunk
@@ -663,10 +663,8 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   </ul>
   <table style="margin-top:6px;max-width:480px"><thead><tr><th>subjects per point</th><th class="num">≤262K</th><th class="num">512K</th><th class="num">1M *</th></tr></thead><tbody>{covrows()}</tbody></table>
   <p class="note">* 1M covers only the 20 recordings longer than 1,048,576 samples (for every
-  implementation), so the comparison is on genuinely chunked data; the other 5 recordings are left out of
-  the 1M point but appear everywhere else, including the full-batch table. At 1M, 20 is full coverage of the
-  eligible recordings; a count below 20 (pAMICA) means a few runs did not finish, as do the sub-25 counts
-  at 512K.</p>
+  implementation), so the comparison is on genuinely chunked data; the other 5 recordings appear at every
+  other point, including the full-batch table.</p>
   <p style="margin-top:22px"><b>Full-batch — one pass over the whole recording.</b> This is a different
   regime, not a chunk size, so it is shown in a table rather than on the chunk axis above (per-subject
   median). amica-python uses a chunk equal to each recording's length; the others fall back to a single
@@ -798,7 +796,8 @@ footer{{padding:34px 0 0;color:var(--mut);font-size:.86rem}}
   <p style="margin-top:22px"><b>Convergence vs iterations (CPU).</b> Fit time and how good the fit is as the
   number of iterations grows (chunk 65536), measured at 50, 100, 250 and 500 iterations. Fit time grows in
   a straight line with iterations; the fit quality improves quickly and then levels off, with pAMICA the
-  outlier — the same pattern seen on the GPU.</p>
+  outlier — the same pattern seen on the GPU. All points cover 25 subjects except pyamica at 50 iterations
+  (24).</p>
   <div class="grid2"><div class="card">{c_clt}</div><div class="card">{c_cll}</div></div>
   {legend(CPU_CHART)}
 </section>
@@ -855,7 +854,7 @@ TLDR=f"""<title>AMICA implementations — summary (ds004505)</title>
   <table style="max-width:820px"><thead><tr><th>Implementation</th><th class="num">GPU fit</th><th class="num">GPU memory</th><th class="num">CPU fit</th><th class="num">CPU memory</th></tr></thead><tbody>{mainrows()}</tbody></table>
   <p class="note">The GPU memory column spans the smallest chunk to a full-batch pass; the CPU memory
   column spans the smallest to the largest tested chunk (262K). Small and mid chunks cover all 25 subjects;
-  the large-chunk and full-batch GPU points cover 17–25 (the 1M point uses the 20 recordings longer than
+  the large-chunk and full-batch GPU points cover 20–25 (the 1M point uses the 20 recordings longer than
   1M). The single-threaded Fortran build is a reference point (it does not run on the GPU here).</p>
 </section>
 <section>
