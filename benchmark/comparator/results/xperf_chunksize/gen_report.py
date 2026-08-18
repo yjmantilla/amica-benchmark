@@ -52,7 +52,7 @@ REPO  = {"jamica":"https://github.com/snesmaeili/jamica","pamica":"https://githu
 def rlink(im, text):   # implementation name as a link to its repository
     return f'<a class="rl" href="{REPO[im]}" target="_blank" rel="noopener">{text}</a>' if im in REPO else text
 # Cross-links between the two reports (published artifacts). TLDR_URL is filled once the summary is deployed.
-_GH = "https://htmlpreview.github.io/?https://github.com/yjmantilla/amica-benchmark/blob/iter-ladder-campaign/benchmark/comparator/results/xperf_chunksize"
+_GH = "https://htmlpreview.github.io/?https://github.com/snesmaeili/jamica-benchmark/blob/main/benchmark/comparator/results/xperf_chunksize"
 DETAILED_URL = f"{_GH}/xperf_chunk_report_standalone.html"
 TLDR_URL     = f"{_GH}/xperf_chunk_tldr_standalone.html"
 
