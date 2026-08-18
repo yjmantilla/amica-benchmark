@@ -79,7 +79,7 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
   to the largest tested chunk (262K). Patterns shared by all implementations: on the GPU a bigger chunk is faster
   but the gain flattens at large chunks, while memory keeps rising; on the CPU the best chunk depends on
   the implementation. None of the four parallel implementations is fastest at a small chunk, on either device. The single-threaded Fortran build is a
-  reference point (it does not run on the GPU here), not a like-for-like comparison.</p>
+  reference point (it does not run on the GPU here), not a fair comparison against the 64-core runs.</p>
 </section>
 
 <section>
@@ -295,12 +295,9 @@ footer{padding:34px 0 0;color:var(--mut);font-size:.86rem}
     <dt>Builds</dt><dd><a class="rl" href="https://github.com/snesmaeili/jamica" target="_blank" rel="noopener">jamica</a> df18b5e · <a class="rl" href="https://github.com/scott-huberty/amica-python" target="_blank" rel="noopener">amica-python</a> e15e158 · <a class="rl" href="https://github.com/DerAndereJohannes/pyamica" target="_blank" rel="noopener">pyamica</a> a8a4d7e · <a class="rl" href="https://github.com/sccn/pAMICA" target="_blank" rel="noopener">pAMICA</a> 0c4da39 · <a class="rl" href="https://github.com/sccn/amica" target="_blank" rel="noopener">Fortran</a> 665b577</dd>
   </dl>
   <p class="note" style="margin-top:16px"><b>What to trust:</b> the curve shapes, the actual GPU-memory
-  figures, the per-iteration speeds, and the convergence columns read together. <b>Takeaways:</b> most of the GPU speed-up
-  is in by ~262K (a bigger chunk buys little more time and costs memory); memory climbs with the chunk
-  (pyamica ~29.6&nbsp;GiB at full-batch; jamica a ~5.4→13.4&nbsp;GiB step); for the four parallel
-  implementations small chunks win on neither device, and the fastest measured CPU setting is
-  implementation-specific (262K for jamica/amica-python, 16K for pAMICA/pyamica); amica-python cannot run a
-  single-chunk pass with an oversized batch (a setting limit, not running out of memory). Fit times are wall time to a fixed iteration budget, <b>not</b> time to an
+  figures, the per-iteration speeds, and the convergence columns read together. The fastest measured CPU setting is
+  implementation-specific (262K for jamica/amica-python, 16K for pAMICA/pyamica), and amica-python cannot
+  run a single-chunk pass with an oversized batch (a setting limit, not running out of memory). Fit times are wall time to a fixed iteration budget, <b>not</b> time to an
   equivalent solution, and GPU and CPU budgets differ, so don't compare their seconds.</p>
 </footer>
 </div>
