@@ -943,5 +943,47 @@ for cfg, t, v, tag in REAL_PAM:
 with open(os.path.join(HERE, "chunk_sweep_data.csv"), "w", newline="") as _f:
     csv.writer(_f).writerows(_rows)
 
+# ---- extra CSVs for the standalone paper-figure script (make_paper_figures.py) ----
+# All values come straight from the vetted report dicts above; these files are the figure data source.
+# full-batch rows appended to the chunk table with chunk="fullbatch".
+_fb=[("dataset","impl","knob","chunk","value","unit","note")]
+for _im in IMPLS:
+    _fit,_nvml,_alloc,_resv,_n = GEXT[_im][FB]
+    _fb.append(("gpu_fit_s_median",_im,KNOB[_im],"fullbatch",_fit,"s",f"GPU full-batch, n={_n}"))
+    _fb.append(("gpu_vram_gib_nvml",_im,KNOB[_im],"fullbatch",_nvml,"GiB",f"GPU full-batch NVML, n={_n}"))
+for _im,(_fit,_rss,_n) in CPU_FB.items():
+    _fb.append(("cpu_fit_s_bysubj_median",_im,KNOB[_im],"fullbatch",_fit,"s",f"CPU full-batch, n={_n}"))
+    _fb.append(("cpu_rss_gib_median",_im,KNOB[_im],"fullbatch",_rss,"GiB",f"CPU full-batch RSS, n={_n}"))
+with open(os.path.join(HERE,"chunk_sweep_fullbatch.csv"),"w",newline="") as _f:
+    csv.writer(_f).writerows(_fb)
+
+# iteration ladder (fixed chunk 65536): GPU 100..3000 (LADDER + LADDER_MEM), CPU 50..500 (CPU_LAD).
+_lad=[("device","impl","iters","fit_s","ll","mem_gib")]
+for _im in IMPLS:
+    for _it in LAD_ITERS:
+        _t,_ll = LADDER[_im][_it]
+        _lad.append(("gpu",_im,_it,_t,_ll,LADDER_MEM.get(_im,{}).get(_it,"")))
+for _im in ["jamica","pamica","pyamica","amica_python","fortran"]:
+    for _it in CPU_LAD_ITERS:
+        _t,_ll = CPU_LAD[_im][_it]
+        _lad.append(("cpu",_im,_it,_t,_ll,""))
+with open(os.path.join(HERE,"iter_ladder_data.csv"),"w",newline="") as _f:
+    csv.writer(_f).writerows(_lad)
+
+# GPU memory decomposition vs chunk: active (framework allocator) <= reserved (pool) <= total (NVML).
+_dec=[("impl","knob","chunk","active_gib","reserved_gib","total_gib","ratio_total_over_active")]
+for _im in IMPLS:
+    for _c in sorted(MEM_RATIO[_im]):
+        _dec.append((_im,KNOB[_im],str(_c),
+                     MEM_LIVE[_im].get(_c,""),MEM_RESV.get(_im,{}).get(_c,""),
+                     gpu_v[_im].get(_c,""),MEM_RATIO[_im][_c]))
+with open(os.path.join(HERE,"gpu_memory_decomp_data.csv"),"w",newline="") as _f:
+    csv.writer(_f).writerows(_dec)
+
+# per-subject recording lengths (ds004505 @250 Hz) for the signal-duration figure.
+_dur=[("subject_index","n_samples")]+[ (i+1,n) for i,n in enumerate(SUBJ_SAMPLES)]
+with open(os.path.join(HERE,"subject_durations.csv"),"w",newline="") as _f:
+    csv.writer(_f).writerows(_dur)
+
 print("wrote CORRECTED report", len(HTML), "bytes (+ standalone", len(STANDALONE),
       "bytes) + chunk_sweep_data.csv", len(_rows) - 1, "rows")
